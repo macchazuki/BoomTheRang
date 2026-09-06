@@ -22,12 +22,8 @@ camera.position.z = 3;
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.domElement.setAttribute('aria-label', `${GAME_NAME} canvas`);
-
-const title = document.createElement('h1');
-title.textContent = GAME_NAME;
-title.className = 'game-title';
-app.append(title, renderer.domElement);
+renderer.domElement.setAttribute('aria-label', `${GAME_NAME} background scene`);
+app.appendChild(renderer.domElement);
 
 const geometry = new THREE.TorusKnotGeometry(0.7, 0.22, 96, 16);
 const material = new THREE.MeshStandardMaterial({
