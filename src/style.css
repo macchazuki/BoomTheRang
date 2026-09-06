@@ -1,0 +1,45 @@
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #f4f7ff;
+  background: #0d1220;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  position: relative;
+}
+
+.game-title {
+  position: absolute;
+  z-index: 1;
+  top: 1.25rem;
+  left: 1.5rem;
+  margin: 0;
+  color: #ffb38d;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 1rem rgb(255 107 53 / 45%);
+}
+
+canvas {
+  display: block;
+}
