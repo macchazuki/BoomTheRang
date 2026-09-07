@@ -9,16 +9,15 @@ permissions:
 
 concurrency:
   group: github-pages-preview
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Deploy preview
+  build:
+    name: Build preview
     if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
 
     steps:
       - name: Check out repository
@@ -35,6 +34,34 @@ jobs:
 
       - name: Build preview site
         run: npm run build -- --base "/BoomTheRang/pr-preview/pr-${{ github.event.number }}/"
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-preview-dist
+          path: ./dist
+          retention-days: 1
+
+  deploy:
+    name: Deploy preview
+    needs: build
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check out Pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Download preview artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-preview-dist
+          path: ./dist
 
       - name: Deploy preview
         uses: rossjrw/pr-preview-action@v1
@@ -53,8 +80,10 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Check out repository
+      - name: Check out Pages branch
         uses: actions/checkout@v4
+        with:
+          ref: gh-pages
 
       - name: Remove preview
         uses: rossjrw/pr-preview-action@v1
