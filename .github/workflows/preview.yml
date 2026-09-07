@@ -1,0 +1,65 @@
+name: Deploy PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy preview
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --ignore-scripts
+
+      - name: Build preview site
+        run: npm run build -- --base "/BoomTheRang/pr-preview/pr-${{ github.event.number }}/"
+
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: ./dist/
+          preview-branch: gh-pages
+          wait-for-pages-deployment: true
+          qr-code: false
+
+  cleanup:
+    name: Remove preview
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Remove preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          preview-branch: gh-pages
+          action: remove
+          wait-for-pages-deployment: true
+          qr-code: false
