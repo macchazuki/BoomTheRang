@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { DogController } from '../gameplay/DogController.js';
 import { GameController, GAMEPLAY_STATE } from '../gameplay/GameController.js';
 import { GameState } from '../gameplay/GameState.js';
 import { GaugeController, GAUGE_RESULT } from '../gameplay/GaugeController.js';
@@ -6,7 +7,7 @@ import { ThrowController } from '../gameplay/ThrowController.js';
 import { ProgressionManager } from '../progression/ProgressionManager.js';
 import { BALANCE } from '../progression/balance.js';
 
-function createGameplayFixture(ownedUpgrades = []) {
+function createGameplayFixture(ownedUpgrades = [], { realDog = false, rng = () => 1 } = {}) {
   const gameState = new GameState();
   for (const upgradeId of ownedUpgrades) {
     gameState.upgrades[upgradeId] = true;
@@ -14,12 +15,18 @@ function createGameplayFixture(ownedUpgrades = []) {
 
   const gaugeController = new GaugeController();
   const progressionManager = new ProgressionManager(gameState);
-  const dogController = {
-    configure: vi.fn(),
-    pause: vi.fn(),
-    resume: vi.fn(),
-    update: vi.fn(),
-  };
+  let controller;
+  const dogController = realDog
+    ? new DogController({
+        onThrow: (dogThrow) => controller?.handleDogThrow(dogThrow),
+        rng,
+      })
+    : {
+        configure: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        update: vi.fn(),
+      };
   const gameScene = {
     bindInput: vi.fn(),
     setPlayerBoomerangCount: vi.fn(),
@@ -38,7 +45,7 @@ function createGameplayFixture(ownedUpgrades = []) {
   };
   const saveManager = { save: vi.fn() };
 
-  const controller = new GameController({
+  controller = new GameController({
     gameState,
     gaugeController,
     throwController: new ThrowController(),
@@ -149,6 +156,92 @@ describe('gameplay integration contract', () => {
     expect(fixture.gameState.xp).toBe(playerXp + 3);
     expect(fixture.gameState.stats.dogThrows).toBe(1);
     expect(fixture.gameScene.playDogThrow).toHaveBeenCalledTimes(1);
+  });
+
+  it('automatic dog throws reward every target and use the global Training multiplier', () => {
+    const fixture = createGameplayFixture(
+      ['betterTraining1', 'secondDummy', 'dogCompanion'],
+      { realDog: true },
+    );
+
+    fixture.controller.update(10);
+
+    expect(fixture.gameState.xp).toBe(6);
+    expect(fixture.gameState.stats.dogThrows).toBe(1);
+    expect(fixture.gameState.stats.targetsHit).toBe(2);
+    expect(fixture.gameScene.playDogThrow).toHaveBeenCalledWith({
+      owner: 'dog',
+      result: 'HIT',
+      boomerangCount: 1,
+      targetCount: 2,
+      rewardedTargetHits: 2,
+      critical: false,
+      targetChain: [0, 1],
+      reducedMotion: false,
+    });
+  });
+
+  it('Fetch Mastery uses injected RNG, doubles dog XP, and emits GOOD BOY feedback', () => {
+    const rng = vi.fn(() => 0.05);
+    const fixture = createGameplayFixture(
+      [
+        'dogCompanion',
+        'dogTraining1',
+        'dogTraining2',
+        'fastFetch1',
+        'fastFetch2',
+        'fetchMastery',
+        'criticalMastery',
+        'boomerangMastery',
+        'comboTraining',
+      ],
+      { realDog: true, rng },
+    );
+
+    fixture.gameState.setCombo(20);
+    fixture.controller.update(6);
+
+    expect(rng).toHaveBeenCalledTimes(1);
+    expect(fixture.gameState.xp).toBe(12);
+    expect(fixture.gameState.stats.dogCriticals).toBe(1);
+    expect(fixture.gameState.gameplay.combo).toBe(20);
+    expect(fixture.hud.showDogResult).toHaveBeenCalledWith({
+      critical: true,
+      awardedXp: 12,
+    });
+  });
+
+  it('automatic dog throws remain non-blocking during a player throw', () => {
+    const fixture = createGameplayFixture(['dogCompanion', 'comboTraining'], { realDog: true });
+
+    fixture.controller.update(9.5);
+    tapAt(fixture, 0.4);
+
+    const playerXp = fixture.gameState.xp;
+    expect(fixture.controller.state).toBe(GAMEPLAY_STATE.PLAYER_THROW);
+    expect(fixture.gameState.gameplay.combo).toBe(1);
+
+    fixture.controller.update(0.5);
+
+    expect(fixture.controller.state).toBe(GAMEPLAY_STATE.PLAYER_THROW);
+    expect(fixture.gameState.gameplay.combo).toBe(1);
+    expect(fixture.gameState.xp).toBe(playerXp + 3);
+    expect(fixture.gameState.stats.dogThrows).toBe(1);
+  });
+
+  it('automatic dog throws remain non-blocking during miss reload', () => {
+    const fixture = createGameplayFixture(['dogCompanion'], { realDog: true });
+
+    fixture.controller.update(9.5);
+    tapAt(fixture, 0.1);
+
+    expect(fixture.controller.state).toBe(GAMEPLAY_STATE.MISS_RELOAD);
+    fixture.controller.update(0.5);
+
+    expect(fixture.controller.state).toBe(GAMEPLAY_STATE.MISS_RELOAD);
+    expect(fixture.controller.reloadRemainingSeconds).toBe(4.5);
+    expect(fixture.gameState.xp).toBe(3);
+    expect(fixture.gameState.stats.dogThrows).toBe(1);
   });
 
   it('upgrade purchase immediately changes calculations, runtime mirrors, and save snapshot', () => {

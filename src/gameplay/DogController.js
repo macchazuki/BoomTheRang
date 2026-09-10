@@ -18,10 +18,21 @@ export class DogController {
 
   /** Apply current progression-derived dog timing and critical chance. */
   configure({ unlocked, intervalSeconds, criticalChance }) {
+    const nextIntervalSeconds = Math.max(
+      BALANCE.dogMinimumIntervalSeconds,
+      intervalSeconds,
+    );
+    const timingChanged = this.unlocked !== unlocked || this.intervalSeconds !== nextIntervalSeconds;
+
     this.unlocked = unlocked;
-    this.intervalSeconds = Math.max(BALANCE.dogMinimumIntervalSeconds, intervalSeconds);
+    this.intervalSeconds = nextIntervalSeconds;
     this.criticalChance = Math.max(0, Math.min(1, criticalChance));
-    if (!unlocked) this.elapsedSeconds = 0;
+
+    // Unlocking or changing Fast Fetch starts a fresh interval. This prevents
+    // a smaller interval from converting old elapsed time into an immediate burst.
+    if (!unlocked || timingChanged) {
+      this.elapsedSeconds = 0;
+    }
   }
 
   /** Resume future timer accumulation; no catch-up time is injected. */
@@ -36,19 +47,24 @@ export class DogController {
 
   /**
    * Advance dog timer.
-   * A clamped app delta means this never produces offline/catch-up bursts.
+   * At most one throw may happen per update, so a large delta can never create
+   * catch-up/offline bursts across subsequent frames.
    */
   update(deltaSeconds) {
     if (!this.unlocked || this.paused || deltaSeconds <= 0) return;
 
-    this.elapsedSeconds += deltaSeconds;
-
-    if (this.elapsedSeconds >= this.intervalSeconds) {
-      this.elapsedSeconds -= this.intervalSeconds;
-      this.onThrow({
-        critical: this.rollCritical(),
-      });
+    const elapsedSeconds = this.elapsedSeconds + deltaSeconds;
+    if (elapsedSeconds < this.intervalSeconds) {
+      this.elapsedSeconds = elapsedSeconds;
+      return;
     }
+
+    // Preserve only the fractional progress toward the next interval while
+    // intentionally dropping any additional intervals crossed by a large delta.
+    this.elapsedSeconds = elapsedSeconds % this.intervalSeconds;
+    this.onThrow({
+      critical: this.rollCritical(),
+    });
   }
 
   /** Injectable RNG makes Fetch Mastery deterministic in tests. */
