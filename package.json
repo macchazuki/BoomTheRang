@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
-    "preview": "vite preview"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "three": "^0.180.0"
