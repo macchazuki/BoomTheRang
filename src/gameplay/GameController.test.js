@@ -6,11 +6,12 @@ import { ThrowController } from './ThrowController.js';
 import { ProgressionManager } from '../progression/ProgressionManager.js';
 import { BALANCE } from '../progression/balance.js';
 
-function createHarness({ ownedUpgrades = [] } = {}) {
+function createHarness({ ownedUpgrades = [], gameCompleted = false } = {}) {
   const gameState = new GameState();
   for (const upgradeId of ownedUpgrades) {
     gameState.upgrades[upgradeId] = true;
   }
+  gameState.progression.gameCompleted = gameCompleted;
 
   const gaugeController = new GaugeController();
   const progressionManager = new ProgressionManager(gameState);
@@ -29,6 +30,7 @@ function createHarness({ ownedUpgrades = [] } = {}) {
     playDogThrow: vi.fn(() => Promise.resolve()),
     playResultFeedback: vi.fn(),
     showGrandmasterTarget: vi.fn(),
+    hideGrandmasterTarget: vi.fn(),
     playGrandmasterSequence: vi.fn(() => Promise.resolve()),
   };
   const hud = {
@@ -60,12 +62,17 @@ function createHarness({ ownedUpgrades = [] } = {}) {
     dogController,
     gameScene,
     hud,
+    saveManager,
   };
 }
 
 function tapAt(harness, position) {
   harness.gaugeController.position = position;
   harness.controller.handlePointerDown({ defaultPrevented: false });
+}
+
+async function flushPromises() {
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('GameController contract', () => {
@@ -216,5 +223,106 @@ describe('GameController contract', () => {
     expect(harness.gameState.xp).toBe(0);
   });
 
-  it.todo('Grandmaster completes only on a white result');
+  it('Grandmaster red miss reloads and returns to the challenge without completing', () => {
+    const harness = createHarness({ ownedUpgrades: ['grandmaster'] });
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.FINAL_CHALLENGE);
+    tapAt(harness, 0.1);
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.MISS_RELOAD);
+    expect(harness.gameState.progression.gameCompleted).toBe(false);
+    expect(harness.saveManager.save).not.toHaveBeenCalled();
+
+    harness.controller.update(BALANCE.missReloadSeconds);
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.FINAL_CHALLENGE);
+    expect(harness.dogController.pause).toHaveBeenCalled();
+  });
+
+  it('Grandmaster green hit recovers back into the challenge without completing', () => {
+    const harness = createHarness({ ownedUpgrades: ['grandmaster'] });
+
+    tapAt(harness, 0.4);
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.PLAYER_THROW);
+    expect(harness.gameState.progression.gameCompleted).toBe(false);
+    expect(harness.saveManager.save).not.toHaveBeenCalled();
+
+    harness.controller.update(BALANCE.successRecoverySeconds);
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.FINAL_CHALLENGE);
+  });
+
+  it('Grandmaster white completes once and saves the completion flag immediately', async () => {
+    const harness = createHarness({ ownedUpgrades: ['grandmaster'] });
+    harness.gameScene.playGrandmasterSequence.mockClear();
+
+    tapAt(harness, 0.5);
+    tapAt(harness, 0.5);
+
+    expect(harness.gameState.progression.gameCompleted).toBe(true);
+    expect(harness.gameState.stats.manualThrows).toBe(1);
+    expect(harness.saveManager.save).toHaveBeenCalledTimes(1);
+    expect(harness.saveManager.save).toHaveBeenCalledWith(
+      expect.objectContaining({ progression: { gameCompleted: true } }),
+    );
+
+    await flushPromises();
+    expect(harness.gameScene.playGrandmasterSequence).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retrigger Grandmaster for an already completed save', () => {
+    const harness = createHarness({
+      ownedUpgrades: ['grandmaster'],
+      gameCompleted: true,
+    });
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.READY);
+    expect(harness.controller.finalChallengeActive).toBe(false);
+    expect(harness.gameScene.showGrandmasterTarget).not.toHaveBeenCalled();
+  });
+
+  it('defers a Grandmaster purchase while an upgrade modal owns PAUSED', () => {
+    const harness = createHarness();
+    harness.controller.pause('upgrade-panel');
+    const activePlayBeforePurchase = harness.gameState.stats.activePlaySeconds;
+    const dogUpdatesBeforePurchase = harness.dogController.update.mock.calls.length;
+
+    harness.gameState.upgrades.grandmaster = true;
+    harness.controller.applyProgressionEffects(harness.progressionManager.getDerivedEffects());
+    harness.controller.update(30);
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.PAUSED);
+    expect(harness.controller.pauseReason).toBe('upgrade-panel');
+    expect(harness.controller.finalChallengePending).toBe(true);
+    expect(harness.gameScene.showGrandmasterTarget).not.toHaveBeenCalled();
+    expect(harness.gameState.stats.activePlaySeconds).toBe(activePlayBeforePurchase);
+    expect(harness.dogController.update).toHaveBeenCalledTimes(dogUpdatesBeforePurchase);
+
+    harness.controller.resume();
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.FINAL_CHALLENGE);
+    expect(harness.controller.finalChallengePending).toBe(false);
+    expect(harness.gameScene.showGrandmasterTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the dog paused through Grandmaster and resumes it after Continue Playing', async () => {
+    const harness = createHarness({ ownedUpgrades: ['dogCompanion', 'grandmaster'] });
+    harness.dogController.pause.mockClear();
+    harness.dogController.resume.mockClear();
+    harness.controller.onCompleted = () => harness.controller.pause('completion-panel');
+
+    harness.controller.handleDogThrow({ critical: false });
+    expect(harness.gameState.stats.dogThrows).toBe(0);
+
+    tapAt(harness, 0.5);
+    await flushPromises();
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.PAUSED);
+    expect(harness.controller.pauseReason).toBe('completion-panel');
+    expect(harness.dogController.resume).not.toHaveBeenCalled();
+
+    harness.controller.resume();
+
+    expect(harness.controller.state).toBe(GAMEPLAY_STATE.READY);
+    expect(harness.dogController.resume).toHaveBeenCalledTimes(1);
+  });
 });
