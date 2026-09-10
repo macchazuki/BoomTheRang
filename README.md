@@ -1,42 +1,47 @@
-# BoomTheRang Architecture Scaffold
+# BoomTheRang
 
-This ZIP is a target code architecture for the completed v1 game described by the repository handover documents.
+BoomTheRang is a mobile-first, portrait-oriented Three.js incremental timing game. Stop the moving gauge to throw boomerangs at target dummies, earn XP, buy upgrades, unlock a dog companion, and finish the Grandmaster white-zone challenge.
 
-It is intentionally a **scaffold, not a finished game**:
-- files and module boundaries are established;
-- classes/functions have documented responsibilities and signatures;
-- upgrade IDs and progression concepts are fully represented;
-- methods contain safe placeholder behavior or `TODO` notes where implementation belongs;
-- Vitest files enumerate the required behavior with `it.todo(...)` tests.
+## Gameplay
 
-## Intended stack
+- Red gauge result: miss, no XP, and a reload delay.
+- Green gauge result: hit and earn XP.
+- White gauge result: critical hit with increased XP.
+- XP is both the earned progression resource and the upgrade currency.
+- Progression expands from 1 to 4 player boomerangs and from 1 to 4 target dummies.
+- Combo upgrades reward consecutive successful manual throws.
+- The dog companion throws automatically, has independent rate/XP upgrades, and never grants offline catch-up XP.
+- Grandmaster is the final challenge; completing it records completion while allowing continued play.
 
-- JavaScript ES modules
-- Three.js
-- Vite
-- Vitest
-- HTML/CSS UI
-- `localStorage` persistence
+The deterministic balance simulator targets the intended progression anchors: the first upgrade at about 1 minute, Twin Throw at about 30 minutes, Second Dummy at about 45 minutes, and Grandmaster completion at about 5 hours of optimal play.
 
-No UI framework, state-management package, tween library, or collision-based hit logic is required.
+## Controls
 
-## Key ownership rules
+Tap/click the gameplay area to stop the gauge and throw. Use **Skills** to purchase upgrades and **Settings** to adjust game options. Gameplay pauses while gameplay overlays are open and while the document is hidden.
 
-- `GameController` orchestrates gameplay state and input.
-- `GaugeController` owns normalized timing-gauge logic.
-- `RewardCalculator` is pure reward math.
-- `ProgressionManager` owns upgrade purchasing and derived effects.
-- `DogController` owns automatic dog timing.
-- `GameState` owns mutable save/run state.
-- Three.js `*View` classes render only.
-- DOM UI classes render information and menus only.
-- `SaveManager` is the only localStorage persistence boundary.
-- `balance.js` is the only home for tuneable gameplay/progression numbers.
+## Development
 
-Read `ARCHITECTURE.md` for the complete file map and implementation contracts.
+The project uses JavaScript ES modules, Three.js, Vite, Vitest, HTML/CSS, and `localStorage` persistence.
 
-## Applying this scaffold
+```bash
+npm ci
+npm test
+npm run build
+npm run dev
+```
 
-This ZIP is meant to be overlaid/merged onto the existing BoomTheRang repository.
-Keep the repository's existing `package-lock.json` and CI/deployment files; this scaffold
-does not replace them because the handover architecture does not require build-pipeline changes.
+`npm test` includes unit, integration, lifecycle, Grandmaster, persistence, and deterministic progression-balance coverage. The production build is created with Vite.
+
+## Architecture
+
+Key ownership remains intentionally small and explicit:
+
+- `GameController` owns gameplay state transitions and pointer acceptance.
+- `GaugeController` owns normalized gauge timing and classification.
+- `RewardCalculator` owns pure XP/combo formulas.
+- `ProgressionManager` owns upgrade requirements, purchases, and derived effects.
+- `DogController` owns automatic dog timing only.
+- `SaveManager` is the persistence boundary.
+- Three.js scene/entity classes own presentation, not authoritative rewards.
+
+See `ARCHITECTURE.md`, `FUNCTION_INDEX.md`, and `/documents` for implementation responsibilities and product handover details.
