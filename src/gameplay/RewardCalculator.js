@@ -1,0 +1,65 @@
+import { GAUGE_RESULT } from './GaugeController.js';
+import { BALANCE } from '../progression/balance.js';
+
+/**
+ * Pure player reward formula. Round once, after all multipliers.
+ */
+export function calculatePlayerReward({
+  result,
+  boomerangCount,
+  targetCount,
+  globalTrainingMultiplier = 1,
+  criticalMultiplier = BALANCE.baseCriticalMultiplier,
+  comboMultiplier = 1,
+  boomerangMasteryMultiplier = 1,
+  baseXpPerTarget = BALANCE.baseXpPerTarget,
+}) {
+  if (result === GAUGE_RESULT.MISS) return 0;
+
+  const zoneMultiplier = result === GAUGE_RESULT.CRITICAL ? criticalMultiplier : 1;
+  return Math.round(
+    baseXpPerTarget *
+      boomerangCount *
+      targetCount *
+      globalTrainingMultiplier *
+      zoneMultiplier *
+      comboMultiplier *
+      boomerangMasteryMultiplier,
+  );
+}
+
+/**
+ * Pure dog reward formula. The dog ignores player combo and player critical multiplier.
+ */
+export function calculateDogReward({
+  targetCount,
+  dogXpFactor,
+  globalTrainingMultiplier = 1,
+  dogCritical = false,
+  baseXpPerTarget = BALANCE.baseXpPerTarget,
+}) {
+  const dogCriticalMultiplier = dogCritical ? BALANCE.dogCriticalMultiplier : 1;
+  return Math.round(
+    baseXpPerTarget *
+      targetCount *
+      dogXpFactor *
+      globalTrainingMultiplier *
+      dogCriticalMultiplier,
+  );
+}
+
+/** Return combo after one player throw. Dog throws never call this. */
+export function getNextCombo(currentCombo, result, comboUnlocked) {
+  if (!comboUnlocked) return 0;
+  if (result === GAUGE_RESULT.MISS) return 0;
+  if (result === GAUGE_RESULT.CRITICAL) return currentCombo + 2;
+  return currentCombo + 1;
+}
+
+/** Compute player combo XP multiplier from step percentage and current cap. */
+export function calculateComboMultiplier(
+  combo,
+  { perStep = BALANCE.comboBonusPerStep, maxBonus = BALANCE.comboBaseMaxBonus } = {},
+) {
+  return 1 + Math.min(Math.max(0, combo) * perStep, maxBonus);
+}
