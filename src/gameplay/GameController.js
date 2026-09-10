@@ -56,6 +56,9 @@ export class GameController {
     this.pauseReason = null;
     this.reloadRemainingSeconds = 0;
     this.successRecoveryRemainingSeconds = 0;
+    this.finalChallengeActive = false;
+    this.finalChallengePending = false;
+    this.finalChallengeCompleting = false;
 
     this.handlePointerDown = this.handlePointerDown.bind(this);
   }
@@ -70,8 +73,12 @@ export class GameController {
 
     this.applyProgressionEffects(this.progressionManager.getDerivedEffects());
 
-    // applyProgressionEffects may have entered the final challenge.
-    if (this.state !== GAMEPLAY_STATE.FINAL_CHALLENGE) {
+    // Startup begins from PAUSED before any real overlay exists. Enter a pending
+    // Grandmaster challenge immediately, while real modal pauses remain deferred.
+    if (this.finalChallengePending) {
+      this.finalChallengePending = false;
+      this.enterFinalChallenge();
+    } else if (this.state !== GAMEPLAY_STATE.FINAL_CHALLENGE) {
       this.state = GAMEPLAY_STATE.READY;
       this.gaugeController.resetFromEdge();
       this.dogController.resume();
@@ -88,7 +95,7 @@ export class GameController {
   /** Return whether active-play seconds should increment this frame. */
   isActivePlay() {
     const documentVisible = typeof document === 'undefined' || !document.hidden;
-    return this.state !== GAMEPLAY_STATE.PAUSED && documentVisible;
+    return this.state !== GAMEPLAY_STATE.PAUSED && !this.finalChallengeCompleting && documentVisible;
   }
 
   /** Apply one frame of elapsed-time logic. */
@@ -115,7 +122,7 @@ export class GameController {
 
   /** Accept a gameplay pointer only in READY or FINAL_CHALLENGE. */
   handlePointerDown(event) {
-    if (event.defaultPrevented) return;
+    if (event.defaultPrevented || this.finalChallengeCompleting) return;
     if (![GAMEPLAY_STATE.READY, GAMEPLAY_STATE.FINAL_CHALLENGE].includes(this.state)) return;
 
     this.resolvePlayerInput();
@@ -172,7 +179,7 @@ export class GameController {
       });
       this.gameState.addXp(awardedXp, 'player');
 
-      if (this.state === GAMEPLAY_STATE.FINAL_CHALLENGE && result === GAUGE_RESULT.CRITICAL) {
+      if (this.finalChallengeActive && result === GAUGE_RESULT.CRITICAL) {
         this.completeFinalChallenge();
       } else {
         this.state = GAMEPLAY_STATE.PLAYER_THROW;
@@ -213,10 +220,16 @@ export class GameController {
     }
   }
 
-  /** Return to normal ready state after throw/reload. */
+  /** Return to the challenge when it is active, otherwise normal ready play. */
   returnToReady() {
-    this.state = GAMEPLAY_STATE.READY;
+    this.state = this.finalChallengeActive && !this.gameState.progression.gameCompleted
+      ? GAMEPLAY_STATE.FINAL_CHALLENGE
+      : GAMEPLAY_STATE.READY;
     this.gaugeController.resetFromEdge();
+
+    if (this.finalChallengeActive) {
+      this.dogController.pause();
+    }
   }
 
   /**
@@ -224,7 +237,14 @@ export class GameController {
    * Dog never modifies player combo or player state.
    */
   handleDogThrow({ critical }) {
-    if (this.state === GAMEPLAY_STATE.PAUSED || this.state === GAMEPLAY_STATE.FINAL_CHALLENGE) return;
+    if (
+      this.state === GAMEPLAY_STATE.PAUSED ||
+      this.finalChallengeActive ||
+      this.finalChallengePending ||
+      this.finalChallengeCompleting
+    ) {
+      return;
+    }
 
     const effects = this.progressionManager.getDerivedEffects();
     if (!effects.dogUnlocked) return;
@@ -268,13 +288,20 @@ export class GameController {
   resume() {
     if (this.state !== GAMEPLAY_STATE.PAUSED) return;
 
-    this.state = this.previousStateBeforePause;
     this.pauseReason = null;
+
+    if (this.finalChallengePending) {
+      this.finalChallengePending = false;
+      this.enterFinalChallenge();
+      return;
+    }
+
+    this.state = this.previousStateBeforePause;
 
     if ([GAMEPLAY_STATE.READY, GAMEPLAY_STATE.FINAL_CHALLENGE].includes(this.state)) {
       this.gaugeController.resume();
     }
-    if (this.state === GAMEPLAY_STATE.FINAL_CHALLENGE) {
+    if (this.finalChallengeActive || this.state === GAMEPLAY_STATE.FINAL_CHALLENGE) {
       this.dogController.pause();
     } else {
       this.dogController.resume();
@@ -294,14 +321,38 @@ export class GameController {
       criticalChance: effects.dogCriticalChance,
     });
 
-    if (this.progressionManager.hasUpgrade('grandmaster') &&
-        !this.gameState.progression.gameCompleted) {
+    if (
+      this.progressionManager.hasUpgrade('grandmaster') &&
+      !this.gameState.progression.gameCompleted
+    ) {
       this.startFinalChallenge();
     }
   }
 
-  /** Enter Grandmaster challenge and show its special target. */
+  /** Start Grandmaster now, or defer it while a modal owns PAUSED. */
   startFinalChallenge() {
+    if (
+      this.gameState.progression.gameCompleted ||
+      this.finalChallengeActive ||
+      this.finalChallengePending
+    ) {
+      return;
+    }
+
+    if (this.state === GAMEPLAY_STATE.PAUSED) {
+      this.finalChallengePending = true;
+      this.dogController.pause();
+      return;
+    }
+
+    this.enterFinalChallenge();
+  }
+
+  /** Enter Grandmaster challenge and show its special target. */
+  enterFinalChallenge() {
+    this.finalChallengeActive = true;
+    this.finalChallengePending = false;
+    this.finalChallengeCompleting = false;
     this.state = GAMEPLAY_STATE.FINAL_CHALLENGE;
     this.gaugeController.resetFromEdge();
     this.dogController.pause();
@@ -310,17 +361,32 @@ export class GameController {
 
   /** Mark final challenge complete before requesting celebratory visuals/UI. */
   completeFinalChallenge() {
-    if (this.gameState.progression.gameCompleted) return;
+    if (this.gameState.progression.gameCompleted || this.finalChallengeCompleting) return;
 
+    this.finalChallengeCompleting = true;
     this.gameState.markCompleted();
     this.saveManager.save(this.gameState.toSaveData());
 
-    void this.gameScene
-      .playGrandmasterSequence({ reducedMotion: this.gameState.settings.reducedMotion })
+    void Promise.resolve()
+      .then(() =>
+        this.gameScene.playGrandmasterSequence({
+          reducedMotion: this.gameState.settings.reducedMotion,
+        }),
+      )
       .finally(() => {
+        this.finalChallengeCompleting = false;
+        this.finalChallengeActive = false;
         this.state = GAMEPLAY_STATE.READY;
-        this.dogController.resume();
+        this.gaugeController.resetFromEdge();
+        this.gameScene.hideGrandmasterTarget?.();
+
         this.onCompleted?.();
+
+        // GameApp pauses synchronously when it opens the completion panel. Only
+        // resume the dog here when no completion modal took pause ownership.
+        if (this.state === GAMEPLAY_STATE.READY) {
+          this.dogController.resume();
+        }
       });
   }
 
@@ -335,5 +401,4 @@ export class GameController {
       state: this.state,
     });
   }
-
 }

@@ -27,6 +27,7 @@ export class GameScene {
     this.boomerangViews = [];
     this.targetViews = [];
     this.playerResultReducedMotion = false;
+    this.grandmasterMarker = null;
 
     this.handleResize = this.handleResize.bind(this);
     this.handleGameplayPointer = null;
@@ -359,16 +360,65 @@ export class GameScene {
     }
   }
 
-  /** Replace normal targets with the special Grandmaster challenge target. */
+  /** Visually distinguish the Grandmaster target using procedural geometry only. */
   showGrandmasterTarget() {
-    // Ticket 08 owns the special final-target presentation.
+    if (this.grandmasterMarker || !this.scene || !this.targetViews[0]) return;
+
+    const target = this.targetViews[0];
+    const marker = new THREE.Mesh(
+      new THREE.RingGeometry(0.82, 1.06, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xffe08a,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    );
+    marker.position.copy(target.object3d.position);
+    marker.position.z = 0.18;
+    marker.rotation.z = Math.PI / 4;
+
+    this.grandmasterMarker = marker;
+    this.scene.add(marker);
+  }
+
+  /** Remove the procedural Grandmaster marker after completion/teardown. */
+  hideGrandmasterTarget() {
+    if (!this.grandmasterMarker) return;
+
+    this.scene?.remove(this.grandmasterMarker);
+    this.grandmasterMarker.geometry.dispose();
+    this.grandmasterMarker.material.dispose();
+    this.grandmasterMarker = null;
   }
 
   /** Play final multi-boomerang/dog celebration after completion is authoritative. */
   async playGrandmasterSequence({ reducedMotion = false } = {}) {
-    void reducedMotion;
-    // Ticket 08 owns the final challenge celebration sequence.
-    return Promise.resolve();
+    const motionReduced = this.isReducedMotionRequested(reducedMotion);
+    const targetCount = this.targetViews.length;
+    const boomerangCount = this.boomerangViews.length;
+
+    await Promise.all([
+      this.playPlayerThrow({
+        result: 'CRITICAL',
+        targetCount,
+        boomerangCount,
+        reducedMotion: motionReduced,
+      }),
+      this.playDogThrow({
+        targetCount,
+        critical: true,
+        reducedMotion: motionReduced,
+      }),
+    ]);
+
+    for (const target of this.targetViews) {
+      target.playReaction('CRITICAL', { reducedMotion: motionReduced });
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, motionReduced ? 180 : 850);
+    });
   }
 
   /** Advance visual-only animations and render one frame. */
@@ -378,6 +428,10 @@ export class GameScene {
     this.dogBoomerangView?.update(deltaSeconds);
     this.boomerangViews.forEach((view) => view.update(deltaSeconds));
     this.targetViews.forEach((view) => view.update(deltaSeconds));
+
+    if (this.grandmasterMarker) {
+      this.grandmasterMarker.rotation.z += Math.max(0, deltaSeconds) * 0.8;
+    }
 
     if (this.renderer && this.scene && this.camera) {
       this.renderer.render(this.scene, this.camera);
@@ -402,6 +456,7 @@ export class GameScene {
       overlay?.removeEventListener('pointerdown', this.handleOverlayPointer);
     }
 
+    this.hideGrandmasterTarget();
     this.playerView?.dispose();
     this.dogView?.dispose();
     this.dogBoomerangView?.dispose();
