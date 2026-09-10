@@ -3,8 +3,8 @@ import { BALANCE } from './balance.js';
 /**
  * Data-only upgrade graph.
  *
- * `effectKey/effectValue` are metadata for UI/debugging. ProgressionManager derives final
- * values from ownership; do not execute arbitrary functions from configuration.
+ * `effectKey/effectValue` are data-only metadata consumed by ProgressionManager when
+ * rebuilding derived values; do not execute arbitrary functions from configuration.
  */
 function define(id, name, description, prerequisites = [], effectKey = null, effectValue = null) {
   return Object.freeze({

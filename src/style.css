@@ -158,6 +158,28 @@ button {
   border: 1px solid rgb(255 255 255 / 20%);
 }
 
+.upgrade-card--available {
+  border-color: rgb(134 239 172 / 75%);
+}
+
+.upgrade-card--purchased {
+  border-color: rgb(147 197 253 / 55%);
+  opacity: 0.8;
+}
+
+.upgrade-card--insufficient-xp,
+.upgrade-card--locked {
+  opacity: 0.62;
+}
+
+.upgrade-card--locked {
+  border-style: dashed;
+}
+
+.upgrade-card__status {
+  font-weight: 700;
+}
+
 .settings-row {
   display: grid;
   grid-template-columns: 1fr auto;
