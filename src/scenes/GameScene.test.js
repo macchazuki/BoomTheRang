@@ -2,17 +2,31 @@ import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { GameScene } from './GameScene.js';
 
+function createEventTarget() {
+  const handlers = new Map();
+  return {
+    addEventListener: vi.fn((type, handler) => handlers.set(type, handler)),
+    removeEventListener: vi.fn((type, handler) => {
+      if (handlers.get(type) === handler) handlers.delete(type);
+    }),
+    getHandler: (type) => handlers.get(type),
+  };
+}
+
 function createInputFixture() {
   let gameplayHandler = null;
-  const skillsButton = { addEventListener: vi.fn() };
-  const settingsButton = { addEventListener: vi.fn() };
+  const skillsButton = createEventTarget();
+  const settingsButton = createEventTarget();
+  const overlay = createEventTarget();
   const root = {
     addEventListener: vi.fn((type, handler) => {
       if (type === 'pointerdown') gameplayHandler = handler;
     }),
+    removeEventListener: vi.fn(),
     querySelector: vi.fn((selector) => {
       if (selector === '[data-action="skills"]') return skillsButton;
       if (selector === '[data-action="settings"]') return settingsButton;
+      if (selector === '[data-overlay]') return overlay;
       return null;
     }),
   };
@@ -20,6 +34,9 @@ function createInputFixture() {
   const scene = Object.create(GameScene.prototype);
   scene.root = root;
   scene.handleGameplayPointer = null;
+  scene.handleSkillsClick = null;
+  scene.handleSettingsClick = null;
+  scene.handleOverlayPointer = null;
 
   const callbacks = {
     onGameplayPointer: vi.fn(),
@@ -28,7 +45,7 @@ function createInputFixture() {
   };
   scene.bindInput(callbacks);
 
-  return { scene, callbacks, gameplayHandler, skillsButton, settingsButton };
+  return { scene, callbacks, gameplayHandler, skillsButton, settingsButton, overlay };
 }
 
 function createAnimationFixture({ targetCount = 2, boomerangCount = 2 } = {}) {
@@ -59,9 +76,14 @@ function createAnimationFixture({ targetCount = 2, boomerangCount = 2 } = {}) {
 }
 
 describe('GameScene pointer routing', () => {
-  it('routes unobstructed pointerdown through the single gameplay callback', () => {
+  it('routes unobstructed primary left pointerdown through the gameplay callback', () => {
     const fixture = createInputFixture();
-    const event = { target: { closest: vi.fn(() => null) } };
+    const event = {
+      defaultPrevented: false,
+      isPrimary: true,
+      button: 0,
+      target: { closest: vi.fn(() => null) },
+    };
 
     fixture.gameplayHandler(event);
 
@@ -69,29 +91,56 @@ describe('GameScene pointer routing', () => {
     expect(fixture.callbacks.onGameplayPointer).toHaveBeenCalledWith(event);
   });
 
-  it('does not route overlay or action-control pointers into gameplay', () => {
+  it('does not route overlays, controls, secondary touches, or non-left mouse buttons into gameplay', () => {
     const fixture = createInputFixture();
-    const blockedEvent = { target: { closest: vi.fn(() => ({})) } };
+    const blockedByControl = {
+      defaultPrevented: false,
+      isPrimary: true,
+      button: 0,
+      target: { closest: vi.fn(() => ({})) },
+    };
+    const secondaryTouch = {
+      defaultPrevented: false,
+      isPrimary: false,
+      button: 0,
+      target: { closest: vi.fn(() => null) },
+    };
+    const rightClick = {
+      defaultPrevented: false,
+      isPrimary: true,
+      button: 2,
+      target: { closest: vi.fn(() => null) },
+    };
 
-    fixture.gameplayHandler(blockedEvent);
+    fixture.gameplayHandler(blockedByControl);
+    fixture.gameplayHandler(secondaryTouch);
+    fixture.gameplayHandler(rightClick);
 
     expect(fixture.callbacks.onGameplayPointer).not.toHaveBeenCalled();
   });
 
-  it('Skills and Settings consume pointerdown before opening their panels', () => {
+  it('opens Skills and Settings through keyboard/touch-compatible click handlers', () => {
     const fixture = createInputFixture();
-    const skillsHandler = fixture.skillsButton.addEventListener.mock.calls[0][1];
-    const settingsHandler = fixture.settingsButton.addEventListener.mock.calls[0][1];
     const skillsEvent = { stopPropagation: vi.fn() };
     const settingsEvent = { stopPropagation: vi.fn() };
 
-    skillsHandler(skillsEvent);
-    settingsHandler(settingsEvent);
+    fixture.skillsButton.getHandler('click')(skillsEvent);
+    fixture.settingsButton.getHandler('click')(settingsEvent);
 
     expect(skillsEvent.stopPropagation).toHaveBeenCalledOnce();
     expect(settingsEvent.stopPropagation).toHaveBeenCalledOnce();
     expect(fixture.callbacks.onOpenSkills).toHaveBeenCalledOnce();
     expect(fixture.callbacks.onOpenSettings).toHaveBeenCalledOnce();
+    expect(fixture.callbacks.onGameplayPointer).not.toHaveBeenCalled();
+  });
+
+  it('stops overlay pointerdown before it can reach the gameplay boundary', () => {
+    const fixture = createInputFixture();
+    const event = { stopPropagation: vi.fn() };
+
+    fixture.overlay.getHandler('pointerdown')(event);
+
+    expect(event.stopPropagation).toHaveBeenCalledOnce();
     expect(fixture.callbacks.onGameplayPointer).not.toHaveBeenCalled();
   });
 });

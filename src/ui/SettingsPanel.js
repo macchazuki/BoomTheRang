@@ -32,7 +32,14 @@ export class SettingsPanel {
     const settings = this.gameState.settings;
     const panel = document.createElement('section');
     panel.className = 'modal-panel';
-    panel.setAttribute('aria-label', 'Settings');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'settings-panel-title');
+
+    const heading = document.createElement('h2');
+    heading.id = 'settings-panel-title';
+    heading.textContent = 'Settings';
+    panel.append(heading);
 
     panel.append(
       this.createRange('Master volume', 'masterVolume', settings.masterVolume),
