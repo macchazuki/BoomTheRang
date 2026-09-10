@@ -17,12 +17,15 @@ export class DogView {
     this.throwAnimationDuration = 0.35;
     this.throwAnimationRemaining = 0;
     this.throwWasCritical = false;
+    this.throwReducedMotion = false;
   }
 
   /** Trigger a small procedural hop/pulse so an automatic throw is visible. */
-  playThrow({ critical = false } = {}) {
+  playThrow({ critical = false, reducedMotion = false } = {}) {
+    this.throwAnimationDuration = reducedMotion ? 0.18 : critical ? 0.42 : 0.35;
     this.throwAnimationRemaining = this.throwAnimationDuration;
     this.throwWasCritical = critical;
+    this.throwReducedMotion = reducedMotion;
   }
 
   /** Visual-only frame update. */
@@ -32,15 +35,19 @@ export class DogView {
     this.throwAnimationRemaining = Math.max(0, this.throwAnimationRemaining - deltaSeconds);
     const progress = 1 - this.throwAnimationRemaining / this.throwAnimationDuration;
     const pulse = Math.sin(progress * Math.PI);
+    const motionScale = this.throwReducedMotion ? 0.3 : 1;
 
-    this.object3d.position.y = this.baseY + pulse * 0.3;
-    const scale = 1 + pulse * (this.throwWasCritical ? 0.18 : 0.08);
-    this.object3d.scale.setScalar(scale);
+    this.object3d.position.y = this.baseY + pulse * 0.3 * motionScale;
+    const scaleAmount = this.throwWasCritical ? 0.18 : 0.08;
+    this.object3d.scale.setScalar(1 + pulse * scaleAmount * motionScale);
+    this.body.rotation.z = (this.throwWasCritical ? 0.12 : 0.06) * pulse * motionScale;
 
     if (this.throwAnimationRemaining === 0) {
       this.object3d.position.y = this.baseY;
       this.object3d.scale.setScalar(1);
+      this.body.rotation.z = 0;
       this.throwWasCritical = false;
+      this.throwReducedMotion = false;
     }
   }
 
