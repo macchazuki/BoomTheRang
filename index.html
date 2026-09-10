@@ -2,29 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="BoomTheRang — a Three.js game." />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="description" content="BoomTheRang — a Three.js timing game." />
     <title>BoomTheRang</title>
   </head>
   <body>
-    <main id="app" aria-label="BoomTheRang main menu">
-      <section class="main-menu" aria-labelledby="game-title">
-        <div class="menu-panel">
-          <p class="menu-kicker">RETURN / RECHARGE / REPEAT</p>
-          <h1 id="game-title">BoomTheRang</h1>
-          <p class="menu-subtitle">Every throw comes back stronger.</p>
-
-          <nav class="menu-actions" aria-label="Main menu">
-            <button class="menu-button menu-button--primary" type="button">
-              Start Game
-            </button>
-            <button class="menu-button menu-button--secondary" type="button">
-              Settings
-            </button>
-          </nav>
-        </div>
-      </section>
-    </main>
+    <!-- GameApp owns the contents of this mount point. -->
+    <main id="app" aria-label="BoomTheRang"></main>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

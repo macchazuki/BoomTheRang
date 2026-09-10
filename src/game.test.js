@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp } from './game.js';
+import { clamp, clampDeltaSeconds } from './game.js';
 
 describe('clamp', () => {
   it('keeps values inside the requested range', () => {
@@ -13,5 +13,11 @@ describe('clamp', () => {
 
   it('rejects an inverted range', () => {
     expect(() => clamp(5, 10, 0)).toThrow(RangeError);
+  });
+});
+
+describe('clampDeltaSeconds', () => {
+  it('prevents huge resume deltas from reaching gameplay timers', () => {
+    expect(clampDeltaSeconds(10, 0.1)).toBe(0.1);
   });
 });
