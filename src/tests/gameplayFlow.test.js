@@ -4,6 +4,7 @@ import { GameState } from '../gameplay/GameState.js';
 import { GaugeController, GAUGE_RESULT } from '../gameplay/GaugeController.js';
 import { ThrowController } from '../gameplay/ThrowController.js';
 import { ProgressionManager } from '../progression/ProgressionManager.js';
+import { BALANCE } from '../progression/balance.js';
 
 function createGameplayFixture(ownedUpgrades = []) {
   const gameState = new GameState();
@@ -35,6 +36,7 @@ function createGameplayFixture(ownedUpgrades = []) {
     showPlayerResult: vi.fn(),
     showDogResult: vi.fn(),
   };
+  const saveManager = { save: vi.fn() };
 
   const controller = new GameController({
     gameState,
@@ -45,11 +47,20 @@ function createGameplayFixture(ownedUpgrades = []) {
     gameScene,
     hud,
     gaugeView: { render: vi.fn() },
-    saveManager: { save: vi.fn() },
+    saveManager,
   });
   controller.start();
 
-  return { controller, gameState, gaugeController, gameScene, hud };
+  return {
+    controller,
+    gameState,
+    gaugeController,
+    progressionManager,
+    dogController,
+    gameScene,
+    hud,
+    saveManager,
+  };
 }
 
 function tapAt(fixture, position) {
@@ -140,5 +151,39 @@ describe('gameplay integration contract', () => {
     expect(fixture.gameScene.playDogThrow).toHaveBeenCalledTimes(1);
   });
 
-  it.todo('upgrade purchase immediately changes calculations and save snapshot');
+  it('upgrade purchase immediately changes calculations, runtime mirrors, and save snapshot', () => {
+    const fixture = createGameplayFixture([
+      'betterTraining1',
+      'betterTraining2',
+      'quickReload1',
+      'quickReload2',
+    ]);
+    fixture.gameState.xp = BALANCE.upgradeCosts.twinThrow;
+    fixture.gameState.lifetimeXp = BALANCE.upgradeCosts.twinThrow;
+
+    const purchase = fixture.progressionManager.purchase('twinThrow');
+    const effects = fixture.progressionManager.getDerivedEffects();
+    fixture.controller.applyProgressionEffects(effects);
+    fixture.saveManager.save(fixture.gameState.toSaveData());
+
+    expect(purchase.ok).toBe(true);
+    expect(effects.playerBoomerangCount).toBe(2);
+    expect(fixture.gameScene.setPlayerBoomerangCount).toHaveBeenLastCalledWith(2);
+    expect(fixture.gaugeController.zoneWidths).toEqual(effects.gaugeZoneWidths);
+    expect(fixture.dogController.configure).toHaveBeenLastCalledWith({
+      unlocked: false,
+      intervalSeconds: 10,
+      criticalChance: 0,
+    });
+    expect(fixture.saveManager.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        xp: 0,
+        upgrades: expect.objectContaining({ twinThrow: true }),
+      }),
+    );
+
+    tapAt(fixture, 0.5);
+    expect(fixture.gameState.xp).toBe(58);
+    expect(fixture.gameState.stats.targetsHit).toBe(2);
+  });
 });

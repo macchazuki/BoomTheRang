@@ -74,97 +74,55 @@ export class ProgressionManager {
 
   /**
    * Rebuild every derived gameplay value from upgrade ownership.
-   * This is deliberately explicit: it keeps save files stable and makes effects testable.
+   * Derived values are never persisted; upgrade definition metadata remains the source of effects.
    */
   getDerivedEffects() {
-    const has = (id) => this.hasUpgrade(id);
+    const ownedEffects = { globalTrainingBonus: 0 };
 
-    const globalTrainingMultiplier =
-      1 +
-      (has('betterTraining1') ? 0.20 : 0) +
-      (has('betterTraining2') ? 0.25 : 0) +
-      (has('betterTraining3') ? 0.35 : 0);
+    for (const definition of UPGRADE_DEFINITIONS) {
+      if (!this.hasUpgrade(definition.id) || !definition.effectKey) continue;
 
-    const criticalMultiplier = has('criticalMastery')
-      ? 3
-      : has('criticalTraining2')
-        ? 2.5
-        : has('criticalTraining1')
-          ? 2.25
-          : BALANCE.baseCriticalMultiplier;
+      if (definition.effectKey === 'globalTrainingBonus') {
+        ownedEffects.globalTrainingBonus += definition.effectValue;
+      } else {
+        // Repeated effect keys are ordered from earlier to later upgrades in the data graph.
+        ownedEffects[definition.effectKey] = definition.effectValue;
+      }
+    }
 
-    const missReloadSeconds = has('recoveryMastery')
-      ? 2
-      : has('quickReload3')
-        ? 3
-        : has('quickReload2')
-          ? 4
-          : has('quickReload1')
-            ? 4.5
-            : BALANCE.missReloadSeconds;
+    const baseWidths = BALANCE.baseGaugeZoneWidths;
+    const configuredGreen = ownedEffects.greenWidth ?? baseWidths.green;
+    const white = ownedEffects.whiteWidth ?? baseWidths.white;
 
-    const playerBoomerangCount = has('quadThrow')
-      ? 4
-      : has('tripleThrow')
-        ? 3
-        : has('twinThrow')
-          ? 2
-          : BALANCE.basePlayerBoomerangs;
-
-    const targetCount = has('fourthDummy')
-      ? 4
-      : has('thirdDummy')
-        ? 3
-        : has('secondDummy')
-          ? 2
-          : BALANCE.baseTargets;
-
-    const greenTotal = has('steadyHands2') ? 0.30 : has('steadyHands1') ? 0.27 : 0.25;
-    const white = has('perfectWindow2') ? 0.07 : has('perfectWindow1') ? 0.06 : 0.05;
-
-    // Perfect Window takes its added width equally from the currently configured green total.
-    const green = greenTotal - (white - 0.05);
+    // Perfect Window widens white by taking the same total amount from green.
+    const green = configuredGreen - (white - baseWidths.white);
     const red = 1 - green - white;
 
-    const dogXpFactor = has('dogTraining3')
-      ? 1
-      : has('dogTraining2')
-        ? 0.60
-        : has('dogTraining1')
-          ? 0.40
-          : BALANCE.dogBaseXpFactor;
-
-    const dogIntervalSeconds = has('fastFetch3')
-      ? 4
-      : has('fastFetch2')
-        ? 6
-        : has('fastFetch1')
-          ? 8
-          : BALANCE.dogBaseIntervalSeconds;
-
     return {
-      globalTrainingMultiplier,
-      criticalMultiplier,
-      missReloadSeconds,
+      globalTrainingMultiplier: 1 + ownedEffects.globalTrainingBonus,
+      criticalMultiplier: ownedEffects.criticalMultiplier ?? BALANCE.baseCriticalMultiplier,
+      missReloadSeconds: ownedEffects.missReloadSeconds ?? BALANCE.missReloadSeconds,
       gaugeZoneWidths: { red, green, white },
-      playerBoomerangCount,
-      targetCount,
+      playerBoomerangCount: Math.min(
+        ownedEffects.playerBoomerangs ?? BALANCE.basePlayerBoomerangs,
+        BALANCE.maxPlayerBoomerangs,
+      ),
+      targetCount: Math.min(ownedEffects.targets ?? BALANCE.baseTargets, BALANCE.maxTargets),
 
-      comboUnlocked: has('comboTraining'),
-      comboMaxBonus: has('comboMastery')
-        ? BALANCE.comboMasteryMaxBonus
-        : BALANCE.comboBaseMaxBonus,
+      comboUnlocked: ownedEffects.comboUnlocked === true,
+      comboMaxBonus: ownedEffects.comboMaxBonus ?? BALANCE.comboBaseMaxBonus,
 
-      boomerangMasteryMultiplier: has('boomerangMastery')
-        ? BALANCE.boomerangMasteryMultiplier
-        : 1,
+      boomerangMasteryMultiplier: ownedEffects.boomerangMasteryMultiplier ?? 1,
 
-      dogUnlocked: has('dogCompanion'),
-      dogXpFactor,
-      dogIntervalSeconds,
-      dogCriticalChance: has('fetchMastery') ? BALANCE.dogCriticalChance : 0,
+      dogUnlocked: ownedEffects.dogUnlocked === true,
+      dogXpFactor: ownedEffects.dogXpFactor ?? BALANCE.dogBaseXpFactor,
+      dogIntervalSeconds: Math.max(
+        ownedEffects.dogIntervalSeconds ?? BALANCE.dogBaseIntervalSeconds,
+        BALANCE.dogMinimumIntervalSeconds,
+      ),
+      dogCriticalChance: ownedEffects.dogCriticalChance ?? 0,
 
-      finalChallengeUnlocked: has('grandmaster'),
+      finalChallengeUnlocked: ownedEffects.finalChallenge === true,
     };
   }
 }

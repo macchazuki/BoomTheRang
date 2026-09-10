@@ -1,3 +1,11 @@
+const STATUS_PRESENTATION = Object.freeze({
+  purchased: Object.freeze({ className: 'purchased', label: 'Purchased' }),
+  available: Object.freeze({ className: 'available', label: 'Available' }),
+  INSUFFICIENT_XP: Object.freeze({ className: 'insufficient-xp', label: 'Not enough XP' }),
+  PREREQUISITES: Object.freeze({ className: 'locked', label: 'Locked: prerequisites required' }),
+  LIFETIME_XP_GATE: Object.freeze({ className: 'locked', label: 'Locked: lifetime XP required' }),
+});
+
 /**
  * DOM upgrade-tree/list renderer.
  * All prerequisite/affordability decisions come from ProgressionManager.
@@ -50,19 +58,32 @@ export class UpgradePanel {
     this.mountElement.replaceChildren(panel);
   }
 
-  /** Create one card; button state comes from ProgressionManager status. */
+  /** Create one card; purchase rules come entirely from ProgressionManager status. */
   createUpgradeCard(definition) {
     const status = this.progressionManager.getPurchaseStatus(definition.id);
     const purchased = this.progressionManager.hasUpgrade(definition.id);
+    const presentation = purchased
+      ? STATUS_PRESENTATION.purchased
+      : status.ok
+        ? STATUS_PRESENTATION.available
+        : STATUS_PRESENTATION[status.reason] ?? STATUS_PRESENTATION.PREREQUISITES;
 
     const card = document.createElement('article');
-    card.className = 'upgrade-card';
-    card.innerHTML = `
-      <strong>${definition.name}</strong>
-      <span>${definition.description}</span>
-      <span>Cost: ${definition.costXp.toLocaleString()} XP</span>
-      <span>${purchased ? 'Purchased' : status.ok ? 'Available' : status.reason}</span>
-    `;
+    card.className = `upgrade-card upgrade-card--${presentation.className}`;
+    card.dataset.state = presentation.className;
+
+    const name = document.createElement('strong');
+    name.textContent = definition.name;
+
+    const description = document.createElement('span');
+    description.textContent = definition.description;
+
+    const cost = document.createElement('span');
+    cost.textContent = `Cost: ${definition.costXp.toLocaleString()} XP`;
+
+    const state = document.createElement('span');
+    state.className = 'upgrade-card__status';
+    state.textContent = presentation.label;
 
     const button = document.createElement('button');
     button.type = 'button';
@@ -70,7 +91,7 @@ export class UpgradePanel {
     button.disabled = !status.ok;
     button.addEventListener('click', () => this.onPurchase(definition.id));
 
-    card.append(button);
+    card.append(name, description, cost, state, button);
     return card;
   }
 }
