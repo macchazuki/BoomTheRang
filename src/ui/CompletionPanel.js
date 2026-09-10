@@ -15,8 +15,11 @@ export class CompletionPanel {
 
     const panel = document.createElement('section');
     panel.className = 'modal-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'completion-panel-title');
     panel.innerHTML = `
-      <h2>Grandmaster!</h2>
+      <h2 id="completion-panel-title">Grandmaster!</h2>
       <p>Manual throws: ${Math.floor(stats.manualThrows)}</p>
       <p>Criticals: ${Math.floor(stats.criticals)}</p>
       <p>Misses: ${Math.floor(stats.misses)}</p>

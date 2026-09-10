@@ -1,9 +1,11 @@
+import { UPGRADE_BY_ID } from '../progression/upgradeDefinitions.js';
+
 const STATUS_PRESENTATION = Object.freeze({
   purchased: Object.freeze({ className: 'purchased', label: 'Purchased' }),
   available: Object.freeze({ className: 'available', label: 'Available' }),
   INSUFFICIENT_XP: Object.freeze({ className: 'insufficient-xp', label: 'Not enough XP' }),
-  PREREQUISITES: Object.freeze({ className: 'locked', label: 'Locked: prerequisites required' }),
-  LIFETIME_XP_GATE: Object.freeze({ className: 'locked', label: 'Locked: lifetime XP required' }),
+  PREREQUISITES: Object.freeze({ className: 'locked', label: 'Locked' }),
+  LIFETIME_XP_GATE: Object.freeze({ className: 'locked', label: 'Locked' }),
 });
 
 /**
@@ -40,7 +42,13 @@ export class UpgradePanel {
     const definitions = this.progressionManager.getVisibleUpgrades();
     const panel = document.createElement('section');
     panel.className = 'modal-panel';
-    panel.setAttribute('aria-label', 'Skills');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'skills-panel-title');
+
+    const heading = document.createElement('h2');
+    heading.id = 'skills-panel-title';
+    heading.textContent = 'Skills';
 
     const list = document.createElement('div');
     list.className = 'upgrade-list';
@@ -54,7 +62,7 @@ export class UpgradePanel {
     close.textContent = 'Close';
     close.addEventListener('click', this.onClose);
 
-    panel.append(list, close);
+    panel.append(heading, list, close);
     this.mountElement.replaceChildren(panel);
   }
 
@@ -83,15 +91,39 @@ export class UpgradePanel {
 
     const state = document.createElement('span');
     state.className = 'upgrade-card__status';
-    state.textContent = presentation.label;
+    state.textContent = this.getStatusLabel(definition, status, purchased, presentation.label);
 
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = purchased ? 'Purchased' : 'Buy';
     button.disabled = !status.ok;
+    button.setAttribute(
+      'aria-label',
+      purchased
+        ? `${definition.name} purchased`
+        : `Buy ${definition.name} for ${definition.costXp.toLocaleString()} XP`,
+    );
     button.addEventListener('click', () => this.onPurchase(definition.id));
 
     card.append(name, description, cost, state, button);
     return card;
+  }
+
+  /** Build a readable UI-only explanation for an authoritative purchase status. */
+  getStatusLabel(definition, status, purchased, fallbackLabel) {
+    if (purchased || status.ok) return fallbackLabel;
+
+    if (status.reason === 'PREREQUISITES') {
+      const unmet = definition.prerequisites
+        .filter((id) => !this.progressionManager.hasUpgrade(id))
+        .map((id) => UPGRADE_BY_ID[id]?.name ?? id);
+      return `Locked: requires ${unmet.join(', ')}`;
+    }
+
+    if (status.reason === 'LIFETIME_XP_GATE') {
+      return `Locked: requires ${definition.unlockLifetimeXp.toLocaleString()} lifetime XP`;
+    }
+
+    return fallbackLabel;
   }
 }

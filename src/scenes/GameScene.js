@@ -19,6 +19,7 @@ export class GameScene {
     this.renderer = null;
     this.scene = null;
     this.camera = null;
+    this.resizeObserver = null;
 
     this.playerView = null;
     this.dogView = null;
@@ -29,6 +30,9 @@ export class GameScene {
 
     this.handleResize = this.handleResize.bind(this);
     this.handleGameplayPointer = null;
+    this.handleSkillsClick = null;
+    this.handleSettingsClick = null;
+    this.handleOverlayPointer = null;
   }
 
   /**
@@ -38,12 +42,13 @@ export class GameScene {
   mount() {
     this.root = document.createElement('section');
     this.root.className = 'game-screen';
+    this.root.setAttribute('aria-label', 'BoomTheRang gameplay');
     this.root.innerHTML = `
-      <div class="hud" data-hud></div>
-      <div class="game-canvas-host" data-canvas-host></div>
+      <div class="hud" data-hud aria-label="Game status"></div>
+      <div class="game-canvas-host" data-canvas-host role="img" aria-label="Boomerang training field"></div>
       <div class="game-controls">
         <div data-gauge></div>
-        <div class="feedback" data-feedback aria-live="polite"></div>
+        <div class="feedback" data-feedback aria-live="polite" aria-atomic="true"></div>
         <div class="panel-actions">
           <button type="button" data-action="skills">Skills</button>
           <button type="button" data-action="settings">Settings</button>
@@ -70,6 +75,10 @@ export class GameScene {
     this.setDogVisible(false);
 
     window.addEventListener('resize', this.handleResize);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this.handleResize);
+      this.resizeObserver.observe(this.canvasHost);
+    }
     this.handleResize();
 
     return {
@@ -110,8 +119,15 @@ export class GameScene {
    */
   bindInput({ onGameplayPointer, onOpenSkills, onOpenSettings }) {
     this.handleGameplayPointer = (event) => {
+      if (event.defaultPrevented || event.isPrimary === false) return;
+      if (typeof event.button === 'number' && event.button !== 0) return;
+
       const target = event.target;
-      if (target?.closest?.('[data-overlay], [data-action="skills"], [data-action="settings"]')) {
+      if (
+        target?.closest?.(
+          '[data-overlay], button, input, select, textarea, a, [role="button"]',
+        )
+      ) {
         return;
       }
 
@@ -119,15 +135,25 @@ export class GameScene {
     };
     this.root?.addEventListener('pointerdown', this.handleGameplayPointer);
 
-    this.root?.querySelector('[data-action="skills"]')?.addEventListener('pointerdown', (event) => {
+    const skillsButton = this.root?.querySelector('[data-action="skills"]');
+    const settingsButton = this.root?.querySelector('[data-action="settings"]');
+    const overlay = this.root?.querySelector('[data-overlay]');
+
+    this.handleSkillsClick = (event) => {
       event.stopPropagation();
       onOpenSkills();
-    });
-
-    this.root?.querySelector('[data-action="settings"]')?.addEventListener('pointerdown', (event) => {
+    };
+    this.handleSettingsClick = (event) => {
       event.stopPropagation();
       onOpenSettings();
-    });
+    };
+    this.handleOverlayPointer = (event) => {
+      event.stopPropagation();
+    };
+
+    skillsButton?.addEventListener('click', this.handleSkillsClick);
+    settingsButton?.addEventListener('click', this.handleSettingsClick);
+    overlay?.addEventListener('pointerdown', this.handleOverlayPointer);
   }
 
   /** Resize renderer/camera while preserving an authoritative portrait composition. */
@@ -361,9 +387,19 @@ export class GameScene {
   /** Release GPU resources, views, DOM, and listeners. */
   dispose() {
     window.removeEventListener('resize', this.handleResize);
+    this.resizeObserver?.disconnect();
 
     if (this.handleGameplayPointer) {
       this.root?.removeEventListener('pointerdown', this.handleGameplayPointer);
+    }
+
+    const skillsButton = this.root?.querySelector('[data-action="skills"]');
+    const settingsButton = this.root?.querySelector('[data-action="settings"]');
+    const overlay = this.root?.querySelector('[data-overlay]');
+    if (this.handleSkillsClick) skillsButton?.removeEventListener('click', this.handleSkillsClick);
+    if (this.handleSettingsClick) settingsButton?.removeEventListener('click', this.handleSettingsClick);
+    if (this.handleOverlayPointer) {
+      overlay?.removeEventListener('pointerdown', this.handleOverlayPointer);
     }
 
     this.playerView?.dispose();
@@ -380,5 +416,6 @@ export class GameScene {
     this.renderer = null;
     this.scene = null;
     this.camera = null;
+    this.resizeObserver = null;
   }
 }

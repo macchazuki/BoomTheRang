@@ -18,9 +18,14 @@ body,
   margin: 0;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   min-height: 100dvh;
-  overflow: hidden;
+  overflow-y: hidden;
   background: #0d1220;
 }
 
@@ -30,10 +35,19 @@ input {
 }
 
 button {
+  min-width: 44px;
   min-height: 44px;
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #f4f7ff;
+  outline-offset: 2px;
 }
 
 .screen {
+  position: relative;
   min-height: 100dvh;
   padding:
     max(1rem, env(safe-area-inset-top))
@@ -62,16 +76,25 @@ button {
 .game-screen {
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  width: 100%;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(100%, 32rem);
   height: 100dvh;
+  margin-inline: auto;
+  padding:
+    max(0.5rem, env(safe-area-inset-top))
+    max(0.5rem, env(safe-area-inset-right))
+    max(0.5rem, env(safe-area-inset-bottom))
+    max(0.5rem, env(safe-area-inset-left));
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 .game-canvas-host {
   position: relative;
+  min-width: 0;
   min-height: 0;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 .game-canvas-host canvas {
@@ -81,46 +104,79 @@ button {
 }
 
 .hud {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.75rem;
+  min-width: 0;
+  padding: 0.5rem 0.25rem;
+  font-size: clamp(0.82rem, 3.6vw, 1rem);
   pointer-events: none;
+}
+
+.hud__xp,
+.hud__combo,
+.hud__reload {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.hud__xp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud__combo {
+  text-align: right;
+}
+
+.hud__reload {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-weight: 700;
 }
 
 .game-controls {
   display: grid;
   gap: 0.5rem;
-  padding: 0.75rem;
+  min-width: 0;
+  padding: 0.5rem 0.25rem 0.25rem;
+}
+
+.game-controls > .panel-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .gauge {
   position: relative;
   display: grid;
   grid-template-columns: 35fr 12.5fr 5fr 12.5fr 35fr;
-  height: 2.5rem;
+  width: 100%;
+  min-width: 0;
+  height: 2.75rem;
   overflow: hidden;
-  border: 2px solid currentColor;
+  border: 2px solid #f4f7ff;
+  border-radius: 0.25rem;
 }
 
 .gauge__zone--red {
-  background: #7a2430;
+  background: #8f2637;
 }
 
 .gauge__zone--green {
-  background: #2d7b54;
+  background: #20814f;
 }
 
 .gauge__zone--white {
-  background: #f5f5f5;
+  background: #fff;
 }
 
 .gauge__marker {
   position: absolute;
-  top: -0.25rem;
-  bottom: -0.25rem;
-  width: 0.2rem;
-  background: #111;
+  top: 0;
+  bottom: 0;
+  width: 0.24rem;
+  background: #fff;
+  box-shadow: 0 0 0 2px #05080f;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -128,27 +184,53 @@ button {
 .feedback {
   min-height: 1.5rem;
   text-align: center;
+  font-weight: 700;
 }
 
 .overlay {
   position: absolute;
   inset: 0;
   z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgb(5 8 15 / 80%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  background: rgb(5 8 15 / 86%);
+  touch-action: pan-y;
 }
 
 .overlay[hidden] {
   display: none;
 }
 
+.modal-panel {
+  margin-block: auto;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+  background: #131b2f;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 0.5rem;
+}
+
+.modal-panel > :first-child {
+  margin-top: 0;
+}
+
+.modal-panel > :last-child {
+  margin-bottom: 0;
+}
+
 .upgrade-list {
   display: grid;
   gap: 0.5rem;
-  max-height: 65dvh;
-  overflow-y: auto;
+  margin-bottom: 0.75rem;
 }
 
 .upgrade-card {
@@ -156,20 +238,21 @@ button {
   gap: 0.35rem;
   padding: 0.75rem;
   border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 0.35rem;
 }
 
 .upgrade-card--available {
-  border-color: rgb(134 239 172 / 75%);
+  border-color: rgb(134 239 172 / 85%);
 }
 
 .upgrade-card--purchased {
-  border-color: rgb(147 197 253 / 55%);
-  opacity: 0.8;
+  border-color: rgb(147 197 253 / 65%);
+  opacity: 0.82;
 }
 
 .upgrade-card--insufficient-xp,
 .upgrade-card--locked {
-  opacity: 0.62;
+  opacity: 0.7;
 }
 
 .upgrade-card--locked {
@@ -180,18 +263,50 @@ button {
   font-weight: 700;
 }
 
+.upgrade-card button,
+.modal-panel > button {
+  width: 100%;
+}
+
 .settings-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: center;
+  min-height: 44px;
+  margin-block: 0.5rem;
+}
+
+.settings-row input[type='range'] {
+  width: min(45vw, 12rem);
+  max-width: 100%;
+}
+
+.settings-row input[type='checkbox'] {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 @media (min-width: 48rem) {
   .game-screen {
-    width: min(100%, 32rem);
-    margin-inline: auto;
     border-inline: 1px solid rgb(255 255 255 / 12%);
+  }
+}
+
+@media (max-width: 22rem) {
+  .game-screen {
+    padding-left: max(0.35rem, env(safe-area-inset-left));
+    padding-right: max(0.35rem, env(safe-area-inset-right));
+  }
+
+  .hud,
+  .game-controls {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .settings-row {
+    gap: 0.5rem;
   }
 }
 

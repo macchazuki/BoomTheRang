@@ -4,15 +4,23 @@
 export class HUD {
   constructor({ mountElement }) {
     this.mountElement = mountElement;
-    this.feedbackElement = document.querySelector('[data-feedback]');
+    this.feedbackElement =
+      this.mountElement.closest?.('.game-screen')?.querySelector?.('[data-feedback]') ?? null;
   }
 
   /** Render always-visible state from authoritative models. */
   render({ xp, combo, comboUnlocked, reloadRemainingSeconds, state }) {
+    const comboMarkup = comboUnlocked
+      ? `<span class="hud__combo">Combo: ${combo}</span>`
+      : '';
+    const reloadMarkup = state === 'MISS_RELOAD'
+      ? `<span class="hud__reload">Reload: ${reloadRemainingSeconds.toFixed(1)}s</span>`
+      : '';
+
     this.mountElement.innerHTML = `
-      <span>XP: ${Math.floor(xp).toLocaleString()}</span>
-      <span>${comboUnlocked ? `Combo: ${combo}` : ''}</span>
-      <span>${state === 'MISS_RELOAD' ? `Reload: ${reloadRemainingSeconds.toFixed(1)}s` : ''}</span>
+      <span class="hud__xp">XP: ${Math.floor(xp).toLocaleString()}</span>
+      ${comboMarkup}
+      ${reloadMarkup}
     `;
   }
 

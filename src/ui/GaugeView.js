@@ -6,11 +6,16 @@ export class GaugeView {
     this.mountElement = mountElement;
     this.root = document.createElement('div');
     this.root.className = 'gauge';
-    this.root.setAttribute('aria-label', 'Timing gauge');
+    this.root.setAttribute('role', 'img');
+    this.root.setAttribute(
+      'aria-label',
+      'Timing gauge: red zones miss, green zones hit, and the white center is perfect.',
+    );
     this.mountElement.replaceChildren(this.root);
 
     this.marker = document.createElement('div');
     this.marker.className = 'gauge__marker';
+    this.marker.setAttribute('aria-hidden', 'true');
     this.root.append(this.marker);
   }
 
@@ -31,6 +36,7 @@ export class GaugeView {
         ...classes.map((name) => {
           const zone = document.createElement('div');
           zone.className = `gauge__zone gauge__zone--${name}`;
+          zone.setAttribute('aria-hidden', 'true');
           return zone;
         }),
         marker,
