@@ -191,14 +191,22 @@ export class GameApp {
     return result;
   }
 
-  /** Pause/snapshot when hidden; resume without granting catch-up/offline dog throws. */
+  /** Pause/snapshot when hidden; resume only if visibility caused the pause. */
   handleVisibilityChange() {
     if (document.hidden) {
       this.gameController?.pause('document-hidden');
       this.saveManager.save(this.gameState.toSaveData());
     } else {
+      // Reset the frame clock before gameplay can resume so hidden time is never injected.
       this.previousFrameMs = performance.now();
-      this.gameController?.resume();
+
+      // If a gameplay modal was already open when the tab became hidden, GameController
+      // intentionally kept that modal pause reason. Do not accidentally resume through it.
+      const gameplayModalOpen =
+        this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen;
+      if (this.gameController?.pauseReason === 'document-hidden' && !gameplayModalOpen) {
+        this.gameController.resume();
+      }
     }
   }
 
