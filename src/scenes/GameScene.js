@@ -22,8 +22,10 @@ export class GameScene {
 
     this.playerView = null;
     this.dogView = null;
+    this.dogBoomerangView = null;
     this.boomerangViews = [];
     this.targetViews = [];
+    this.playerResultReducedMotion = false;
 
     this.handleResize = this.handleResize.bind(this);
     this.handleGameplayPointer = null;
@@ -89,7 +91,7 @@ export class GameScene {
     return camera;
   }
 
-  /** Create simple lights. TODO: tune values during visual implementation. */
+  /** Create simple lights. */
   createLighting() {
     const ambient = new THREE.AmbientLight(0xffffff, 1);
     const key = new THREE.DirectionalLight(0xffffff, 2);
@@ -100,7 +102,6 @@ export class GameScene {
   /** Create background/floor presentation without gameplay significance. */
   createEnvironment() {
     this.scene.background = new THREE.Color(0x0d1220);
-    // TODO: add lightweight floor/background shapes if they improve readability.
   }
 
   /**
@@ -197,31 +198,129 @@ export class GameScene {
       this.scene?.add(this.dogView.object3d);
     }
 
+    if (visible && !this.dogBoomerangView) {
+      this.dogBoomerangView = new BoomerangView({ index: 0 });
+      this.dogBoomerangView.object3d.material.color.setHex(0x8fd36a);
+      this.scene?.add(this.dogBoomerangView.object3d);
+    }
+
     if (this.dogView) {
       this.dogView.object3d.visible = visible;
     }
+    if (!visible) {
+      this.dogBoomerangView?.reset();
+    }
+  }
+
+  /** Honor either the in-game option or the operating-system/browser preference. */
+  isReducedMotionRequested(inGameReducedMotion = false) {
+    const systemReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return Boolean(inGameReducedMotion || systemReducedMotion);
+  }
+
+  /** Return a render-space owner position slightly in front of the primitive meshes. */
+  getOwnerThrowPosition(ownerView) {
+    const position = ownerView?.object3d?.position?.clone?.() ?? new THREE.Vector3();
+    position.z = 0.45;
+    return position;
+  }
+
+  /** Build Player/Dog -> target chain -> owner points with a small readability offset. */
+  buildHitPath(ownerPosition, targetCount, lateralOffset = 0) {
+    const ownerStart = ownerPosition.clone();
+    ownerStart.x += lateralOffset * 0.35;
+    const targetPoints = this.targetViews.slice(0, targetCount).map((target) => {
+      const point = target.object3d.position.clone();
+      point.x += lateralOffset;
+      point.z = 0.45;
+      return point;
+    });
+    return [ownerStart, ...targetPoints, ownerPosition.clone()];
+  }
+
+  /** Build a deterministic route that clearly passes beside, not through, the target formation. */
+  buildMissPath(ownerPosition, targetCount, index, lateralOffset = 0) {
+    const targets = this.targetViews.slice(0, targetCount);
+    const maxTargetX = Math.max(0, ...targets.map((target) => Math.abs(target.object3d.position.x)));
+    const maxTargetY = Math.max(5, ...targets.map((target) => target.object3d.position.y));
+    const side = index % 2 === 0 ? 1 : -1;
+    const bypassX = side * (maxTargetX + 1.35 + Math.abs(lateralOffset));
+    const start = ownerPosition.clone();
+    start.x += lateralOffset * 0.35;
+
+    return [
+      start,
+      new THREE.Vector3(bypassX, 0.5, 0.45),
+      new THREE.Vector3(bypassX, maxTargetY + 0.8, 0.45),
+      ownerPosition.clone(),
+    ];
   }
 
   /**
    * Animate a resolved player throw.
-   * TODO: create deterministic path Player -> targets -> Player (or miss curve).
+   * The result is already authoritative; paths are presentation only.
    */
   async playPlayerThrow({ result, targetCount, boomerangCount, reducedMotion = false }) {
-    void result;
-    void targetCount;
-    void boomerangCount;
-    void reducedMotion;
+    const motionReduced = this.isReducedMotionRequested(reducedMotion);
+    this.playerResultReducedMotion = motionReduced;
+    this.playerView?.playThrow({ reducedMotion: motionReduced });
+
+    const ownerPosition = this.getOwnerThrowPosition(this.playerView);
+    const activeCount = Math.min(boomerangCount, this.boomerangViews.length);
+    const durationSeconds = motionReduced ? 0.18 : result === 'MISS' ? 0.72 : 0.62;
+
+    this.boomerangViews.forEach((view, index) => {
+      if (index >= activeCount) {
+        view.reset();
+        return;
+      }
+
+      const centeredIndex = index - (activeCount - 1) / 2;
+      const lateralOffset = centeredIndex * 0.16;
+      const delaySeconds = index * (motionReduced ? 0.015 : 0.055);
+
+      if (result === 'MISS') {
+        view.playMissPath({
+          points: this.buildMissPath(ownerPosition, targetCount, index, lateralOffset),
+          durationSeconds,
+          delaySeconds,
+          reducedMotion: motionReduced,
+        });
+      } else {
+        view.playHitPath({
+          points: this.buildHitPath(ownerPosition, targetCount, lateralOffset),
+          durationSeconds,
+          delaySeconds,
+          reducedMotion: motionReduced,
+        });
+      }
+    });
+
     return Promise.resolve();
   }
 
   /** Animate a resolved dog throw without blocking the player state machine. */
   async playDogThrow({ targetCount, critical, reducedMotion = false }) {
-    if (!reducedMotion) {
-      this.dogView?.playThrow({ critical });
-      const result = critical ? 'CRITICAL' : 'HIT';
-      for (const target of this.targetViews.slice(0, targetCount)) {
-        target.playReaction(result);
-      }
+    if (!this.dogView?.object3d.visible) return Promise.resolve();
+
+    const motionReduced = this.isReducedMotionRequested(reducedMotion);
+    this.dogView.playThrow({ critical, reducedMotion: motionReduced });
+
+    if (this.dogBoomerangView) {
+      const ownerPosition = this.getOwnerThrowPosition(this.dogView);
+      this.dogBoomerangView.playHitPath({
+        points: this.buildHitPath(ownerPosition, targetCount, 0.08),
+        durationSeconds: motionReduced ? 0.18 : 0.58,
+        reducedMotion: motionReduced,
+      });
+    }
+
+    const result = critical ? 'CRITICAL' : 'HIT';
+    for (const target of this.targetViews.slice(0, targetCount)) {
+      target.playReaction(result, { reducedMotion: motionReduced });
     }
 
     return Promise.resolve();
@@ -230,18 +329,19 @@ export class GameScene {
   /** Play hit/critical/miss target feedback after outcome is already known. */
   playResultFeedback(result) {
     for (const target of this.targetViews) {
-      target.playReaction(result);
+      target.playReaction(result, { reducedMotion: this.playerResultReducedMotion });
     }
   }
 
   /** Replace normal targets with the special Grandmaster challenge target. */
   showGrandmasterTarget() {
-    // TODO: visually distinguish the final target without changing gauge rules.
+    // Ticket 08 owns the special final-target presentation.
   }
 
   /** Play final multi-boomerang/dog celebration after completion is authoritative. */
   async playGrandmasterSequence({ reducedMotion = false } = {}) {
     void reducedMotion;
+    // Ticket 08 owns the final challenge celebration sequence.
     return Promise.resolve();
   }
 
@@ -249,6 +349,7 @@ export class GameScene {
   update(deltaSeconds) {
     this.playerView?.update(deltaSeconds);
     this.dogView?.update(deltaSeconds);
+    this.dogBoomerangView?.update(deltaSeconds);
     this.boomerangViews.forEach((view) => view.update(deltaSeconds));
     this.targetViews.forEach((view) => view.update(deltaSeconds));
 
@@ -267,6 +368,7 @@ export class GameScene {
 
     this.playerView?.dispose();
     this.dogView?.dispose();
+    this.dogBoomerangView?.dispose();
     this.boomerangViews.forEach((view) => view.dispose());
     this.targetViews.forEach((view) => view.dispose());
 
