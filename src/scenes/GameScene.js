@@ -105,11 +105,18 @@ export class GameScene {
 
   /**
    * Bind controller input callbacks after GameController has been created.
-   * UI buttons stop propagation and must never trigger a gameplay throw.
+   * UI controls and overlay content are excluded at the gameplay input boundary.
    */
   bindInput({ onGameplayPointer, onOpenSkills, onOpenSettings }) {
-    this.handleGameplayPointer = onGameplayPointer;
-    this.root?.addEventListener('pointerdown', onGameplayPointer);
+    this.handleGameplayPointer = (event) => {
+      const target = event.target;
+      if (target?.closest?.('[data-overlay], [data-action="skills"], [data-action="settings"]')) {
+        return;
+      }
+
+      onGameplayPointer(event);
+    };
+    this.root?.addEventListener('pointerdown', this.handleGameplayPointer);
 
     this.root?.querySelector('[data-action="skills"]')?.addEventListener('pointerdown', (event) => {
       event.stopPropagation();
