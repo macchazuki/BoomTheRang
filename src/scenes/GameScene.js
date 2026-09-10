@@ -216,9 +216,14 @@ export class GameScene {
 
   /** Animate a resolved dog throw without blocking the player state machine. */
   async playDogThrow({ targetCount, critical, reducedMotion = false }) {
-    void targetCount;
-    void critical;
-    void reducedMotion;
+    if (!reducedMotion) {
+      this.dogView?.playThrow({ critical });
+      const result = critical ? 'CRITICAL' : 'HIT';
+      for (const target of this.targetViews.slice(0, targetCount)) {
+        target.playReaction(result);
+      }
+    }
+
     return Promise.resolve();
   }
 
