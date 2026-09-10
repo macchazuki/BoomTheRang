@@ -7,6 +7,9 @@ export const GAUGE_RESULT = Object.freeze({
   CRITICAL: 'CRITICAL',
 });
 
+const ZONE_TOLERANCE = 1e-9;
+const BOUNDARY_TOLERANCE = 1e-12;
+
 /**
  * Pure normalized gauge model.
  * DOM pixel positions must never be used to classify results.
@@ -16,6 +19,10 @@ export class GaugeController {
     oneWaySeconds = BALANCE.gaugeOneWaySeconds,
     zoneWidths = BALANCE.baseGaugeZoneWidths,
   } = {}) {
+    if (!Number.isFinite(oneWaySeconds) || oneWaySeconds <= 0) {
+      throw new RangeError('Gauge one-way duration must be a positive finite number.');
+    }
+
     this.oneWaySeconds = oneWaySeconds;
     this.position = 0;
     this.direction = 1;
@@ -25,22 +32,31 @@ export class GaugeController {
 
   /** Advance marker by elapsed seconds and reflect cleanly at 0/1. */
   update(deltaSeconds) {
-    if (!this.running || deltaSeconds <= 0) return;
+    if (!this.running || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
 
     const distance = deltaSeconds / this.oneWaySeconds;
-    let next = this.position + distance * this.direction;
+    const phase = this.direction > 0 ? this.position : 2 - this.position;
+    const wrappedPhase = (phase + distance) % 2;
 
-    while (next > 1 || next < 0) {
-      if (next > 1) {
-        next = 2 - next;
-        this.direction = -1;
-      } else if (next < 0) {
-        next = -next;
-        this.direction = 1;
-      }
+    if (Math.abs(wrappedPhase) <= BOUNDARY_TOLERANCE) {
+      this.position = 0;
+      this.direction = 1;
+      return;
     }
 
-    this.position = clamp(next, 0, 1);
+    if (Math.abs(wrappedPhase - 1) <= BOUNDARY_TOLERANCE) {
+      this.position = 1;
+      this.direction = -1;
+      return;
+    }
+
+    if (wrappedPhase < 1) {
+      this.position = wrappedPhase;
+      this.direction = 1;
+    } else {
+      this.position = 2 - wrappedPhase;
+      this.direction = -1;
+    }
   }
 
   /** Freeze gauge at current normalized position. */
@@ -67,9 +83,13 @@ export class GaugeController {
    */
   setZoneWidths(zoneWidths) {
     const { red, green, white } = zoneWidths;
+    const widths = [red, green, white];
     const total = red + green + white;
 
-    if ([red, green, white].some((value) => value < 0) || Math.abs(total - 1) > 1e-9) {
+    if (
+      widths.some((value) => !Number.isFinite(value) || value < 0) ||
+      Math.abs(total - 1) > ZONE_TOLERANCE
+    ) {
       throw new RangeError('Gauge zone widths must be non-negative and total 1.');
     }
 
@@ -90,8 +110,18 @@ export class GaugeController {
     const greenStart = whiteStart - halfGreen;
     const greenEnd = whiteEnd + halfGreen;
 
-    if (x >= whiteStart && x <= whiteEnd) return GAUGE_RESULT.CRITICAL;
-    if (x >= greenStart && x <= greenEnd) return GAUGE_RESULT.HIT;
+    if (
+      x >= whiteStart - BOUNDARY_TOLERANCE &&
+      x <= whiteEnd + BOUNDARY_TOLERANCE
+    ) {
+      return GAUGE_RESULT.CRITICAL;
+    }
+    if (
+      x >= greenStart - BOUNDARY_TOLERANCE &&
+      x <= greenEnd + BOUNDARY_TOLERANCE
+    ) {
+      return GAUGE_RESULT.HIT;
+    }
     return GAUGE_RESULT.MISS;
   }
 
