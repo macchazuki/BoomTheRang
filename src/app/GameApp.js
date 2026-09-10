@@ -97,6 +97,7 @@ export class GameApp {
   startGame() {
     this.mainMenuScene?.unmount();
     this.mainMenuScene = null;
+    this.lastPeriodicSaveSeconds = 0;
 
     this.gameScene = new GameScene({ mountElement: this.mountElement });
     const uiHosts = this.gameScene.mount();
@@ -219,10 +220,12 @@ export class GameApp {
     this.gameController?.update(deltaSeconds);
     this.gameScene?.update(deltaSeconds);
 
-    this.lastPeriodicSaveSeconds += deltaSeconds;
-    if (this.gameController?.isActivePlay() && this.lastPeriodicSaveSeconds >= 20) {
-      this.saveManager.save(this.gameState.toSaveData());
-      this.lastPeriodicSaveSeconds = 0;
+    if (this.gameController?.isActivePlay()) {
+      this.lastPeriodicSaveSeconds += deltaSeconds;
+      if (this.lastPeriodicSaveSeconds >= 20) {
+        this.saveManager.save(this.gameState.toSaveData());
+        this.lastPeriodicSaveSeconds = 0;
+      }
     }
 
     this.animationFrameId = requestAnimationFrame(this.frame);
