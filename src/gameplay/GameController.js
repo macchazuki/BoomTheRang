@@ -87,12 +87,13 @@ export class GameController {
 
   /** Return whether active-play seconds should increment this frame. */
   isActivePlay() {
-    return this.state !== GAMEPLAY_STATE.PAUSED && !document.hidden;
+    const documentVisible = typeof document === 'undefined' || !document.hidden;
+    return this.state !== GAMEPLAY_STATE.PAUSED && documentVisible;
   }
 
   /** Apply one frame of elapsed-time logic. */
   update(deltaSeconds) {
-    if (this.state === GAMEPLAY_STATE.PAUSED) return;
+    if (!this.isActivePlay()) return;
 
     this.gameState.incrementStat('activePlaySeconds', deltaSeconds);
     this.dogController.update(deltaSeconds);

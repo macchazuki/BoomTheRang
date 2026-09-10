@@ -2,6 +2,8 @@ import { clamp, cloneData } from '../game.js';
 import { SAVE_KEY, SAVE_VERSION, createDefaultSave } from './defaultSave.js';
 import { UPGRADE_IDS } from '../progression/upgradeDefinitions.js';
 
+const MAX_SAFE_SAVE_NUMBER = Number.MAX_SAFE_INTEGER;
+
 /**
  * localStorage persistence boundary.
  *
@@ -114,9 +116,9 @@ export class SaveManager {
     return Number.isFinite(value) ? value : fallback;
   }
 
-  /** Return finite non-negative number or fallback. */
+  /** Return a finite, non-negative number within the safe persisted range. */
   nonNegativeNumber(value, fallback = 0) {
-    return Math.max(0, this.numberOr(value, fallback));
+    return clamp(this.numberOr(value, fallback), 0, MAX_SAFE_SAVE_NUMBER);
   }
 
   /** Remove the local save, mainly for development/manual reset UI. */
