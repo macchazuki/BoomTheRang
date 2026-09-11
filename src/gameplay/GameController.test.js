@@ -71,15 +71,42 @@ describe('GameController multi-boomerang gauge', () => {
     expect(harness.gaugeController.getSnapshot().consumedSegments).toEqual([0]);
   });
 
-  it('restores all timing areas when the gauge reaches the end', () => {
+  it('restores successful boomerang timing areas when the gauge reaches the end', () => {
     const harness = createHarness({ ownedUpgrades: ['twinThrow'] });
     tapAt(harness, 0.25);
     harness.gaugeController.position = 0.9;
     harness.controller.update(harness.gaugeController.oneWaySeconds * 0.1);
     expect(harness.gaugeController.position).toBeCloseTo(0);
+    expect(harness.gaugeController.segmentCount).toBe(2);
     expect(harness.gaugeController.getSnapshot().consumedSegments).toEqual([]);
-    tapAt(harness, 0.25);
-    expect(harness.gameState.stats.manualThrows).toBe(2);
+  });
+
+  it('does not restore a lost boomerang when the gauge reaches the end', () => {
+    const harness = createHarness({ ownedUpgrades: ['twinThrow'] });
+    tapAt(harness, 0.05);
+    expect(harness.controller.currentPlayerBoomerangCount).toBe(1);
+
+    harness.gaugeController.position = 0.9;
+    harness.controller.update(harness.gaugeController.oneWaySeconds * 0.1);
+
+    expect(harness.gaugeController.position).toBeCloseTo(0);
+    expect(harness.gaugeController.segmentCount).toBe(1);
+    expect(harness.controller.currentPlayerBoomerangCount).toBe(1);
+  });
+
+  it('shows no timing areas if every boomerang is lost, then restores them after reload', () => {
+    const harness = createHarness({ ownedUpgrades: ['twinThrow'] });
+    tapAt(harness, 0.05);
+    tapAt(harness, 0.55);
+    expect(harness.controller.currentPlayerBoomerangCount).toBe(0);
+
+    harness.gaugeController.position = 0.9;
+    harness.controller.update(harness.gaugeController.oneWaySeconds * 0.1);
+    expect(harness.gaugeController.segmentCount).toBe(0);
+
+    harness.controller.update(5);
+    expect(harness.controller.currentPlayerBoomerangCount).toBe(2);
+    expect(harness.gaugeController.segmentCount).toBe(2);
   });
 
   it('consumes a red miss without stopping the rest of the sweep', () => {
