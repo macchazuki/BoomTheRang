@@ -15,7 +15,7 @@ export class GaugeView {
 
     this.marker = document.createElement('div');
     this.marker.className = 'gauge__marker';
-    this.marker.style.boxShadow = 'none';
+    this.marker.style.setProperty('box-shadow', 'none', 'important');
     this.marker.setAttribute('aria-hidden', 'true');
     this.renderedSegmentCount = 0;
   }
@@ -63,6 +63,7 @@ export class GaugeView {
       zone.classList.add(`gauge__zone--${isConsumed ? 'red' : zone.dataset.zone}`);
     }
 
+    this.marker.style.setProperty('box-shadow', 'none', 'important');
     this.marker.hidden = snapshot.segmentCount === 0;
     this.marker.style.left = `${snapshot.position * 100}%`;
   }
