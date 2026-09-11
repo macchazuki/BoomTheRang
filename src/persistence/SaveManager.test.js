@@ -49,6 +49,7 @@ describe('SaveManager contract', () => {
     save.stats.activePlaySeconds = 91.25;
     save.settings.masterVolume = 0.6;
     save.settings.haptics = false;
+    save.settings.screenShake = false;
     save.settings.reducedMotion = true;
 
     expect(manager.save(save)).toBe(true);
@@ -124,6 +125,7 @@ describe('SaveManager contract', () => {
         musicVolume: 2,
         sfxVolume: Number.NaN,
         haptics: 'yes',
+        screenShake: 'yes',
         reducedMotion: null,
       },
     });
@@ -138,6 +140,7 @@ describe('SaveManager contract', () => {
       musicVolume: 1,
       sfxVolume: 1,
       haptics: true,
+      screenShake: true,
       reducedMotion: false,
     });
   });
