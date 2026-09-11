@@ -15,6 +15,7 @@ export class GaugeView {
 
     this.marker = document.createElement('div');
     this.marker.className = 'gauge__marker';
+    this.marker.style.boxShadow = 'none';
     this.marker.setAttribute('aria-hidden', 'true');
     this.renderedSegmentCount = 0;
   }
