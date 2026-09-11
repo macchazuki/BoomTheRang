@@ -50,7 +50,7 @@ export const DEFAULT_OPTIMAL_ROUTE = Object.freeze([
 const DEFAULT_SEED = 0x5eed1234;
 const EPSILON = 1e-9;
 
-/** Calculate perfect timing wait from left edge to first white boundary. */
+/** Calculate perfect timing wait from left edge to first base-critical boundary. */
 export function getPerfectGaugeWaitSeconds({
   oneWaySeconds = BALANCE.gaugeOneWaySeconds,
   whiteWidth = BALANCE.baseGaugeZoneWidths.white,
@@ -175,7 +175,7 @@ function calculateFullyUpgradedRates() {
 
 /**
  * Run deterministic progression in logical time only.
- * Player throws are always white; dog throws use a seeded production DogController.
+ * Player throws are always base critical; dog throws use a seeded production DogController.
  */
 export function simulateOptimalProgression({
   route = DEFAULT_OPTIMAL_ROUTE,
@@ -313,6 +313,6 @@ export function simulateOptimalProgression({
     spendableXp: gameState.xp,
     lifetimeXp: gameState.lifetimeXp,
     rates: calculateFullyUpgradedRates(),
-    notes: 'Perfect white throws, instant route purchases, seeded dog crits, and production reward/progression formulas.',
+    notes: 'Base-critical throws, instant route purchases, seeded dog crits, and production reward/progression formulas.',
   };
 }
