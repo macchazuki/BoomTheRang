@@ -45,8 +45,8 @@ export class GaugeController {
     this.direction = 1;
     this.running = true;
     this.consumedSegments = new Set();
+    this.criticalLayerCount = criticalLayerCount;
     this.setZoneWidths(zoneWidths);
-    this.setCriticalLayerCount(criticalLayerCount);
     this.setSegmentCount(segmentCount);
   }
 
@@ -126,7 +126,7 @@ export class GaugeController {
   }
 
   setZoneWidths(zoneWidths) {
-    const { red, green, white } = zoneWidths;
+    const { red, green, white, criticalLayerCount = this.criticalLayerCount ?? 1 } = zoneWidths;
     const widths = [red, green, white];
     const total = red + green + white;
 
@@ -138,7 +138,7 @@ export class GaugeController {
     }
 
     this.zoneWidths = { red, green, white };
-    if (this.criticalLayerCount) this.setCriticalLayerCount(this.criticalLayerCount);
+    this.setCriticalLayerCount(criticalLayerCount);
   }
 
   /** Classify accuracy within the current boomerang timing area. */
