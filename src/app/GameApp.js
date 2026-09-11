@@ -21,12 +21,13 @@ import { clampDeltaSeconds } from '../game.js';
  * contain reward formulas, upgrade rules, Three.js mesh construction, or save validation.
  */
 export class GameApp {
-  constructor({ mountElement }) {
+  constructor({ mountElement, saveKey } = {}) {
     this.mountElement = mountElement;
 
-    this.saveManager = new SaveManager();
+    this.saveManager = new SaveManager(saveKey ? { key: saveKey } : undefined);
     this.gameState = new GameState(this.saveManager.load());
     this.progressionManager = new ProgressionManager(this.gameState);
+    this.debugTimeScale = 1;
 
     this.mainMenuScene = null;
     this.gameScene = null;
@@ -214,7 +215,7 @@ export class GameApp {
   /** Main RAF loop: update logic first, then visual mirrors. */
   frame(frameMs) {
     const rawDelta = this.previousFrameMs === null ? 0 : (frameMs - this.previousFrameMs) / 1000;
-    const deltaSeconds = clampDeltaSeconds(rawDelta);
+    const deltaSeconds = clampDeltaSeconds(rawDelta) * this.debugTimeScale;
     this.previousFrameMs = frameMs;
 
     this.gameController?.update(deltaSeconds);
