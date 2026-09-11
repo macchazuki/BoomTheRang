@@ -9,38 +9,53 @@ export class GaugeView {
     this.root.setAttribute('role', 'img');
     this.root.setAttribute(
       'aria-label',
-      'Timing gauge: red zones miss, green zones hit, and the white center is perfect.',
+      'Timing gauge: each boomerang has one red, green, and white timing area per sweep.',
     );
     this.mountElement.replaceChildren(this.root);
 
     this.marker = document.createElement('div');
     this.marker.className = 'gauge__marker';
     this.marker.setAttribute('aria-hidden', 'true');
-    this.root.append(this.marker);
+    this.renderedSegmentCount = 0;
   }
 
-  /** Render zone widths and marker position; never classify gameplay from DOM. */
-  render(snapshot) {
+  rebuildZones(snapshot) {
     const { red, green, white } = snapshot.zoneWidths;
     const halfRed = red / 2;
     const halfGreen = green / 2;
+    const columns = [];
+    const zones = [];
 
-    this.root.style.gridTemplateColumns =
-      `${halfRed}fr ${halfGreen}fr ${white}fr ${halfGreen}fr ${halfRed}fr`;
+    for (let segment = 0; segment < snapshot.segmentCount; segment += 1) {
+      const parts = [
+        ['red', halfRed],
+        ['green', halfGreen],
+        ['white', white],
+        ['green', halfGreen],
+        ['red', halfRed],
+      ];
+      for (const [name, width] of parts) {
+        columns.push(`${width}fr`);
+        const zone = document.createElement('div');
+        zone.className = `gauge__zone gauge__zone--${name}`;
+        zone.dataset.segment = String(segment);
+        zone.setAttribute('aria-hidden', 'true');
+        zones.push(zone);
+      }
+    }
 
-    // Rebuild only if zones were not initialized.
-    if (this.root.querySelectorAll('.gauge__zone').length === 0) {
-      const classes = ['red', 'green', 'white', 'green', 'red'];
-      const marker = this.marker;
-      this.root.replaceChildren(
-        ...classes.map((name) => {
-          const zone = document.createElement('div');
-          zone.className = `gauge__zone gauge__zone--${name}`;
-          zone.setAttribute('aria-hidden', 'true');
-          return zone;
-        }),
-        marker,
-      );
+    this.root.style.gridTemplateColumns = columns.join(' ');
+    this.root.replaceChildren(...zones, this.marker);
+    this.renderedSegmentCount = snapshot.segmentCount;
+  }
+
+  /** Render zone widths, used areas, and marker position; never classify from DOM. */
+  render(snapshot) {
+    if (this.renderedSegmentCount !== snapshot.segmentCount) this.rebuildZones(snapshot);
+
+    const consumed = new Set(snapshot.consumedSegments);
+    for (const zone of this.root.querySelectorAll('.gauge__zone')) {
+      zone.classList.toggle('gauge__zone--consumed', consumed.has(Number(zone.dataset.segment)));
     }
 
     this.marker.style.left = `${snapshot.position * 100}%`;
