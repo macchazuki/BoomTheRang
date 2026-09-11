@@ -63,6 +63,7 @@ export class GaugeView {
       zone.classList.add(`gauge__zone--${isConsumed ? 'red' : zone.dataset.zone}`);
     }
 
+    this.marker.hidden = snapshot.segmentCount === 0;
     this.marker.style.left = `${snapshot.position * 100}%`;
   }
 }
