@@ -31,6 +31,12 @@ export class GaugeView {
     const halfCriticalBand = white / 2;
     const columns = [];
     const zones = [];
+    const criticalColors = {
+      white: '#f7c948',
+      mega: '#f08c46',
+      ultra: '#c968ff',
+      omega: '#f7f7ff',
+    };
 
     const addZone = (segment, name, width) => {
       if (width <= 0) return;
@@ -39,6 +45,7 @@ export class GaugeView {
       zone.className = `gauge__zone gauge__zone--${name}`;
       zone.dataset.segment = String(segment);
       zone.dataset.zone = name;
+      if (criticalColors[name]) zone.style.background = criticalColors[name];
       zone.setAttribute('aria-hidden', 'true');
       zones.push(zone);
     };
@@ -84,6 +91,7 @@ export class GaugeView {
     for (const zone of this.root.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
       zone.className = `gauge__zone gauge__zone--${isConsumed ? 'red' : zone.dataset.zone}`;
+      if (isConsumed) zone.style.background = '';
     }
 
     this.marker.hidden = snapshot.segmentCount === 0;
