@@ -21,11 +21,6 @@
   text-transform: uppercase;
 }
 
-.gauge {
-  border: 3px solid #05070c;
-  box-shadow: 3px 3px 0 #05070c;
-}
-
 .feedback {
   font-weight: 900;
   letter-spacing: 0.06em;
