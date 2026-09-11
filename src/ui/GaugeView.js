@@ -57,6 +57,7 @@ export class GaugeView {
     for (const zone of this.root.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
       zone.classList.toggle('gauge__zone--consumed', isConsumed);
+      zone.style.background = isConsumed ? '#8f2637' : '';
     }
 
     this.marker.style.left = `${snapshot.position * 100}%`;
