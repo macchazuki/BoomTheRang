@@ -1,4 +1,4 @@
-import { GAUGE_RESULT } from './GaugeController.js';
+import { GAUGE_RESULT, isCriticalResult } from './GaugeController.js';
 import { BALANCE } from '../progression/balance.js';
 
 /**
@@ -16,7 +16,9 @@ export function calculatePlayerReward({
 }) {
   if (result === GAUGE_RESULT.MISS) return 0;
 
-  const zoneMultiplier = result === GAUGE_RESULT.CRITICAL ? criticalMultiplier : 1;
+  const zoneMultiplier = result === GAUGE_RESULT.CRITICAL
+    ? criticalMultiplier
+    : BALANCE.higherCriticalMultipliers[result] ?? 1;
   return Math.round(
     baseXpPerTarget *
       boomerangCount *
@@ -52,7 +54,7 @@ export function calculateDogReward({
 export function getNextCombo(currentCombo, result, comboUnlocked) {
   if (!comboUnlocked) return 0;
   if (result === GAUGE_RESULT.MISS) return 0;
-  if (result === GAUGE_RESULT.CRITICAL) return currentCombo + 2;
+  if (isCriticalResult(result)) return currentCombo + 2;
   return currentCombo + 1;
 }
 
