@@ -11,6 +11,10 @@
 }
 
 .skill-category-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   flex: 0 0 auto;
   min-height: 38px;
   padding: 0.35rem 0.7rem;
@@ -25,6 +29,25 @@
   background: #49350d;
   border-color: #f0c35a;
   box-shadow: 0 0 10px rgb(240 195 90 / 25%);
+}
+
+.skill-category-tab--has-upgrade {
+  color: #fff0b5;
+  border-color: #f0c35a;
+  box-shadow: 0 0 10px rgb(240 195 90 / 28%);
+}
+
+.skill-category-tab--active.skill-category-tab--has-upgrade {
+  box-shadow: 0 0 14px rgb(240 195 90 / 45%);
+}
+
+.skill-category-tab__indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  background: #f0c35a;
+  border-radius: 50%;
+  box-shadow: 0 0 7px rgb(240 195 90 / 85%);
 }
 
 .skill-tree-canvas {
