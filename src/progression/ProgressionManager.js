@@ -88,18 +88,19 @@ export class ProgressionManager {
     const baseWidths = BALANCE.baseGaugeZoneWidths;
     const configuredGreen = ownedEffects.greenWidth ?? baseWidths.green;
     const white = ownedEffects.whiteWidth ?? baseWidths.white;
+    const criticalLayerCount = ownedEffects.criticalLayerCount ?? 1;
 
-    // Perfect Window widens the base white layer by taking the same amount from green.
-    // Higher crit upgrades are separate nested layers and consume green only when rendered/classified.
+    // Perfect Window widens the base crit band by taking the same amount from green.
+    // Higher crit upgrades add same-width nested bands and push earlier crit bands outward.
     const green = configuredGreen - (white - baseWidths.white);
     const red = 1 - green - white;
 
     return {
       globalTrainingMultiplier: 1 + ownedEffects.globalTrainingBonus,
       criticalMultiplier: ownedEffects.criticalMultiplier ?? BALANCE.baseCriticalMultiplier,
-      criticalLayerCount: ownedEffects.criticalLayerCount ?? 1,
+      criticalLayerCount,
       missReloadSeconds: ownedEffects.missReloadSeconds ?? BALANCE.missReloadSeconds,
-      gaugeZoneWidths: { red, green, white },
+      gaugeZoneWidths: { red, green, white, criticalLayerCount },
       playerBoomerangCount: Math.min(
         ownedEffects.playerBoomerangs ?? BALANCE.basePlayerBoomerangs,
         BALANCE.maxPlayerBoomerangs,
