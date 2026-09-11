@@ -211,7 +211,7 @@ export class GameController {
   }
 
   syncTargetHealth(targetCount) {
-    this.gameScene.setTargetHealth?.({
+    this.hud.renderTargetHealth?.({
       currentHp: this.targetHitPoints.slice(0, targetCount),
       maxHp: MAX_TARGET_HP,
     });
@@ -223,7 +223,7 @@ export class GameController {
       this.targetHitPoints[index] = Math.max(0, this.targetHitPoints[index] - damage);
     });
     this.syncTargetHealth(targetCount);
-    this.gameScene.showTargetDamage?.({ damages, critical, reducedMotion });
+    this.hud.showTargetDamage?.({ damages, critical, reducedMotion });
     return damages;
   }
 
