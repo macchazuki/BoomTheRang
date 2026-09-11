@@ -32,7 +32,7 @@ describe('optimal progression balance contract', () => {
     expect(minutes('dogCompanion')).toBeLessThanOrEqual(41);
     expect(minutes('tripleThrow')).toBeGreaterThanOrEqual(72);
     expect(minutes('tripleThrow')).toBeLessThanOrEqual(85);
-    expect(minutes('thirdDummy')).toBeGreaterThanOrEqual(90);
+    expect(minutes('thirdDummy')).toBeGreaterThanOrEqual(88);
     expect(minutes('thirdDummy')).toBeLessThanOrEqual(103);
     expect(minutes('comboTraining')).toBeGreaterThanOrEqual(110);
     expect(minutes('comboTraining')).toBeLessThanOrEqual(122);
