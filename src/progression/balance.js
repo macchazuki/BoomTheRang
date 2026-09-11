@@ -7,7 +7,7 @@
 export const BALANCE = Object.freeze({
   baseXpPerTarget: 10,
   baseCriticalMultiplier: 2,
-  gaugeOneWaySeconds: 1.6,
+  gaugeOneWaySeconds: 1.35,
   successRecoverySeconds: 0.7,
   missReloadSeconds: 5,
 
@@ -16,7 +16,7 @@ export const BALANCE = Object.freeze({
   baseTargets: 1,
   maxTargets: 4,
 
-  baseGaugeZoneWidths: Object.freeze({ red: 0.70, green: 0.25, white: 0.05 }),
+  baseGaugeZoneWidths: Object.freeze({ red: 0.80, green: 0.17, white: 0.03 }),
 
   comboBonusPerStep: 0.02,
   comboBaseMaxBonus: 0.20,
