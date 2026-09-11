@@ -10,7 +10,7 @@ const EXPECTED_UPGRADES = [
   ['betterTraining2', ['betterTraining1'], 'globalTrainingBonus', 0.25],
   ['betterTraining3', ['betterTraining2'], 'globalTrainingBonus', 0.35],
   ['criticalTraining1', ['betterTraining2'], 'criticalMultiplier', 2.25],
-  ['criticalTraining2', ['criticalTraining1', 'thirdDummy'], 'criticalMultiplier', 2.5],
+  ['criticalTraining2', ['criticalTraining1', 'tripleThrow'], 'criticalMultiplier', 2.5],
   ['criticalMastery', ['criticalTraining2'], 'criticalMultiplier', 3],
   ['megaCritical', ['criticalTraining1'], 'criticalLayerCount', 2],
   ['ultraCritical', ['megaCritical', 'criticalTraining2'], 'criticalLayerCount', 3],
@@ -24,15 +24,12 @@ const EXPECTED_UPGRADES = [
   ['perfectWindow1', ['steadyHands2'], 'whiteWidth', 0.04],
   ['perfectWindow2', ['perfectWindow1'], 'whiteWidth', 0.05],
   ['twinThrow', ['betterTraining1'], 'playerBoomerangs', 2],
-  ['secondDummy', ['twinThrow'], 'targets', 2],
-  ['tripleThrow', ['secondDummy'], 'playerBoomerangs', 3],
-  ['thirdDummy', ['tripleThrow'], 'targets', 3],
-  ['quadThrow', ['comboTraining', 'thirdDummy'], 'playerBoomerangs', 4],
-  ['fourthDummy', ['quadThrow'], 'targets', 4],
-  ['boomerangMastery', ['fourthDummy', 'comboMastery'], 'boomerangMasteryMultiplier', 1.5],
-  ['comboTraining', ['secondDummy'], 'comboUnlocked', true],
-  ['comboMastery', ['fourthDummy', 'comboTraining'], 'comboMaxBonus', 0.50],
-  ['dogCompanion', ['secondDummy'], 'dogUnlocked', true],
+  ['tripleThrow', ['twinThrow'], 'playerBoomerangs', 3],
+  ['quadThrow', ['comboTraining', 'tripleThrow'], 'playerBoomerangs', 4],
+  ['boomerangMastery', ['quadThrow', 'comboMastery'], 'boomerangMasteryMultiplier', 1.5],
+  ['comboTraining', ['twinThrow'], 'comboUnlocked', true],
+  ['comboMastery', ['quadThrow', 'comboTraining'], 'comboMaxBonus', 0.50],
+  ['dogCompanion', ['twinThrow'], 'dogUnlocked', true],
   ['dogTraining1', ['dogCompanion'], 'dogXpFactor', 0.40],
   ['dogTraining2', ['dogTraining1'], 'dogXpFactor', 0.60],
   ['fastFetch1', ['dogCompanion'], 'dogIntervalSeconds', 8],
@@ -40,7 +37,7 @@ const EXPECTED_UPGRADES = [
   ['fetchMastery', ['dogTraining2', 'fastFetch2'], 'dogCriticalChance', 0.10],
   ['dogTraining3', ['fetchMastery'], 'dogXpFactor', 1.00],
   ['fastFetch3', ['fetchMastery'], 'dogIntervalSeconds', 4],
-  ['grandmaster', ['boomerangMastery', 'fetchMastery', 'fourthDummy'], 'finalChallenge', true],
+  ['grandmaster', ['boomerangMastery', 'fetchMastery'], 'finalChallenge', true],
 ];
 
 function createFixture({ xp = 0, lifetimeXp = xp, owned = [] } = {}) {
@@ -86,6 +83,16 @@ describe('ProgressionManager contract', () => {
     }
   });
 
+  it('removes target-count upgrades and always derives one target', () => {
+    expect(UPGRADE_BY_ID.secondDummy).toBeUndefined();
+    expect(UPGRADE_BY_ID.thirdDummy).toBeUndefined();
+    expect(UPGRADE_BY_ID.fourthDummy).toBeUndefined();
+    expect(BALANCE.baseTargets).toBe(1);
+    expect(BALANCE.maxTargets).toBe(1);
+    expect(effectsFor([]).targetCount).toBe(1);
+    expect(effectsFor(['twinThrow', 'tripleThrow', 'quadThrow']).targetCount).toBe(1);
+  });
+
   it('rejects unknown upgrades', () => {
     const { manager } = createFixture({ xp: 1_000_000 });
 
@@ -97,6 +104,16 @@ describe('ProgressionManager contract', () => {
       ok: false,
       reason: 'UNKNOWN_UPGRADE',
     });
+  });
+
+  it('deducts spendable XP without reducing lifetime XP', () => {
+    const cost = BALANCE.upgradeCosts.betterTraining1;
+    const { gameState, manager } = createFixture({ xp: cost + 250, lifetimeXp: 12_345 });
+
+    expect(manager.purchase('betterTraining1').ok).toBe(true);
+    expect(gameState.xp).toBe(250);
+    expect(gameState.lifetimeXp).toBe(12_345);
+    expect(gameState.hasUpgrade('betterTraining1')).toBe(true);
   });
 
   it('rejects purchases without enough XP', () => {
@@ -118,16 +135,6 @@ describe('ProgressionManager contract', () => {
       ok: false,
       reason: 'PREREQUISITES',
     });
-  });
-
-  it('deducts spendable XP without reducing lifetime XP', () => {
-    const cost = BALANCE.upgradeCosts.betterTraining1;
-    const { gameState, manager } = createFixture({ xp: cost + 250, lifetimeXp: 12_345 });
-
-    expect(manager.purchase('betterTraining1').ok).toBe(true);
-    expect(gameState.xp).toBe(250);
-    expect(gameState.lifetimeXp).toBe(12_345);
-    expect(gameState.hasUpgrade('betterTraining1')).toBe(true);
   });
 
   it('rejects duplicate purchases', () => {
@@ -196,18 +203,10 @@ describe('ProgressionManager contract', () => {
     }
   });
 
-  it('Twin Throw + Second Dummy derives 2 boomerangs and 2 targets', () => {
-    expect(effectsFor(['twinThrow', 'secondDummy'])).toMatchObject({
-      playerBoomerangCount: 2,
-      targetCount: 2,
-    });
-  });
-
   it('derives all player-count, combo, mastery, dog, and Grandmaster effects', () => {
+    expect(effectsFor(['twinThrow']).playerBoomerangCount).toBe(2);
     expect(effectsFor(['tripleThrow']).playerBoomerangCount).toBe(3);
     expect(effectsFor(['quadThrow']).playerBoomerangCount).toBe(4);
-    expect(effectsFor(['thirdDummy']).targetCount).toBe(3);
-    expect(effectsFor(['fourthDummy']).targetCount).toBe(4);
 
     expect(effectsFor(['comboTraining'])).toMatchObject({
       comboUnlocked: true,
@@ -235,7 +234,6 @@ describe('ProgressionManager contract', () => {
   it('rebuilds derived effects from loaded upgrade ownership', () => {
     const save = createDefaultSave();
     save.upgrades.twinThrow = true;
-    save.upgrades.secondDummy = true;
     save.upgrades.dogCompanion = true;
     save.upgrades.fastFetch1 = true;
 
@@ -243,7 +241,7 @@ describe('ProgressionManager contract', () => {
 
     expect(manager.getDerivedEffects()).toMatchObject({
       playerBoomerangCount: 2,
-      targetCount: 2,
+      targetCount: 1,
       dogUnlocked: true,
       dogIntervalSeconds: 8,
     });
