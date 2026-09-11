@@ -32,6 +32,9 @@ export class GameController {
     this.finalChallengeActive = false;
     this.finalChallengePending = false;
     this.finalChallengeCompleting = false;
+    this.maxPlayerBoomerangCount = 0;
+    this.currentPlayerBoomerangCount = 0;
+    this.missedBoomerangReloads = [];
     this.handlePointerDown = this.handlePointerDown.bind(this);
   }
 
@@ -64,10 +67,38 @@ export class GameController {
     if (!this.isActivePlay()) return;
     this.gameState.incrementStat('activePlaySeconds', deltaSeconds);
     this.dogController.update(deltaSeconds);
+    this.updateMissedBoomerangs(deltaSeconds);
     if ([GAMEPLAY_STATE.READY, GAMEPLAY_STATE.FINAL_CHALLENGE].includes(this.state)) {
+      const reachesEnd = this.gaugeController.position + deltaSeconds / this.gaugeController.oneWaySeconds >= 1;
       this.gaugeController.update(deltaSeconds);
+      if (reachesEnd) this.gaugeController.setSegmentCount(this.currentPlayerBoomerangCount);
     }
     this.renderMirrors();
+  }
+
+  updateMissedBoomerangs(deltaSeconds) {
+    if (this.missedBoomerangReloads.length === 0) return;
+
+    const hadBoomerangs = this.currentPlayerBoomerangCount > 0;
+    const remainingReloads = [];
+    let restored = 0;
+
+    for (const reloadSeconds of this.missedBoomerangReloads) {
+      const remaining = reloadSeconds - deltaSeconds;
+      if (remaining <= 0) restored += 1;
+      else remainingReloads.push(remaining);
+    }
+
+    this.missedBoomerangReloads = remainingReloads;
+    this.currentPlayerBoomerangCount = Math.min(
+      this.maxPlayerBoomerangCount,
+      this.currentPlayerBoomerangCount + restored,
+    );
+
+    if (!hadBoomerangs && this.currentPlayerBoomerangCount > 0) {
+      this.gaugeController.setSegmentCount(this.currentPlayerBoomerangCount);
+      this.gaugeController.resetFromEdge();
+    }
   }
 
   handlePointerDown(event) {
@@ -102,6 +133,8 @@ export class GameController {
 
     if (result === GAUGE_RESULT.MISS) {
       this.gameState.incrementStat('misses');
+      this.currentPlayerBoomerangCount = Math.max(0, this.currentPlayerBoomerangCount - 1);
+      this.missedBoomerangReloads.push(effects.missReloadSeconds);
     } else {
       this.gameState.incrementStat('hits');
       if (result === GAUGE_RESULT.CRITICAL) this.gameState.incrementStat('criticals');
@@ -170,8 +203,15 @@ export class GameController {
   }
 
   applyProgressionEffects(effects) {
+    const addedBoomerangs = Math.max(0, effects.playerBoomerangCount - this.maxPlayerBoomerangCount);
+    this.maxPlayerBoomerangCount = effects.playerBoomerangCount;
+    this.currentPlayerBoomerangCount = Math.min(
+      this.maxPlayerBoomerangCount,
+      this.currentPlayerBoomerangCount + addedBoomerangs,
+    );
+
     this.gaugeController.setZoneWidths(effects.gaugeZoneWidths);
-    this.gaugeController.setSegmentCount(effects.playerBoomerangCount);
+    if (addedBoomerangs > 0) this.gaugeController.setSegmentCount(this.currentPlayerBoomerangCount);
     this.gameScene.setPlayerBoomerangCount(effects.playerBoomerangCount);
     this.gameScene.setTargetCount(effects.targetCount);
     this.gameScene.setDogVisible(effects.dogUnlocked);

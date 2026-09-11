@@ -77,7 +77,8 @@ function tapAt(fixture, position) {
 }
 
 function finishPlayerRecovery(fixture) {
-  fixture.controller.update(fixture.gaugeController.oneWaySeconds);
+  const lostBoomerangReload = Math.max(0, ...fixture.controller.missedBoomerangReloads);
+  fixture.controller.update(Math.max(fixture.gaugeController.oneWaySeconds, lostBoomerangReload));
 }
 
 function purchaseAndApply(fixture, upgradeId) {

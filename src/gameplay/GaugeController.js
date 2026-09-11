@@ -65,30 +65,34 @@ export class GaugeController {
   }
 
   setSegmentCount(segmentCount) {
-    if (!Number.isInteger(segmentCount) || segmentCount < 1) {
-      throw new RangeError('Gauge segment count must be a positive integer.');
+    if (!Number.isInteger(segmentCount) || segmentCount < 0) {
+      throw new RangeError('Gauge segment count must be a non-negative integer.');
     }
     this.segmentCount = segmentCount;
     this.consumedSegments.clear();
   }
 
   getSegmentIndex(position = this.position) {
+    if (this.segmentCount === 0) return -1;
     const x = clamp(position, 0, 1 - Number.EPSILON);
     return Math.min(this.segmentCount - 1, Math.floor(x * this.segmentCount));
   }
 
   /** Convert global gauge position to 0..1 within its boomerang timing area. */
   getLocalPosition(position = this.position) {
+    if (this.segmentCount === 0) return 0;
     const x = clamp(position, 0, 1 - Number.EPSILON);
     return x * this.segmentCount - this.getSegmentIndex(x);
   }
 
   isCurrentSegmentConsumed() {
+    if (this.segmentCount === 0) return true;
     return this.consumedSegments.has(this.getSegmentIndex());
   }
 
   /** Consume the current timing area once. Returns false for a repeated tap. */
   consumeCurrentSegment() {
+    if (this.segmentCount === 0) return false;
     const segmentIndex = this.getSegmentIndex();
     if (this.consumedSegments.has(segmentIndex)) return false;
     this.consumedSegments.add(segmentIndex);
@@ -112,6 +116,7 @@ export class GaugeController {
 
   /** Classify accuracy within the current boomerang timing area. */
   classify(position = this.position) {
+    if (this.segmentCount === 0) return GAUGE_RESULT.MISS;
     const x = this.getLocalPosition(position);
     const halfWhite = this.zoneWidths.white / 2;
     const halfGreen = this.zoneWidths.green / 2;
