@@ -33,10 +33,10 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
   define('quickReload3', 'Quick Reload III', 'Miss reload becomes 3s.', ['quickReload2'], 'missReloadSeconds', 3),
   define('recoveryMastery', 'Recovery Mastery', 'Miss reload becomes 2s.', ['quickReload3'], 'missReloadSeconds', 2),
 
-  define('steadyHands1', 'Steady Hands I', 'Total green width becomes 27%.', ['betterTraining1'], 'greenWidth', 0.27),
-  define('steadyHands2', 'Steady Hands II', 'Total green width becomes 30%.', ['steadyHands1'], 'greenWidth', 0.30),
-  define('perfectWindow1', 'Perfect Window I', 'White width becomes 6%.', ['steadyHands2'], 'whiteWidth', 0.06),
-  define('perfectWindow2', 'Perfect Window II', 'White width becomes 7%.', ['perfectWindow1'], 'whiteWidth', 0.07),
+  define('steadyHands1', 'Steady Hands I', 'Total green width becomes 19%.', ['betterTraining1'], 'greenWidth', 0.19),
+  define('steadyHands2', 'Steady Hands II', 'Total green width becomes 21%.', ['steadyHands1'], 'greenWidth', 0.21),
+  define('perfectWindow1', 'Perfect Window I', 'White width becomes 4%.', ['steadyHands2'], 'whiteWidth', 0.04),
+  define('perfectWindow2', 'Perfect Window II', 'White width becomes 5%.', ['perfectWindow1'], 'whiteWidth', 0.05),
 
   define('twinThrow', 'Twin Throw', 'Player throws 2 boomerangs.', ['betterTraining2', 'quickReload2'], 'playerBoomerangs', 2),
   define('secondDummy', 'Second Dummy', 'Train against 2 target dummies.', ['twinThrow'], 'targets', 2),
