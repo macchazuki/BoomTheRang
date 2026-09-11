@@ -62,7 +62,7 @@ export class HUD {
     const firstDelayMs = centerDelayMs - ((count - 1) * spacingMs) / 2;
 
     for (let index = 0; index < count; index += 1) {
-      window.setTimeout(() => this.showComicImpact({ critical, dog }), firstDelayMs + index * spacingMs);
+      setTimeout(() => this.showComicImpact({ critical, dog }), firstDelayMs + index * spacingMs);
     }
   }
 
@@ -82,13 +82,13 @@ export class HUD {
     this.impactIndex += 1;
     this.canvasHost.append(callout);
 
-    window.setTimeout(() => callout.remove(), 650);
+    setTimeout(() => callout.remove(), 650);
 
     if (critical && document.documentElement.dataset.screenShake !== 'off') {
       this.canvasHost.classList.remove('comic-shake');
       void this.canvasHost.offsetWidth;
       this.canvasHost.classList.add('comic-shake');
-      window.setTimeout(() => this.canvasHost?.classList.remove('comic-shake'), 240);
+      setTimeout(() => this.canvasHost?.classList.remove('comic-shake'), 240);
     }
   }
 
