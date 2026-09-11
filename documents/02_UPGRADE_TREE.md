@@ -78,10 +78,10 @@ Global Training bonuses are additive with each other, then applied as one multip
 | `quickReload2` | `4.5 -> 4.0 s` | Quick Reload I |
 | `quickReload3` | `4.0 -> 3.0 s` | Quick Reload II |
 | `recoveryMastery` | `3.0 -> 2.0 s` | Quick Reload III |
-| `steadyHands1` | Total green width `25% -> 27%` | Better Training I |
-| `steadyHands2` | `27% -> 30%` | Steady Hands I |
-| `perfectWindow1` | White width `5% -> 6%`; subtract equally from green | Steady Hands II |
-| `perfectWindow2` | White width `6% -> 7%`; subtract equally from green | Perfect Window I |
+| `steadyHands1` | Total green width `17% -> 19%` | Better Training I |
+| `steadyHands2` | `19% -> 21%` | Steady Hands I |
+| `perfectWindow1` | White width `3% -> 4%`; subtract equally from green | Steady Hands II |
+| `perfectWindow2` | White width `4% -> 5%`; subtract equally from green | Perfect Window I |
 
 Never expand green/white by shrinking total gauge size. Zone widths must continue totaling 100%.
 

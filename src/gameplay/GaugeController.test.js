@@ -28,9 +28,10 @@ describe('GaugeController contract', () => {
     expect(gauge.direction).toBe(1);
   });
 
-  it('uses the default 70% red / 25% green / 5% white widths', () => {
+  it('uses the harder 80% red / 17% green / 3% white default gauge', () => {
     const gauge = new GaugeController();
 
+    expect(gauge.oneWaySeconds).toBe(1.35);
     expect(gauge.zoneWidths).toEqual(BALANCE.baseGaugeZoneWidths);
     expect(gauge.classify(0.1)).toBe(GAUGE_RESULT.MISS);
     expect(gauge.classify(0.4)).toBe(GAUGE_RESULT.HIT);
@@ -62,7 +63,7 @@ describe('GaugeController contract', () => {
 
   it('keeps configured widths non-negative and totaling 100%', () => {
     const gauge = new GaugeController();
-    const upgradedWidths = { red: 0.65, green: 0.28, white: 0.07 };
+    const upgradedWidths = { red: 0.76, green: 0.19, white: 0.05 };
 
     gauge.setZoneWidths(upgradedWidths);
     expect(gauge.zoneWidths).toEqual(upgradedWidths);
@@ -70,13 +71,13 @@ describe('GaugeController contract', () => {
       gauge.zoneWidths.red + gauge.zoneWidths.green + gauge.zoneWidths.white,
     ).toBeCloseTo(1);
 
-    expect(() => gauge.setZoneWidths({ red: 0.7, green: 0.25, white: -0.05 })).toThrow(
+    expect(() => gauge.setZoneWidths({ red: 0.8, green: 0.17, white: -0.03 })).toThrow(
       RangeError,
     );
-    expect(() => gauge.setZoneWidths({ red: 0.7, green: 0.25, white: 0.06 })).toThrow(
+    expect(() => gauge.setZoneWidths({ red: 0.8, green: 0.17, white: 0.04 })).toThrow(
       RangeError,
     );
-    expect(() => gauge.setZoneWidths({ red: Number.NaN, green: 0.25, white: 0.05 })).toThrow(
+    expect(() => gauge.setZoneWidths({ red: Number.NaN, green: 0.17, white: 0.03 })).toThrow(
       RangeError,
     );
   });

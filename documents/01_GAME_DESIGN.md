@@ -15,15 +15,15 @@
 ## Gauge
 
 Base zone widths across the full gauge:
-- Red: 70% total
-- Green: 25% total
-- White: 5% total
+- Red: 80% total
+- Green: 17% total
+- White: 3% total
 
 Layout:
 
-`35% red | 12.5% green | 5% white | 12.5% green | 35% red`
+`40% red | 8.5% green | 3% white | 8.5% green | 40% red`
 
-Base one-way sweep duration: `1.6 s`.
+Base one-way sweep duration: `1.35 s`.
 
 The marker reflects at each edge; it does not teleport.
 

@@ -16,10 +16,10 @@ const EXPECTED_UPGRADES = [
   ['quickReload2', ['quickReload1'], 'missReloadSeconds', 4],
   ['quickReload3', ['quickReload2'], 'missReloadSeconds', 3],
   ['recoveryMastery', ['quickReload3'], 'missReloadSeconds', 2],
-  ['steadyHands1', ['betterTraining1'], 'greenWidth', 0.27],
-  ['steadyHands2', ['steadyHands1'], 'greenWidth', 0.30],
-  ['perfectWindow1', ['steadyHands2'], 'whiteWidth', 0.06],
-  ['perfectWindow2', ['perfectWindow1'], 'whiteWidth', 0.07],
+  ['steadyHands1', ['betterTraining1'], 'greenWidth', 0.19],
+  ['steadyHands2', ['steadyHands1'], 'greenWidth', 0.21],
+  ['perfectWindow1', ['steadyHands2'], 'whiteWidth', 0.04],
+  ['perfectWindow2', ['perfectWindow1'], 'whiteWidth', 0.05],
   ['twinThrow', ['betterTraining2', 'quickReload2'], 'playerBoomerangs', 2],
   ['secondDummy', ['twinThrow'], 'targets', 2],
   ['tripleThrow', ['secondDummy'], 'playerBoomerangs', 3],
@@ -163,11 +163,11 @@ describe('ProgressionManager contract', () => {
 
   it('derives every precision upgrade while keeping total gauge width at 1', () => {
     const cases = [
-      [[], { red: 0.70, green: 0.25, white: 0.05 }],
-      [['steadyHands1'], { red: 0.68, green: 0.27, white: 0.05 }],
-      [['steadyHands1', 'steadyHands2'], { red: 0.65, green: 0.30, white: 0.05 }],
-      [['steadyHands1', 'steadyHands2', 'perfectWindow1'], { red: 0.65, green: 0.29, white: 0.06 }],
-      [['steadyHands1', 'steadyHands2', 'perfectWindow1', 'perfectWindow2'], { red: 0.65, green: 0.28, white: 0.07 }],
+      [[], { red: 0.80, green: 0.17, white: 0.03 }],
+      [['steadyHands1'], { red: 0.78, green: 0.19, white: 0.03 }],
+      [['steadyHands1', 'steadyHands2'], { red: 0.76, green: 0.21, white: 0.03 }],
+      [['steadyHands1', 'steadyHands2', 'perfectWindow1'], { red: 0.76, green: 0.20, white: 0.04 }],
+      [['steadyHands1', 'steadyHands2', 'perfectWindow1', 'perfectWindow2'], { red: 0.76, green: 0.19, white: 0.05 }],
     ];
 
     for (const [owned, expected] of cases) {
