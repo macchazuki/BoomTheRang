@@ -1,0 +1,117 @@
+/* Comic-book presentation layer. Keep gameplay layout and gauge motion untouched. */
+.game-screen {
+  background:
+    radial-gradient(circle at 15% 20%, rgb(255 255 255 / 5%) 0 1px, transparent 1.5px) 0 0 / 9px 9px,
+    #0d1220;
+}
+
+.hud,
+.game-controls,
+.modal-panel {
+  text-shadow: 2px 2px 0 #05070c;
+}
+
+.game-controls button,
+.modal-panel button {
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 3px 3px 0 #05070c;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gauge {
+  border: 3px solid #05070c;
+  box-shadow: 3px 3px 0 #05070c;
+}
+
+.feedback {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 1px #05070c;
+}
+
+.comic-impact {
+  position: absolute;
+  z-index: 5;
+  top: 20%;
+  left: 50%;
+  padding: 0.08em 0.2em;
+  color: #ffe85c;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: clamp(2.2rem, 12vw, 4rem);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  pointer-events: none;
+  text-shadow:
+    -3px -3px 0 #05070c,
+    3px -3px 0 #05070c,
+    -3px 3px 0 #05070c,
+    3px 3px 0 #05070c,
+    6px 6px 0 rgb(0 0 0 / 35%);
+  transform: translate(-50%, -50%) rotate(-8deg) scale(0.5);
+  animation: comic-impact-pop 620ms cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+}
+
+.comic-impact::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -0.45em -0.55em;
+  background: #ed3d4f;
+  clip-path: polygon(50% 0%, 59% 28%, 80% 8%, 76% 34%, 100% 30%, 80% 49%, 100% 66%, 73% 64%, 79% 94%, 57% 74%, 48% 100%, 40% 74%, 15% 93%, 24% 63%, 0% 65%, 21% 48%, 0% 31%, 26% 34%, 20% 8%, 42% 29%);
+}
+
+.comic-impact--left {
+  left: 35%;
+  transform: translate(-50%, -50%) rotate(-11deg) scale(0.5);
+}
+
+.comic-impact--right {
+  left: 65%;
+  transform: translate(-50%, -50%) rotate(9deg) scale(0.5);
+}
+
+.comic-impact--critical {
+  color: #fff;
+  font-size: clamp(2.7rem, 15vw, 4.8rem);
+}
+
+.comic-impact--critical::before {
+  background: #ff9f1c;
+}
+
+.comic-shake {
+  animation: comic-screen-shake 220ms linear;
+}
+
+@keyframes comic-impact-pop {
+  0% { opacity: 0; scale: 0.55; }
+  22% { opacity: 1; scale: 1.18; }
+  65% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 1.05; }
+}
+
+@keyframes comic-screen-shake {
+  0%, 100% { translate: 0 0; }
+  15% { translate: -5px 2px; }
+  30% { translate: 5px -3px; }
+  45% { translate: -4px -2px; }
+  60% { translate: 4px 3px; }
+  75% { translate: -2px 1px; }
+  90% { translate: 2px -1px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comic-impact {
+    animation-duration: 180ms;
+  }
+
+  .comic-shake {
+    animation: none;
+  }
+}
