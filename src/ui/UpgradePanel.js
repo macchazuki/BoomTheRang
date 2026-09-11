@@ -4,7 +4,7 @@ const TREE_WIDTH = 620;
 const TREE_HEIGHT = 900;
 
 export const SKILL_CATEGORIES = Object.freeze([
-  Object.freeze({ id: 'xp', label: 'EXP', root: 'betterTraining1', skills: Object.freeze(['betterTraining1', 'betterTraining2', 'betterTraining3']) }),
+  Object.freeze({ id: 'xp', label: 'Damage', root: 'betterTraining1', skills: Object.freeze(['betterTraining1', 'betterTraining2', 'betterTraining3']) }),
   Object.freeze({ id: 'criticals', label: 'Criticals', root: 'criticalTraining1', skills: Object.freeze(['criticalTraining1', 'megaCritical', 'criticalTraining2', 'ultraCritical', 'criticalMastery', 'omegaCritical']) }),
   Object.freeze({ id: 'precision', label: 'Precision', root: 'steadyHands1', skills: Object.freeze(['steadyHands1', 'steadyHands2', 'perfectWindow1', 'perfectWindow2', 'quickReload1', 'quickReload2', 'quickReload3', 'recoveryMastery']) }),
   Object.freeze({ id: 'arsenal', label: 'Arsenal', root: 'twinThrow', skills: Object.freeze(['twinThrow', 'secondDummy', 'comboTraining', 'tripleThrow', 'thirdDummy', 'quadThrow', 'fourthDummy', 'comboMastery', 'boomerangMastery', 'grandmaster']) }),
@@ -24,7 +24,7 @@ const STATUS_PRESENTATION = Object.freeze({
 
 /** Category-local coordinates keep paths short and prevent unrelated branches crossing. */
 export const SKILL_TREE_LAYOUT = Object.freeze({
-  betterTraining1: Object.freeze({ x: 310, y: 90, sigil: 'XP' }), betterTraining2: Object.freeze({ x: 310, y: 270, sigil: 'II' }), betterTraining3: Object.freeze({ x: 310, y: 450, sigil: 'III' }),
+  betterTraining1: Object.freeze({ x: 310, y: 90, sigil: 'DMG' }), betterTraining2: Object.freeze({ x: 310, y: 270, sigil: 'II' }), betterTraining3: Object.freeze({ x: 310, y: 450, sigil: 'III' }),
   criticalTraining1: Object.freeze({ x: 310, y: 80, sigil: 'CR' }), megaCritical: Object.freeze({ x: 190, y: 230, sigil: 'MC' }), criticalTraining2: Object.freeze({ x: 430, y: 230, sigil: 'II' }), ultraCritical: Object.freeze({ x: 190, y: 400, sigil: 'UC' }), criticalMastery: Object.freeze({ x: 430, y: 400, sigil: 'CM' }), omegaCritical: Object.freeze({ x: 310, y: 590, sigil: 'OC' }),
   steadyHands1: Object.freeze({ x: 310, y: 70, sigil: 'PR' }), steadyHands2: Object.freeze({ x: 190, y: 230, sigil: 'II' }), perfectWindow1: Object.freeze({ x: 190, y: 400, sigil: 'PW' }), perfectWindow2: Object.freeze({ x: 190, y: 570, sigil: 'II' }), quickReload1: Object.freeze({ x: 430, y: 230, sigil: 'RL' }), quickReload2: Object.freeze({ x: 430, y: 400, sigil: 'II' }), quickReload3: Object.freeze({ x: 430, y: 570, sigil: 'III' }), recoveryMastery: Object.freeze({ x: 430, y: 740, sigil: 'RM' }),
   twinThrow: Object.freeze({ x: 310, y: 60, sigil: '×2' }), secondDummy: Object.freeze({ x: 310, y: 170, sigil: 'T2' }), comboTraining: Object.freeze({ x: 450, y: 280, sigil: 'CO' }), tripleThrow: Object.freeze({ x: 250, y: 280, sigil: '×3' }), thirdDummy: Object.freeze({ x: 250, y: 400, sigil: 'T3' }), quadThrow: Object.freeze({ x: 250, y: 520, sigil: '×4' }), fourthDummy: Object.freeze({ x: 250, y: 640, sigil: 'T4' }), comboMastery: Object.freeze({ x: 450, y: 640, sigil: 'CM' }), boomerangMastery: Object.freeze({ x: 310, y: 760, sigil: 'BM' }), grandmaster: Object.freeze({ x: 500, y: 800, sigil: 'GM' }),

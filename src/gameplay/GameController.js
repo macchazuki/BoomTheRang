@@ -6,6 +6,18 @@ import {
   getNextCombo,
 } from './RewardCalculator.js';
 
+export const MAX_TARGET_HP = 2_147_483_647;
+
+export function distributeDamage(totalDamage, targetCount) {
+  const damage = Number.isFinite(totalDamage) ? Math.max(0, Math.floor(totalDamage)) : 0;
+  const count = Number.isFinite(targetCount) ? Math.max(0, Math.floor(targetCount)) : 0;
+  if (count === 0) return [];
+
+  const baseDamage = Math.floor(damage / count);
+  const remainder = damage % count;
+  return Array.from({ length: count }, (_, index) => baseDamage + (index < remainder ? 1 : 0));
+}
+
 export const GAMEPLAY_STATE = Object.freeze({
   READY: 'READY',
   PLAYER_THROW: 'PLAYER_THROW',
@@ -35,6 +47,7 @@ export class GameController {
     this.maxPlayerBoomerangCount = 0;
     this.currentPlayerBoomerangCount = 0;
     this.missedBoomerangReloads = [];
+    this.targetHitPoints = Array.from({ length: 4 }, () => MAX_TARGET_HP);
     this.handlePointerDown = this.handlePointerDown.bind(this);
   }
 
@@ -129,7 +142,7 @@ export class GameController {
       boomerangCount: 1,
       targetCount: effects.targetCount,
     });
-    let awardedXp = 0;
+    let damageDealt = 0;
 
     if (result === GAUGE_RESULT.MISS) {
       this.gameState.incrementStat('misses');
@@ -139,7 +152,7 @@ export class GameController {
       this.gameState.incrementStat('hits');
       if (isCriticalResult(result)) this.gameState.incrementStat('criticals');
       this.gameState.incrementStat('targetsHit', throwData.rewardedTargetHits);
-      awardedXp = calculatePlayerReward({
+      damageDealt = calculatePlayerReward({
         result,
         boomerangCount: 1,
         targetCount: effects.targetCount,
@@ -148,7 +161,11 @@ export class GameController {
         comboMultiplier,
         boomerangMasteryMultiplier: effects.boomerangMasteryMultiplier,
       });
-      this.gameState.addXp(awardedXp, 'player');
+      this.applyTargetDamage(damageDealt, effects.targetCount, {
+        critical: isCriticalResult(result),
+        reducedMotion: this.gameState.settings.reducedMotion,
+      });
+      this.gameState.addXp(damageDealt, 'player');
       if (this.finalChallengeActive && isCriticalResult(result)) {
         this.completeFinalChallenge();
       }
@@ -158,7 +175,7 @@ export class GameController {
     this.gameScene.playResultFeedback(isCriticalResult(result) ? GAUGE_RESULT.CRITICAL : result);
     this.hud.showPlayerResult({
       result,
-      awardedXp,
+      awardedXp: damageDealt,
       targetCount: effects.targetCount,
       reducedMotion: this.gameState.settings.reducedMotion,
     });
@@ -170,23 +187,44 @@ export class GameController {
     const effects = this.progressionManager.getDerivedEffects();
     if (!effects.dogUnlocked) return;
     const throwData = this.throwController.resolveDogThrow({ targetCount: effects.targetCount, critical });
-    const reward = calculateDogReward({
+    const damageDealt = calculateDogReward({
       targetCount: effects.targetCount,
       dogXpFactor: effects.dogXpFactor,
       globalTrainingMultiplier: effects.globalTrainingMultiplier,
       dogCritical: critical,
     });
-    this.gameState.addXp(reward, 'dog');
+    this.applyTargetDamage(damageDealt, effects.targetCount, {
+      critical,
+      reducedMotion: this.gameState.settings.reducedMotion,
+    });
+    this.gameState.addXp(damageDealt, 'dog');
     this.gameState.incrementStat('dogThrows');
     this.gameState.incrementStat('targetsHit', effects.targetCount);
     if (critical) this.gameState.incrementStat('dogCriticals');
     void this.gameScene.playDogThrow({ ...throwData, reducedMotion: this.gameState.settings.reducedMotion });
     this.hud.showDogResult({
       critical,
-      awardedXp: reward,
+      awardedXp: damageDealt,
       targetCount: effects.targetCount,
       reducedMotion: this.gameState.settings.reducedMotion,
     });
+  }
+
+  syncTargetHealth(targetCount) {
+    this.hud.renderTargetHealth?.({
+      currentHp: this.targetHitPoints.slice(0, targetCount),
+      maxHp: MAX_TARGET_HP,
+    });
+  }
+
+  applyTargetDamage(totalDamage, targetCount, { critical = false, reducedMotion = false } = {}) {
+    const damages = distributeDamage(totalDamage, targetCount);
+    damages.forEach((damage, index) => {
+      this.targetHitPoints[index] = Math.max(0, this.targetHitPoints[index] - damage);
+    });
+    this.syncTargetHealth(targetCount);
+    this.hud.showTargetDamage?.({ damages, critical, reducedMotion });
+    return damages;
   }
 
   pause(reason = 'manual') {
@@ -224,6 +262,7 @@ export class GameController {
     if (addedBoomerangs > 0) this.gaugeController.setSegmentCount(this.currentPlayerBoomerangCount);
     this.gameScene.setPlayerBoomerangCount(effects.playerBoomerangCount);
     this.gameScene.setTargetCount(effects.targetCount);
+    this.syncTargetHealth(effects.targetCount);
     this.gameScene.setDogVisible(effects.dogUnlocked);
     this.dogController.configure({
       unlocked: effects.dogUnlocked,
