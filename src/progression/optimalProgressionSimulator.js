@@ -22,12 +22,13 @@ import {
  */
 export const DEFAULT_OPTIMAL_ROUTE = Object.freeze([
   'betterTraining1',
+  'twinThrow',
+  'secondDummy',
+  'comboTraining',
   'betterTraining2',
   'criticalTraining1',
   'quickReload1',
   'quickReload2',
-  'twinThrow',
-  'secondDummy',
   'dogCompanion',
   'betterTraining3',
   'dogTraining1',
@@ -36,7 +37,6 @@ export const DEFAULT_OPTIMAL_ROUTE = Object.freeze([
   'thirdDummy',
   'criticalTraining2',
   'criticalMastery',
-  'comboTraining',
   'dogTraining2',
   'fastFetch2',
   'quadThrow',

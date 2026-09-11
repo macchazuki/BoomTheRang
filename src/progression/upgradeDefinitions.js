@@ -38,7 +38,7 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
   define('perfectWindow1', 'Perfect Window I', 'White width becomes 4%.', ['steadyHands2'], 'whiteWidth', 0.04),
   define('perfectWindow2', 'Perfect Window II', 'White width becomes 5%.', ['perfectWindow1'], 'whiteWidth', 0.05),
 
-  define('twinThrow', 'Twin Throw', 'Player throws 2 boomerangs.', ['betterTraining2', 'quickReload2'], 'playerBoomerangs', 2),
+  define('twinThrow', 'Twin Throw', 'Player throws 2 boomerangs.', ['betterTraining1'], 'playerBoomerangs', 2),
   define('secondDummy', 'Second Dummy', 'Train against 2 target dummies.', ['twinThrow'], 'targets', 2),
   define('tripleThrow', 'Triple Throw', 'Player throws 3 boomerangs.', ['secondDummy'], 'playerBoomerangs', 3),
   define('thirdDummy', 'Third Dummy', 'Train against 3 target dummies.', ['tripleThrow'], 'targets', 3),
@@ -46,7 +46,7 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
   define('fourthDummy', 'Fourth Dummy', 'Train against 4 target dummies.', ['quadThrow'], 'targets', 4),
   define('boomerangMastery', 'Boomerang Mastery', '+50% player-boomerang XP.', ['fourthDummy', 'comboMastery'], 'boomerangMasteryMultiplier', 1.5),
 
-  define('comboTraining', 'Combo Training', '+2% player XP per combo step up to +20%.', ['thirdDummy', 'criticalTraining2'], 'comboUnlocked', true),
+  define('comboTraining', 'Combo Training', '+2% player XP per combo step up to +20%.', ['secondDummy'], 'comboUnlocked', true),
   define('comboMastery', 'Combo Mastery', 'Maximum combo bonus becomes +50%.', ['fourthDummy', 'comboTraining'], 'comboMaxBonus', 0.50),
 
   define('dogCompanion', 'Dog Companion', 'Unlock automatic dog boomerang throws.', ['secondDummy'], 'dogUnlocked', true),
