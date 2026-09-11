@@ -4,8 +4,10 @@
 export class HUD {
   constructor({ mountElement }) {
     this.mountElement = mountElement;
-    this.feedbackElement =
-      this.mountElement.closest?.('.game-screen')?.querySelector?.('[data-feedback]') ?? null;
+    this.gameScreen = this.mountElement.closest?.('.game-screen') ?? null;
+    this.feedbackElement = this.gameScreen?.querySelector?.('[data-feedback]') ?? null;
+    this.canvasHost = this.gameScreen?.querySelector?.('[data-canvas-host]') ?? null;
+    this.impactIndex = 0;
   }
 
   /** Render always-visible state from authoritative models. */
@@ -30,6 +32,10 @@ export class HUD {
 
     const label = result === 'CRITICAL' ? 'PERFECT!' : result === 'HIT' ? 'HIT!' : 'MISS';
     this.feedbackElement.textContent = awardedXp > 0 ? `${label} +${awardedXp} XP` : label;
+
+    if (result === 'HIT' || result === 'CRITICAL') {
+      this.showComicImpact({ critical: result === 'CRITICAL' });
+    }
   }
 
   /** Show smaller independent dog feedback. */
@@ -38,6 +44,33 @@ export class HUD {
     this.feedbackElement.textContent = critical
       ? `GOOD BOY! +${awardedXp} XP`
       : `Dog +${awardedXp} XP`;
+    this.showComicImpact({ critical, dog: true });
+  }
+
+  /** Spawn a short comic-book impact word over the target area. */
+  showComicImpact({ critical = false, dog = false } = {}) {
+    if (!this.canvasHost) return;
+
+    const normalWords = dog ? ['BAP!', 'BONK!', 'POW!'] : ['POW!', 'BAM!', 'WHAM!'];
+    const criticalWords = dog ? ['KAPOW!', 'WOOF!'] : ['KAPOW!', 'BOOM!', 'CRACK!'];
+    const words = critical ? criticalWords : normalWords;
+    const callout = document.createElement('div');
+    const position = ['left', 'center', 'right'][this.impactIndex % 3];
+
+    callout.className = `comic-impact comic-impact--${position}${critical ? ' comic-impact--critical' : ''}`;
+    callout.textContent = words[this.impactIndex % words.length];
+    callout.setAttribute('aria-hidden', 'true');
+    this.impactIndex += 1;
+    this.canvasHost.append(callout);
+
+    window.setTimeout(() => callout.remove(), 650);
+
+    if (critical && document.documentElement.dataset.screenShake !== 'off') {
+      this.canvasHost.classList.remove('comic-shake');
+      void this.canvasHost.offsetWidth;
+      this.canvasHost.classList.add('comic-shake');
+      window.setTimeout(() => this.canvasHost?.classList.remove('comic-shake'), 240);
+    }
   }
 
   /** Clear temporary feedback when desired by final visual implementation. */
