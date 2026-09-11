@@ -12,12 +12,14 @@ const BOUNDARY_TOLERANCE = 1e-12;
 
 /**
  * Pure normalized gauge model.
- * DOM pixel positions must never be used to classify results.
+ * The marker always travels left-to-right. Each owned boomerang gets one equal
+ * timing area per sweep, and an area can only be used once before the sweep resets.
  */
 export class GaugeController {
   constructor({
     oneWaySeconds = BALANCE.gaugeOneWaySeconds,
     zoneWidths = BALANCE.baseGaugeZoneWidths,
+    segmentCount = 1,
   } = {}) {
     if (!Number.isFinite(oneWaySeconds) || oneWaySeconds <= 0) {
       throw new RangeError('Gauge one-way duration must be a positive finite number.');
@@ -27,60 +29,72 @@ export class GaugeController {
     this.position = 0;
     this.direction = 1;
     this.running = true;
+    this.consumedSegments = new Set();
     this.setZoneWidths(zoneWidths);
+    this.setSegmentCount(segmentCount);
   }
 
-  /** Advance marker by elapsed seconds and reflect cleanly at 0/1. */
+  /** Advance marker left-to-right and start a fresh set of areas after each sweep. */
   update(deltaSeconds) {
     if (!this.running || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
 
     const distance = deltaSeconds / this.oneWaySeconds;
-    const phase = this.direction > 0 ? this.position : 2 - this.position;
-    const wrappedPhase = (phase + distance) % 2;
-
-    if (Math.abs(wrappedPhase) <= BOUNDARY_TOLERANCE) {
-      this.position = 0;
-      this.direction = 1;
-      return;
+    const nextPosition = this.position + distance;
+    if (nextPosition >= 1 - BOUNDARY_TOLERANCE) {
+      this.consumedSegments.clear();
     }
-
-    if (Math.abs(wrappedPhase - 1) <= BOUNDARY_TOLERANCE) {
-      this.position = 1;
-      this.direction = -1;
-      return;
-    }
-
-    if (wrappedPhase < 1) {
-      this.position = wrappedPhase;
-      this.direction = 1;
-    } else {
-      this.position = 2 - wrappedPhase;
-      this.direction = -1;
-    }
+    this.position = nextPosition % 1;
+    if (Math.abs(this.position) <= BOUNDARY_TOLERANCE) this.position = 0;
+    this.direction = 1;
   }
 
-  /** Freeze gauge at current normalized position. */
   stop() {
     this.running = false;
     return this.position;
   }
 
-  /** Resume motion without changing position. */
   resume() {
     this.running = true;
   }
 
-  /** Reset next throw consistently from the left edge. */
   resetFromEdge() {
     this.position = 0;
     this.direction = 1;
     this.running = true;
+    this.consumedSegments.clear();
   }
 
-  /**
-   * Apply total red/green/white widths. Widths must sum to 1.
-   * green/white are centered symmetrically; red occupies the outside remainder.
-   */
+  setSegmentCount(segmentCount) {
+    if (!Number.isInteger(segmentCount) || segmentCount < 1) {
+      throw new RangeError('Gauge segment count must be a positive integer.');
+    }
+    this.segmentCount = segmentCount;
+    this.consumedSegments.clear();
+  }
+
+  getSegmentIndex(position = this.position) {
+    const x = clamp(position, 0, 1 - Number.EPSILON);
+    return Math.min(this.segmentCount - 1, Math.floor(x * this.segmentCount));
+  }
+
+  /** Convert global gauge position to 0..1 within its boomerang timing area. */
+  getLocalPosition(position = this.position) {
+    const x = clamp(position, 0, 1 - Number.EPSILON);
+    return x * this.segmentCount - this.getSegmentIndex(x);
+  }
+
+  isCurrentSegmentConsumed() {
+    return this.consumedSegments.has(this.getSegmentIndex());
+  }
+
+  /** Consume the current timing area once. Returns false for a repeated tap. */
+  consumeCurrentSegment() {
+    const segmentIndex = this.getSegmentIndex();
+    if (this.consumedSegments.has(segmentIndex)) return false;
+    this.consumedSegments.add(segmentIndex);
+    return true;
+  }
+
   setZoneWidths(zoneWidths) {
     const { red, green, white } = zoneWidths;
     const widths = [red, green, white];
@@ -96,12 +110,9 @@ export class GaugeController {
     this.zoneWidths = { red, green, white };
   }
 
-  /**
-   * Classify a normalized position deterministically.
-   * Exact white boundaries count as white; exact green boundaries count as green.
-   */
+  /** Classify accuracy within the current boomerang timing area. */
   classify(position = this.position) {
-    const x = clamp(position, 0, 1);
+    const x = this.getLocalPosition(position);
     const halfWhite = this.zoneWidths.white / 2;
     const halfGreen = this.zoneWidths.green / 2;
 
@@ -110,28 +121,23 @@ export class GaugeController {
     const greenStart = whiteStart - halfGreen;
     const greenEnd = whiteEnd + halfGreen;
 
-    if (
-      x >= whiteStart - BOUNDARY_TOLERANCE &&
-      x <= whiteEnd + BOUNDARY_TOLERANCE
-    ) {
+    if (x >= whiteStart - BOUNDARY_TOLERANCE && x <= whiteEnd + BOUNDARY_TOLERANCE) {
       return GAUGE_RESULT.CRITICAL;
     }
-    if (
-      x >= greenStart - BOUNDARY_TOLERANCE &&
-      x <= greenEnd + BOUNDARY_TOLERANCE
-    ) {
+    if (x >= greenStart - BOUNDARY_TOLERANCE && x <= greenEnd + BOUNDARY_TOLERANCE) {
       return GAUGE_RESULT.HIT;
     }
     return GAUGE_RESULT.MISS;
   }
 
-  /** Return render-safe immutable snapshot. */
   getSnapshot() {
     return {
       position: this.position,
-      direction: this.direction,
+      direction: 1,
       running: this.running,
       zoneWidths: { ...this.zoneWidths },
+      segmentCount: this.segmentCount,
+      consumedSegments: [...this.consumedSegments],
       resultAtCurrentPosition: this.classify(),
     };
   }
