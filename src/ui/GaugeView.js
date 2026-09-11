@@ -1,6 +1,13 @@
 /**
  * DOM mirror of GaugeController normalized state.
  */
+const CRITICAL_COLORS = Object.freeze({
+  white: '#f7c948',
+  mega: '#f08c46',
+  ultra: '#c968ff',
+  omega: '#f7f7ff',
+});
+
 export class GaugeView {
   constructor({ mountElement }) {
     this.mountElement = mountElement;
@@ -9,7 +16,7 @@ export class GaugeView {
     this.root.setAttribute('role', 'img');
     this.root.setAttribute(
       'aria-label',
-      'Timing gauge: each boomerang has one red, green, and white timing area per sweep.',
+      'Timing gauge: each boomerang has red, green, and nested critical timing areas per sweep.',
     );
     this.mountElement.replaceChildren(this.root);
 
@@ -17,49 +24,76 @@ export class GaugeView {
     this.marker.className = 'gauge__marker';
     this.marker.setAttribute('aria-hidden', 'true');
     this.renderedSegmentCount = 0;
+    this.renderedCriticalLayerCount = 0;
+    this.renderedZoneKey = '';
   }
 
   rebuildZones(snapshot) {
     const { red, green, white } = snapshot.zoneWidths;
+    const criticalLayerCount = snapshot.criticalLayerCount ?? 1;
+    const expandedCriticalWidth = white * criticalLayerCount;
+    const remainingGreen = Math.max(0, green - (expandedCriticalWidth - white));
     const halfRed = red / 2;
-    const halfGreen = green / 2;
+    const halfGreen = remainingGreen / 2;
+    const halfCriticalBand = white / 2;
     const columns = [];
     const zones = [];
 
+    const addZone = (segment, name, width) => {
+      if (width <= 0) return;
+      columns.push(`${width}fr`);
+      const zone = document.createElement('div');
+      zone.className = `gauge__zone gauge__zone--${name}`;
+      zone.dataset.segment = String(segment);
+      zone.dataset.zone = name;
+      zone.style.background = CRITICAL_COLORS[name] ?? '';
+      zone.setAttribute('aria-hidden', 'true');
+      zones.push(zone);
+    };
+
+    const criticalNames = ['white', 'mega', 'ultra', 'omega'];
+
     for (let segment = 0; segment < snapshot.segmentCount; segment += 1) {
-      const parts = [
-        ['red', halfRed],
-        ['green', halfGreen],
-        ['white', white],
-        ['green', halfGreen],
-        ['red', halfRed],
-      ];
-      for (const [name, width] of parts) {
-        columns.push(`${width}fr`);
-        const zone = document.createElement('div');
-        zone.className = `gauge__zone gauge__zone--${name}`;
-        zone.dataset.segment = String(segment);
-        zone.dataset.zone = name;
-        zone.setAttribute('aria-hidden', 'true');
-        zones.push(zone);
+      addZone(segment, 'red', halfRed);
+      addZone(segment, 'green', halfGreen);
+
+      for (let tier = 0; tier < criticalLayerCount - 1; tier += 1) {
+        addZone(segment, criticalNames[tier], halfCriticalBand);
       }
+      addZone(segment, criticalNames[criticalLayerCount - 1], white);
+      for (let tier = criticalLayerCount - 2; tier >= 0; tier -= 1) {
+        addZone(segment, criticalNames[tier], halfCriticalBand);
+      }
+
+      addZone(segment, 'green', halfGreen);
+      addZone(segment, 'red', halfRed);
     }
 
     this.root.style.gridTemplateColumns = columns.join(' ');
     this.root.replaceChildren(...zones, this.marker);
     this.renderedSegmentCount = snapshot.segmentCount;
+    this.renderedCriticalLayerCount = criticalLayerCount;
+    this.renderedZoneKey = `${red}:${green}:${white}`;
   }
 
   /** Render zone widths, used areas, and marker position; never classify from DOM. */
   render(snapshot) {
-    if (this.renderedSegmentCount !== snapshot.segmentCount) this.rebuildZones(snapshot);
+    const criticalLayerCount = snapshot.criticalLayerCount ?? 1;
+    const zoneKey = `${snapshot.zoneWidths.red}:${snapshot.zoneWidths.green}:${snapshot.zoneWidths.white}`;
+    if (
+      this.renderedSegmentCount !== snapshot.segmentCount ||
+      this.renderedCriticalLayerCount !== criticalLayerCount ||
+      this.renderedZoneKey !== zoneKey
+    ) {
+      this.rebuildZones(snapshot);
+    }
 
     const consumed = new Set(snapshot.consumedSegments);
     for (const zone of this.root.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
-      zone.classList.toggle('gauge__zone--consumed', isConsumed);
-      zone.classList.remove('gauge__zone--red', 'gauge__zone--green', 'gauge__zone--white');
-      zone.classList.add(`gauge__zone--${isConsumed ? 'red' : zone.dataset.zone}`);
+      const zoneName = isConsumed ? 'red' : zone.dataset.zone;
+      zone.className = `gauge__zone gauge__zone--${zoneName}`;
+      zone.style.background = isConsumed ? '' : CRITICAL_COLORS[zoneName] ?? '';
     }
 
     this.marker.hidden = snapshot.segmentCount === 0;

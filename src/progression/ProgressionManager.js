@@ -52,7 +52,6 @@ export class ProgressionManager {
     }
 
     if (!this.gameState.purchaseUpgrade(upgradeId)) {
-      // Defensive rollback. This branch should be unreachable after status check.
       this.gameState.xp += definition.costXp;
       return { ok: false, reason: 'PURCHASE_FAILED' };
     }
@@ -72,10 +71,7 @@ export class ProgressionManager {
     });
   }
 
-  /**
-   * Rebuild every derived gameplay value from upgrade ownership.
-   * Derived values are never persisted; upgrade definition metadata remains the source of effects.
-   */
+  /** Rebuild every derived gameplay value from upgrade ownership. */
   getDerivedEffects() {
     const ownedEffects = { globalTrainingBonus: 0 };
 
@@ -85,7 +81,6 @@ export class ProgressionManager {
       if (definition.effectKey === 'globalTrainingBonus') {
         ownedEffects.globalTrainingBonus += definition.effectValue;
       } else {
-        // Repeated effect keys are ordered from earlier to later upgrades in the data graph.
         ownedEffects[definition.effectKey] = definition.effectValue;
       }
     }
@@ -93,16 +88,19 @@ export class ProgressionManager {
     const baseWidths = BALANCE.baseGaugeZoneWidths;
     const configuredGreen = ownedEffects.greenWidth ?? baseWidths.green;
     const white = ownedEffects.whiteWidth ?? baseWidths.white;
+    const criticalLayerCount = ownedEffects.criticalLayerCount ?? 1;
 
-    // Perfect Window widens white by taking the same total amount from green.
+    // Perfect Window widens the base crit band by taking the same amount from green.
+    // Higher crit upgrades add same-width nested bands and push earlier crit bands outward.
     const green = configuredGreen - (white - baseWidths.white);
     const red = 1 - green - white;
 
     return {
       globalTrainingMultiplier: 1 + ownedEffects.globalTrainingBonus,
       criticalMultiplier: ownedEffects.criticalMultiplier ?? BALANCE.baseCriticalMultiplier,
+      criticalLayerCount,
       missReloadSeconds: ownedEffects.missReloadSeconds ?? BALANCE.missReloadSeconds,
-      gaugeZoneWidths: { red, green, white },
+      gaugeZoneWidths: { red, green, white, criticalLayerCount },
       playerBoomerangCount: Math.min(
         ownedEffects.playerBoomerangs ?? BALANCE.basePlayerBoomerangs,
         BALANCE.maxPlayerBoomerangs,

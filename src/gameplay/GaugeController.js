@@ -5,7 +5,21 @@ export const GAUGE_RESULT = Object.freeze({
   MISS: 'MISS',
   HIT: 'HIT',
   CRITICAL: 'CRITICAL',
+  MEGA_CRITICAL: 'MEGA_CRITICAL',
+  ULTRA_CRITICAL: 'ULTRA_CRITICAL',
+  OMEGA_CRITICAL: 'OMEGA_CRITICAL',
 });
+
+export const CRITICAL_RESULTS = Object.freeze([
+  GAUGE_RESULT.CRITICAL,
+  GAUGE_RESULT.MEGA_CRITICAL,
+  GAUGE_RESULT.ULTRA_CRITICAL,
+  GAUGE_RESULT.OMEGA_CRITICAL,
+]);
+
+export function isCriticalResult(result) {
+  return CRITICAL_RESULTS.includes(result);
+}
 
 const ZONE_TOLERANCE = 1e-9;
 const BOUNDARY_TOLERANCE = 1e-12;
@@ -20,6 +34,7 @@ export class GaugeController {
     oneWaySeconds = BALANCE.gaugeOneWaySeconds,
     zoneWidths = BALANCE.baseGaugeZoneWidths,
     segmentCount = 1,
+    criticalLayerCount = 1,
   } = {}) {
     if (!Number.isFinite(oneWaySeconds) || oneWaySeconds <= 0) {
       throw new RangeError('Gauge one-way duration must be a positive finite number.');
@@ -30,6 +45,7 @@ export class GaugeController {
     this.direction = 1;
     this.running = true;
     this.consumedSegments = new Set();
+    this.criticalLayerCount = criticalLayerCount;
     this.setZoneWidths(zoneWidths);
     this.setSegmentCount(segmentCount);
   }
@@ -72,6 +88,16 @@ export class GaugeController {
     this.consumedSegments.clear();
   }
 
+  setCriticalLayerCount(criticalLayerCount) {
+    if (!Number.isInteger(criticalLayerCount) || criticalLayerCount < 1 || criticalLayerCount > CRITICAL_RESULTS.length) {
+      throw new RangeError('Critical layer count must be an integer from 1 to 4.');
+    }
+    if ((criticalLayerCount - 1) * this.zoneWidths.white > this.zoneWidths.green + ZONE_TOLERANCE) {
+      throw new RangeError('Critical layers cannot consume more than the available green width.');
+    }
+    this.criticalLayerCount = criticalLayerCount;
+  }
+
   getSegmentIndex(position = this.position) {
     if (this.segmentCount === 0) return -1;
     const x = clamp(position, 0, 1 - Number.EPSILON);
@@ -100,7 +126,7 @@ export class GaugeController {
   }
 
   setZoneWidths(zoneWidths) {
-    const { red, green, white } = zoneWidths;
+    const { red, green, white, criticalLayerCount = this.criticalLayerCount ?? 1 } = zoneWidths;
     const widths = [red, green, white];
     const total = red + green + white;
 
@@ -112,26 +138,27 @@ export class GaugeController {
     }
 
     this.zoneWidths = { red, green, white };
+    this.setCriticalLayerCount(criticalLayerCount);
   }
 
   /** Classify accuracy within the current boomerang timing area. */
   classify(position = this.position) {
     if (this.segmentCount === 0) return GAUGE_RESULT.MISS;
     const x = this.getLocalPosition(position);
-    const halfWhite = this.zoneWidths.white / 2;
-    const halfGreen = this.zoneWidths.green / 2;
+    const distanceFromCenter = Math.abs(x - 0.5);
+    const coreWidth = this.zoneWidths.white;
+    const criticalHalfWidth = (coreWidth * this.criticalLayerCount) / 2;
+    const hitHalfWidth = (this.zoneWidths.white + this.zoneWidths.green) / 2;
 
-    const whiteStart = 0.5 - halfWhite;
-    const whiteEnd = 0.5 + halfWhite;
-    const greenStart = whiteStart - halfGreen;
-    const greenEnd = whiteEnd + halfGreen;
-
-    if (x >= whiteStart - BOUNDARY_TOLERANCE && x <= whiteEnd + BOUNDARY_TOLERANCE) {
-      return GAUGE_RESULT.CRITICAL;
+    if (distanceFromCenter <= criticalHalfWidth + BOUNDARY_TOLERANCE) {
+      const layersFromCenter = Math.max(
+        0,
+        Math.ceil((distanceFromCenter * 2 - BOUNDARY_TOLERANCE) / coreWidth) - 1,
+      );
+      const tierIndex = Math.max(0, this.criticalLayerCount - 1 - layersFromCenter);
+      return CRITICAL_RESULTS[tierIndex];
     }
-    if (x >= greenStart - BOUNDARY_TOLERANCE && x <= greenEnd + BOUNDARY_TOLERANCE) {
-      return GAUGE_RESULT.HIT;
-    }
+    if (distanceFromCenter <= hitHalfWidth + BOUNDARY_TOLERANCE) return GAUGE_RESULT.HIT;
     return GAUGE_RESULT.MISS;
   }
 
@@ -141,6 +168,7 @@ export class GaugeController {
       direction: 1,
       running: this.running,
       zoneWidths: { ...this.zoneWidths },
+      criticalLayerCount: this.criticalLayerCount,
       segmentCount: this.segmentCount,
       consumedSegments: [...this.consumedSegments],
       resultAtCurrentPosition: this.classify(),

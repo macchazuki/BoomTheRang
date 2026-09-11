@@ -12,6 +12,9 @@ const EXPECTED_UPGRADES = [
   ['criticalTraining1', ['betterTraining2'], 'criticalMultiplier', 2.25],
   ['criticalTraining2', ['criticalTraining1', 'thirdDummy'], 'criticalMultiplier', 2.5],
   ['criticalMastery', ['criticalTraining2'], 'criticalMultiplier', 3],
+  ['megaCritical', ['criticalTraining1'], 'criticalLayerCount', 2],
+  ['ultraCritical', ['megaCritical', 'criticalTraining2'], 'criticalLayerCount', 3],
+  ['omegaCritical', ['ultraCritical', 'criticalMastery'], 'criticalLayerCount', 4],
   ['quickReload1', ['betterTraining1'], 'missReloadSeconds', 4.5],
   ['quickReload2', ['quickReload1'], 'missReloadSeconds', 4],
   ['quickReload3', ['quickReload2'], 'missReloadSeconds', 3],
@@ -145,6 +148,7 @@ describe('ProgressionManager contract', () => {
     expect(effectsFor([])).toMatchObject({
       globalTrainingMultiplier: 1,
       criticalMultiplier: 2,
+      criticalLayerCount: 1,
       missReloadSeconds: 5,
     });
     expect(effectsFor(['betterTraining1']).globalTrainingMultiplier).toBeCloseTo(1.2);
@@ -154,6 +158,19 @@ describe('ProgressionManager contract', () => {
     expect(effectsFor(['criticalTraining1']).criticalMultiplier).toBe(2.25);
     expect(effectsFor(['criticalTraining1', 'criticalTraining2']).criticalMultiplier).toBe(2.5);
     expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'criticalMastery']).criticalMultiplier).toBe(3);
+
+    expect(effectsFor(['criticalTraining1', 'megaCritical'])).toMatchObject({
+      criticalMultiplier: 2.25,
+      criticalLayerCount: 2,
+    });
+    expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'megaCritical', 'ultraCritical'])).toMatchObject({
+      criticalMultiplier: 2.5,
+      criticalLayerCount: 3,
+    });
+    expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'criticalMastery', 'megaCritical', 'ultraCritical', 'omegaCritical'])).toMatchObject({
+      criticalMultiplier: 3,
+      criticalLayerCount: 4,
+    });
 
     expect(effectsFor(['quickReload1']).missReloadSeconds).toBe(4.5);
     expect(effectsFor(['quickReload1', 'quickReload2']).missReloadSeconds).toBe(4);

@@ -31,8 +31,11 @@ export const SKILL_TREE_LAYOUT = Object.freeze({
   perfectWindow2: Object.freeze({ x: 770, y: 550, sigil: 'II' }),
 
   criticalTraining1: Object.freeze({ x: 560, y: 310, sigil: 'CR' }),
+  megaCritical: Object.freeze({ x: 560, y: 440, sigil: 'MC' }),
   criticalTraining2: Object.freeze({ x: 500, y: 800, sigil: 'II' }),
   criticalMastery: Object.freeze({ x: 520, y: 930, sigil: 'CM' }),
+  ultraCritical: Object.freeze({ x: 520, y: 1080, sigil: 'UC' }),
+  omegaCritical: Object.freeze({ x: 520, y: 1240, sigil: 'OC' }),
 
   twinThrow: Object.freeze({ x: 340, y: 440, sigil: '×2' }),
   secondDummy: Object.freeze({ x: 340, y: 560, sigil: 'T2' }),

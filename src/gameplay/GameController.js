@@ -1,4 +1,4 @@
-import { GAUGE_RESULT } from './GaugeController.js';
+import { GAUGE_RESULT, isCriticalResult } from './GaugeController.js';
 import {
   calculateComboMultiplier,
   calculateDogReward,
@@ -137,7 +137,7 @@ export class GameController {
       this.missedBoomerangReloads.push(effects.missReloadSeconds);
     } else {
       this.gameState.incrementStat('hits');
-      if (result === GAUGE_RESULT.CRITICAL) this.gameState.incrementStat('criticals');
+      if (isCriticalResult(result)) this.gameState.incrementStat('criticals');
       this.gameState.incrementStat('targetsHit', throwData.rewardedTargetHits);
       awardedXp = calculatePlayerReward({
         result,
@@ -149,13 +149,13 @@ export class GameController {
         boomerangMasteryMultiplier: effects.boomerangMasteryMultiplier,
       });
       this.gameState.addXp(awardedXp, 'player');
-      if (this.finalChallengeActive && result === GAUGE_RESULT.CRITICAL) {
+      if (this.finalChallengeActive && isCriticalResult(result)) {
         this.completeFinalChallenge();
       }
     }
 
     void this.gameScene.playPlayerThrow({ ...throwData, reducedMotion: this.gameState.settings.reducedMotion });
-    this.gameScene.playResultFeedback(result);
+    this.gameScene.playResultFeedback(isCriticalResult(result) ? GAUGE_RESULT.CRITICAL : result);
     this.hud.showPlayerResult({
       result,
       awardedXp,

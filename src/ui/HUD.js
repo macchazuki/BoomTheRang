@@ -26,16 +26,25 @@ export class HUD {
     `;
   }
 
-  /** Show manual MISS/HIT/PERFECT and awarded XP. */
+  /** Show manual MISS/HIT/critical-tier feedback and awarded XP. */
   showPlayerResult({ result, awardedXp, targetCount = 1, reducedMotion = false }) {
     if (!this.feedbackElement) return;
 
-    const label = result === 'CRITICAL' ? 'PERFECT!' : result === 'HIT' ? 'HIT!' : 'MISS';
+    const labels = {
+      CRITICAL: 'CRITICAL!',
+      MEGA_CRITICAL: 'MEGA CRIT!',
+      ULTRA_CRITICAL: 'ULTRA CRIT!',
+      OMEGA_CRITICAL: 'OMEGA CRIT!',
+      HIT: 'HIT!',
+      MISS: 'MISS',
+    };
+    const label = labels[result] ?? 'HIT!';
+    const critical = result.includes('CRITICAL');
     this.feedbackElement.textContent = awardedXp > 0 ? `${label} +${awardedXp} XP` : label;
 
-    if (result === 'HIT' || result === 'CRITICAL') {
+    if (result !== 'MISS') {
       this.scheduleComicImpacts({
-        critical: result === 'CRITICAL',
+        critical,
         targetCount,
         reducedMotion,
       });

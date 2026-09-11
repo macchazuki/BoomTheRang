@@ -7,6 +7,11 @@
 export const BALANCE = Object.freeze({
   baseXpPerTarget: 10,
   baseCriticalMultiplier: 2,
+  higherCriticalMultipliers: Object.freeze({
+    MEGA_CRITICAL: 4,
+    ULTRA_CRITICAL: 6,
+    OMEGA_CRITICAL: 10,
+  }),
   gaugeOneWaySeconds: 1.35,
   successRecoverySeconds: 0.7,
   missReloadSeconds: 5,
@@ -40,6 +45,7 @@ export const BALANCE = Object.freeze({
     steadyHands1: 900,
     betterTraining2: 1500,
     criticalTraining1: 1800,
+    megaCritical: 2500,
     quickReload2: 2850,
 
     betterTraining3: 21000,
@@ -58,7 +64,9 @@ export const BALANCE = Object.freeze({
     tripleThrow: 51000,
     thirdDummy: 90900,
     criticalTraining2: 63600,
+    ultraCritical: 30000,
     criticalMastery: 40500,
+    omegaCritical: 60000,
     quadThrow: 109500,
     fourthDummy: 339000,
     comboMastery: 129000,
