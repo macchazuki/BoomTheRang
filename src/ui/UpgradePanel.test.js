@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { UPGRADE_DEFINITIONS } from '../progression/upgradeDefinitions.js';
-import { getSkillNodePresentation, SKILL_CATEGORIES, SKILL_CATEGORY_BY_UPGRADE, SKILL_TREE_LAYOUT } from './UpgradePanel.js';
+import { categoryHasPurchasableSkill, getSkillNodePresentation, SKILL_CATEGORIES, SKILL_CATEGORY_BY_UPGRADE, SKILL_TREE_LAYOUT } from './UpgradePanel.js';
 
 describe('UpgradePanel skill-tree presentation', () => {
   it('assigns every progression node to exactly one category and position', () => {
@@ -17,6 +17,18 @@ describe('UpgradePanel skill-tree presentation', () => {
       expect(position.y).toBeGreaterThan(0);
       expect(position.sigil.length).toBeGreaterThan(0);
     }
+  });
+
+  it('marks a category when at least one skill is currently purchasable', () => {
+    const category = { skills: ['a', 'b'] };
+    const progressionManager = {
+      getPurchaseStatus(upgradeId) {
+        return { ok: upgradeId === 'b' };
+      },
+    };
+
+    expect(categoryHasPurchasableSkill(category, progressionManager)).toBe(true);
+    expect(categoryHasPurchasableSkill({ skills: ['a'] }, progressionManager)).toBe(false);
   });
 
   it('uses purchased and available states before locked affordability states', () => {
