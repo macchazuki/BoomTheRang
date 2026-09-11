@@ -1,4 +1,5 @@
 import './style.css';
+import './skillCategories.css';
 import './comic.css';
 import { GameApp } from './app/GameApp.js';
 
