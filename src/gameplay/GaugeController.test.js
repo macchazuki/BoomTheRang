@@ -38,6 +38,13 @@ describe('GaugeController contract', () => {
     expect(gauge.getSnapshot().consumedSegments).toEqual([]);
   });
 
+  it('supports an empty gauge when no boomerangs are currently available', () => {
+    const gauge = new GaugeController({ segmentCount: 0 });
+    expect(gauge.getSnapshot().segmentCount).toBe(0);
+    expect(gauge.consumeCurrentSegment()).toBe(false);
+    expect(gauge.classify()).toBe(GAUGE_RESULT.MISS);
+  });
+
   it('uses the configured default accuracy widths inside every area', () => {
     const gauge = new GaugeController();
     expect(gauge.oneWaySeconds).toBe(1.35);
@@ -49,7 +56,7 @@ describe('GaugeController contract', () => {
 
   it('validates widths and segment count', () => {
     const gauge = new GaugeController();
-    expect(() => gauge.setSegmentCount(0)).toThrow(RangeError);
+    expect(() => gauge.setSegmentCount(-1)).toThrow(RangeError);
     expect(() => gauge.setSegmentCount(1.5)).toThrow(RangeError);
     expect(() => gauge.setZoneWidths({ red: 0.8, green: 0.17, white: 0.04 })).toThrow(RangeError);
   });
