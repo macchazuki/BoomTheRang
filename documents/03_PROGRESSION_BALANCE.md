@@ -1,62 +1,51 @@
 # Progression and Balance
 
+## Current pacing goal
+
+BoomTheRang uses a fast-start, steep-growth progression curve inspired by the pacing shape of Fortune Mill's first room:
+
+- cheap purchases begin almost immediately;
+- transformative mechanics arrive early;
+- automation/helper upgrades arrive after the basic active-play engine is established;
+- mid-game costs widen into tens of thousands of XP;
+- late upgrades climb through hundreds of thousands;
+- Grandmaster is the final `1,000,000 XP` blocker.
+
+This is a pacing reference only. BoomTheRang keeps its existing one-time upgrade graph and XP economy rather than copying Fortune Mill's systems directly.
+
 ## Required timing anchors
 
-Measured using **optimal active play** and a progression-optimal purchase route.
+Measure using **optimal active play** and `optimalProgressionSimulator.js`.
 
-- First purchased upgrade: ~`40 sec`
-- Twin Throw / 2 player boomerangs: ~`18 min`
-- Second Dummy / 2 targets: ~`27 min`
-- Main progression completion: ~`180 min` (3 hours)
-- Time between important purchases should trend upward.
+Current v1 targets:
 
-Acceptable tuning tolerance for v1:
-- First upgrade: ±15 seconds
-- 18-minute milestone: ±2 minutes
-- 27-minute milestone: ±3 minutes
-- 3-hour completion: ±15 minutes
+- Better Training I: roughly `10–30 sec`;
+- Twin Throw / 2 player boomerangs: roughly `1 min`;
+- Second Dummy / 2 targets: roughly `1.5–2.25 min`;
+- Combo Training: within roughly `3 min`;
+- Mega Critical can be reached within `5 min` when prioritizing its branch;
+- Dog Companion: early-mid game, around the first several minutes;
+- later multi-boomerang and multi-target unlocks must remain ordered;
+- full optimal progression should remain roughly `30–100 min` for the current fast-progression build.
 
-## What "optimal play" means
+These are tuning ranges, not timers. Do not gate upgrades by elapsed play time.
 
-For the balance simulator:
-- Every manual throw lands in white.
-- Player buys the progression-optimal upgrade when affordable.
-- No misses.
-- No idle/offline time.
-- Dog operates whenever unlocked.
-- Assistance upgrades that do not increase theoretical perfect-play XP may be skipped by the optimal route.
+## Progression shape
 
-Do not measure the 3-hour target using wall-clock sessions with menus/background time.
+Use widening cost bands instead of keeping most upgrades in one narrow range.
 
-## Timing spine
+| Stage | Typical cost band | Examples |
+|---|---:|---|
+| Starter | `100–500 XP` | Better Training I, Quick Reload I, Steady Hands I |
+| Early mechanics | `900–5,000 XP` | Twin Throw, Second Dummy, Combo Training, early critical upgrades |
+| First engine expansion | `6,000–35,000 XP` | precision follow-ups, Dog Companion, Better Training III, Triple Throw |
+| Mid game | `50,000–160,000 XP` | Third Dummy, Critical Training II, Ultra Critical, dog improvements |
+| Late mechanics | `200,000–550,000 XP` | Quad Throw, Omega Critical, Fourth Dummy, masteries, Fetch Mastery |
+| End game | `650,000–1,000,000 XP` | final side upgrades and Grandmaster |
 
-Use these as tuning targets, not hard-coded timers:
-
-| Time | Intended progression point |
-|---:|---|
-| 0.7m | Better Training I |
-| 2m | early recovery upgrade |
-| 4m | early precision upgrade |
-| 6m | Better Training II |
-| 9m | Critical Training I |
-| 13m | Quick Reload II / prerequisite completion |
-| 18m | **Twin Throw** |
-| 27m | **Second Dummy** |
-| 37m | **Dog Companion** |
-| 49m | first dog XP upgrade |
-| 63m | first dog speed upgrade |
-| 78m | **Triple Throw** |
-| 96m | **Third Dummy** |
-| 114–120m | **Combo Training / mid-late mastery** |
-| 135m | **Quad Throw** |
-| 156m | **Fourth Dummy** |
-| 180m | **Grandmaster/final completion path** |
-
-Dog and mastery side nodes can be purchased between these points. Tune their costs so completing required Grandmaster prerequisites still lands near 180 minutes.
+Important mechanic unlocks should generally be worth saving for before small convenience upgrades, matching the Fortune Mill pattern of prioritizing new engines and helpers over minor local gains.
 
 ## Base balance constants
-
-Recommended starting values:
 
 ```text
 baseXpPerTarget = 10
@@ -73,9 +62,9 @@ dogBaseIntervalSeconds = 10
 dogBaseXpFactor = 0.25
 ```
 
-The harder base gauge uses 80% red / 17% green / 3% white. With the gauge restarting from an edge, first entry into the 3% center white zone occurs at roughly 48.5% of a one-way sweep. A perfect-play throw cycle is therefore roughly `0.65 s gauge wait + 0.7 s recovery ≈ 1.35 s`.
+The base gauge uses 80% red / 17% green / 3% white. With the gauge restarting from an edge, first entry into the 3% center white zone occurs at roughly 48.5% of a one-way sweep.
 
-Use the real implemented timing in the simulator; do not permanently rely on this approximation.
+Use the real implemented timing in the simulator rather than relying on hand-calculated approximations.
 
 ## Reward formula
 
@@ -92,10 +81,11 @@ baseXpPerTarget
 ```
 
 Where:
-- Green `zoneMultiplier = 1`
-- White uses current critical multiplier
-- Combo defaults to `1`
-- Boomerang Mastery defaults to `1`
+- Green `zoneMultiplier = 1`;
+- White uses the current base critical multiplier;
+- higher critical layers use their configured multiplier;
+- Combo defaults to `1`;
+- Boomerang Mastery defaults to `1`.
 
 Dog reward per automatic throw:
 
@@ -107,60 +97,43 @@ baseXpPerTarget
 × dogCriticalMultiplier
 ```
 
-Dog critical multiplier is `1` normally and `2` when Fetch Mastery crits.
-
-Round final awarded XP to an integer once, after all multipliers.
+Round final awarded XP once, after all multipliers.
 
 ## Lifetime XP
 
 Maintain:
-- `xp` — spendable
-- `lifetimeXp` — cumulative, never decremented
-
-Use `lifetimeXp` for analytics/unlock gates where needed. Do not use current spendable XP to decide whether content should be visible.
+- `xp` — spendable;
+- `lifetimeXp` — cumulative, never decremented.
 
 Purchasing:
+
 ```text
 xp -= cost
 lifetimeXp unchanged
 ```
 
-## Cost strategy
+Use lifetime XP only for analytics or explicit unlock gates. Do not use current spendable XP to decide whether content has ever been reached.
 
-Do not scatter literal costs through source files.
+## Cost ownership
 
-Store each upgrade's:
-- `costXp`
-- optional `unlockLifetimeXp`
-- prerequisites
+Do not scatter literal upgrade costs through source files.
 
-in one balance/definitions file.
+`src/progression/balance.js` is the single source of tuneable upgrade costs. Upgrade definitions reference those values.
 
-The v1 easier-progression pass reduces upgrade costs to roughly 60% of the original five-hour curve. Early reference costs are:
-
-| Upgrade | Cost XP |
-|---|---:|
-| Better Training I | 480 |
-| Quick Reload I | 1,800 |
-| Steady Hands I | 1,800 |
-| Better Training II | 3,000 |
-| Critical Training I | 3,600 |
-| Quick Reload II | 5,700 |
-| Twin Throw | 8,100 |
-| Second Dummy | 24,000 |
-
-For later upgrades, derive seed cost approximately as:
-
-`current optimal XP/min × desired minutes since previous progression purchase`
-
-Then run the simulator and adjust.
+When changing costs:
+1. preserve the widening cost bands;
+2. run the deterministic progression tests;
+3. verify the early timing anchors;
+4. verify the critical branch can still reach Mega Critical within five minutes;
+5. keep Grandmaster at the intended end-game scale unless the progression target changes explicitly.
 
 ## Progression invariants
 
-- Twin Throw should feel like the first transformative multiplier.
-- Second Dummy multiplies Twin Throw through chaining.
+- Twin Throw is the first major multiplier and should arrive early.
+- Second Dummy compounds the value of multiple boomerangs.
+- Combo Training follows shortly after the second target.
 - Dog remains supplemental; fully upgraded dog must not exceed optimal manual player earnings.
-- White timing must remain the highest optimal active XP/min choice.
+- Higher critical tiers should become progressively more expensive and more difficult to hit.
+- White timing remains the best baseline active-play choice before higher critical layers are considered.
 - No mandatory upgrade may reduce player power.
-- Do not make green/white zones so large that timing becomes trivial.
 - No offline XP in v1.
