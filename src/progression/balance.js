@@ -31,10 +31,10 @@ export const BALANCE = Object.freeze({
   boomerangMasteryMultiplier: 1.5,
 
   upgradeCosts: Object.freeze({
-    betterTraining1: 180,
-    twinThrow: 180,
-    secondDummy: 650,
-    comboTraining: 900,
+    betterTraining1: 240,
+    twinThrow: 800,
+    secondDummy: 1400,
+    comboTraining: 1800,
 
     quickReload1: 900,
     steadyHands1: 900,
