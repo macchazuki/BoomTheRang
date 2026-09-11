@@ -25,6 +25,19 @@ describe('GaugeController contract', () => {
     expect(gauge.classify(0.05)).toBe(GAUGE_RESULT.MISS);
   });
 
+  it('adds higher crit layers at center while pushing earlier crits outward', () => {
+    const gauge = new GaugeController({
+      zoneWidths: { red: 0.8, green: 0.17, white: 0.03 },
+      criticalLayerCount: 4,
+    });
+
+    expect(gauge.classify(0.5)).toBe(GAUGE_RESULT.OMEGA_CRITICAL);
+    expect(gauge.classify(0.52)).toBe(GAUGE_RESULT.ULTRA_CRITICAL);
+    expect(gauge.classify(0.535)).toBe(GAUGE_RESULT.MEGA_CRITICAL);
+    expect(gauge.classify(0.55)).toBe(GAUGE_RESULT.CRITICAL);
+    expect(gauge.classify(0.58)).toBe(GAUGE_RESULT.HIT);
+  });
+
   it('allows each timing area to be consumed only once per sweep', () => {
     const gauge = new GaugeController({ oneWaySeconds: 1, segmentCount: 2 });
     gauge.position = 0.25;
@@ -54,10 +67,12 @@ describe('GaugeController contract', () => {
     expect(gauge.classify(0.5)).toBe(GAUGE_RESULT.CRITICAL);
   });
 
-  it('validates widths and segment count', () => {
+  it('validates widths, critical layers, and segment count', () => {
     const gauge = new GaugeController();
     expect(() => gauge.setSegmentCount(-1)).toThrow(RangeError);
     expect(() => gauge.setSegmentCount(1.5)).toThrow(RangeError);
+    expect(() => gauge.setCriticalLayerCount(0)).toThrow(RangeError);
+    expect(() => gauge.setCriticalLayerCount(5)).toThrow(RangeError);
     expect(() => gauge.setZoneWidths({ red: 0.8, green: 0.17, white: 0.04 })).toThrow(RangeError);
   });
 });
