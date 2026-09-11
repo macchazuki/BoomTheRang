@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HUD } from './HUD.js';
 
 function createHudFixture() {
@@ -13,6 +13,10 @@ function createHudFixture() {
 
   return { hud: new HUD({ mountElement }), mountElement, feedback };
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('HUD mobile/accessibility presentation', () => {
   it('keeps XP visible while hiding combo until it is unlocked', () => {
@@ -53,5 +57,28 @@ describe('HUD mobile/accessibility presentation', () => {
 
     hud.showDogResult({ critical: true, awardedXp: 12 });
     expect(feedback.textContent).toBe('GOOD BOY! +12 XP');
+  });
+
+  it('delays comic impacts and emits one sequential impact per target', () => {
+    vi.useFakeTimers();
+    const { hud } = createHudFixture();
+    hud.showComicImpact = vi.fn();
+
+    hud.showPlayerResult({
+      result: 'CRITICAL',
+      awardedXp: 40,
+      targetCount: 3,
+      reducedMotion: false,
+    });
+
+    expect(hud.showComicImpact).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(261);
+    expect(hud.showComicImpact).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(hud.showComicImpact).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(48);
+    expect(hud.showComicImpact).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(48);
+    expect(hud.showComicImpact).toHaveBeenCalledTimes(3);
   });
 });
