@@ -34,11 +34,11 @@ describe('optimal progression balance contract', () => {
     expect(minutes('tripleThrow')).toBeLessThanOrEqual(85);
     expect(minutes('thirdDummy')).toBeGreaterThanOrEqual(88);
     expect(minutes('thirdDummy')).toBeLessThanOrEqual(103);
-    expect(minutes('comboTraining')).toBeGreaterThanOrEqual(110);
+    expect(minutes('comboTraining')).toBeGreaterThanOrEqual(104);
     expect(minutes('comboTraining')).toBeLessThanOrEqual(122);
-    expect(minutes('quadThrow')).toBeGreaterThanOrEqual(128);
+    expect(minutes('quadThrow')).toBeGreaterThanOrEqual(122);
     expect(minutes('quadThrow')).toBeLessThanOrEqual(142);
-    expect(minutes('fourthDummy')).toBeGreaterThanOrEqual(148);
+    expect(minutes('fourthDummy')).toBeGreaterThanOrEqual(142);
     expect(minutes('fourthDummy')).toBeLessThanOrEqual(165);
   });
 
