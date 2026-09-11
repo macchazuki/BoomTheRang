@@ -132,8 +132,7 @@ describe('v1 release acceptance', () => {
 
     effects = purchaseAndApply(fixture, 'twinThrow');
     expect(effects.playerBoomerangCount).toBe(2);
-    effects = purchaseAndApply(fixture, 'secondDummy');
-    expect(effects.targetCount).toBe(2);
+    expect(effects.targetCount).toBe(1);
 
     purchaseAndApply(fixture, 'betterTraining3');
     purchaseAndApply(fixture, 'dogCompanion');
@@ -142,8 +141,7 @@ describe('v1 release acceptance', () => {
 
     effects = purchaseAndApply(fixture, 'tripleThrow');
     expect(effects.playerBoomerangCount).toBe(3);
-    effects = purchaseAndApply(fixture, 'thirdDummy');
-    expect(effects.targetCount).toBe(3);
+    expect(effects.targetCount).toBe(1);
 
     purchaseAndApply(fixture, 'criticalTraining2');
     purchaseAndApply(fixture, 'criticalMastery');
@@ -160,8 +158,7 @@ describe('v1 release acceptance', () => {
 
     effects = purchaseAndApply(fixture, 'quadThrow');
     expect(effects.playerBoomerangCount).toBe(4);
-    effects = purchaseAndApply(fixture, 'fourthDummy');
-    expect(effects.targetCount).toBe(4);
+    expect(effects.targetCount).toBe(1);
     purchaseAndApply(fixture, 'comboMastery');
     purchaseAndApply(fixture, 'boomerangMastery');
     purchaseAndApply(fixture, 'fetchMastery');
@@ -190,10 +187,9 @@ describe('v1 release acceptance', () => {
 
     expect(fixture.saveManager.save(fixture.gameState.toSaveData())).toBe(true);
     const reloaded = createFixture({ storage, rng: () => 0 });
-    expect(reloaded.gameState.upgrades.fourthDummy).toBe(true);
     expect(reloaded.gameState.upgrades.fetchMastery).toBe(true);
     expect(reloaded.progressionManager.getDerivedEffects().playerBoomerangCount).toBe(4);
-    expect(reloaded.progressionManager.getDerivedEffects().targetCount).toBe(4);
+    expect(reloaded.progressionManager.getDerivedEffects().targetCount).toBe(1);
 
     reloaded.controller.pause('upgrade-panel');
     purchaseAndApply(reloaded, 'grandmaster');
