@@ -27,24 +27,43 @@ export class HUD {
   }
 
   /** Show manual MISS/HIT/PERFECT and awarded XP. */
-  showPlayerResult({ result, awardedXp }) {
+  showPlayerResult({ result, awardedXp, targetCount = 1, reducedMotion = false }) {
     if (!this.feedbackElement) return;
 
     const label = result === 'CRITICAL' ? 'PERFECT!' : result === 'HIT' ? 'HIT!' : 'MISS';
     this.feedbackElement.textContent = awardedXp > 0 ? `${label} +${awardedXp} XP` : label;
 
     if (result === 'HIT' || result === 'CRITICAL') {
-      this.showComicImpact({ critical: result === 'CRITICAL' });
+      this.scheduleComicImpacts({
+        critical: result === 'CRITICAL',
+        targetCount,
+        reducedMotion,
+      });
     }
   }
 
   /** Show smaller independent dog feedback. */
-  showDogResult({ critical, awardedXp }) {
+  showDogResult({ critical, awardedXp, targetCount = 1, reducedMotion = false }) {
     if (!this.feedbackElement) return;
     this.feedbackElement.textContent = critical
       ? `GOOD BOY! +${awardedXp} XP`
       : `Dog +${awardedXp} XP`;
-    this.showComicImpact({ critical, dog: true });
+    this.scheduleComicImpacts({ critical, dog: true, targetCount, reducedMotion });
+  }
+
+  /**
+   * Time one comic impact per target around the point where the boomerang crosses
+   * the target chain. Multi-target hits therefore read as sequential impacts.
+   */
+  scheduleComicImpacts({ critical = false, dog = false, targetCount = 1, reducedMotion = false }) {
+    const count = Math.max(1, Math.floor(targetCount));
+    const centerDelayMs = reducedMotion ? 90 : dog ? 290 : 310;
+    const spacingMs = reducedMotion ? 20 : 48;
+    const firstDelayMs = centerDelayMs - ((count - 1) * spacingMs) / 2;
+
+    for (let index = 0; index < count; index += 1) {
+      window.setTimeout(() => this.showComicImpact({ critical, dog }), firstDelayMs + index * spacingMs);
+    }
   }
 
   /** Spawn a short comic-book impact word over the target area. */
