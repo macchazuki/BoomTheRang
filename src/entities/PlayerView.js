@@ -19,12 +19,6 @@ export class PlayerView {
     this.body = new THREE.Group();
     this.object3d.add(this.body);
 
-    this.fallback = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1.6, 0.5),
-      new THREE.MeshStandardMaterial({ color: 0xf0a060 }),
-    );
-    this.body.add(this.fallback);
-
     this.modelUrl = modelUrl;
     this.loader = loader;
     this.model = null;
@@ -37,7 +31,7 @@ export class PlayerView {
     this.modelReady = this.loadModel();
   }
 
-  /** Load the authored GLB and replace the temporary primitive once ready. */
+  /** Load the authored GLB. Nothing is rendered until the real asset is ready. */
   async loadModel() {
     try {
       const gltf = await this.loader.loadAsync(this.modelUrl);
@@ -56,16 +50,11 @@ export class PlayerView {
         if (node.name === 'Boomerang') node.visible = false;
       });
 
-      this.body.remove(this.fallback);
-      this.disposeObject(this.fallback);
-      this.fallback = null;
-
       this.model = model;
       this.body.add(model);
       return model;
     } catch (error) {
       console.error('Failed to load player model', error);
-      // Keep the cheap fallback visible if the asset cannot be loaded.
       return null;
     }
   }
