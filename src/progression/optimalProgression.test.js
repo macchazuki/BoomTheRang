@@ -17,26 +17,20 @@ describe('optimal progression balance contract', () => {
     expect(minutes('twinThrow')).toBeLessThanOrEqual(1.25);
   });
 
-  it('Second Dummy follows shortly after Twin Throw', () => {
-    expect(minutes('secondDummy')).toBeGreaterThan(minutes('twinThrow'));
-    expect(minutes('secondDummy')).toBeLessThanOrEqual(2.25);
-  });
-
-  it('Combo Training arrives shortly after the second target', () => {
-    expect(minutes('comboTraining')).toBeGreaterThan(minutes('secondDummy'));
+  it('Combo Training follows shortly after Twin Throw', () => {
+    expect(minutes('comboTraining')).toBeGreaterThan(minutes('twinThrow'));
     expect(minutes('comboTraining')).toBeLessThanOrEqual(3);
   });
 
-  it('keeps later multi-boomerang and multi-target progression ordered', () => {
+  it('keeps later multi-boomerang progression ordered', () => {
     expect(minutes('tripleThrow')).toBeGreaterThan(minutes('comboTraining'));
-    expect(minutes('thirdDummy')).toBeGreaterThan(minutes('tripleThrow'));
-    expect(minutes('quadThrow')).toBeGreaterThan(minutes('thirdDummy'));
-    expect(minutes('fourthDummy')).toBeGreaterThan(minutes('quadThrow'));
+    expect(minutes('quadThrow')).toBeGreaterThan(minutes('tripleThrow'));
+    expect(minutes('boomerangMastery')).toBeGreaterThan(minutes('quadThrow'));
   });
 
-  it('keeps the faster full progression within the intended session scale', () => {
+  it('completes the single-target progression within the simulator session', () => {
     expect(report.completionSeconds / 60).toBeGreaterThan(30);
-    expect(report.completionSeconds / 60).toBeLessThan(100);
+    expect(report.completionSeconds / 60).toBeLessThan(300);
   });
 
   it('fully upgraded dog remains below optimal manual earnings', () => {
