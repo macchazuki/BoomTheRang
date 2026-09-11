@@ -1,5 +1,5 @@
 /**
- * DOM-only HUD: XP, combo, reload countdown, and temporary feedback.
+ * DOM-only HUD: XP, combo, target health, and temporary feedback.
  */
 export class HUD {
   constructor({ mountElement }) {
@@ -8,6 +8,8 @@ export class HUD {
     this.feedbackElement = this.gameScreen?.querySelector?.('[data-feedback]') ?? null;
     this.canvasHost = this.gameScreen?.querySelector?.('[data-canvas-host]') ?? null;
     this.impactIndex = 0;
+    this.targetStatusLayer = null;
+    this.targetStatusElements = [];
   }
 
   /** Render always-visible state from authoritative models. */
@@ -24,6 +26,79 @@ export class HUD {
       ${comboMarkup}
       ${reloadMarkup}
     `;
+  }
+
+  ensureTargetStatusElements(count) {
+    if (!this.canvasHost || typeof document === 'undefined') return;
+
+    if (!this.targetStatusLayer) {
+      this.targetStatusLayer = document.createElement('div');
+      this.targetStatusLayer.className = 'target-status-layer';
+      this.targetStatusLayer.setAttribute('role', 'group');
+      this.targetStatusLayer.setAttribute('aria-label', 'Target health');
+      this.canvasHost.append(this.targetStatusLayer);
+    }
+
+    if (this.targetStatusElements.length === count) return;
+
+    this.targetStatusLayer.replaceChildren();
+    this.targetStatusLayer.dataset.targetCount = String(count);
+    this.targetStatusElements = Array.from({ length: count }, (_, index) => {
+      const status = document.createElement('div');
+      status.className = 'target-status';
+      status.dataset.targetIndex = String(index);
+      status.innerHTML = `
+        <div class="target-status__bar" aria-hidden="true">
+          <div class="target-status__fill"></div>
+        </div>
+        <span class="target-status__value"></span>
+      `;
+      this.targetStatusLayer.append(status);
+      return status;
+    });
+  }
+
+  /** Mirror authoritative target HP above each target formation slot. */
+  renderTargetHealth({ currentHp, maxHp }) {
+    const hitPoints = Array.isArray(currentHp) ? currentHp : [];
+    this.ensureTargetStatusElements(hitPoints.length);
+    if (!this.targetStatusLayer) return;
+
+    this.targetStatusLayer.dataset.targetCount = String(hitPoints.length);
+    this.targetStatusElements.forEach((status, index) => {
+      const hp = Math.max(0, Math.floor(Number(hitPoints[index]) || 0));
+      const maximum = Math.max(1, Math.floor(Number(maxHp) || 1));
+      const ratio = Math.max(0, Math.min(1, hp / maximum));
+      const fill = status.querySelector('.target-status__fill');
+      const value = status.querySelector('.target-status__value');
+      if (fill) fill.style.width = `${ratio * 100}%`;
+      if (value) value.textContent = `${hp.toLocaleString()} HP`;
+      status.setAttribute(
+        'aria-label',
+        `Target ${index + 1} HP: ${hp.toLocaleString()} of ${maximum.toLocaleString()}`,
+      );
+    });
+  }
+
+  /** Pop one damage number over each damaged target. */
+  showTargetDamage({ damages, critical = false, reducedMotion = false }) {
+    const values = Array.isArray(damages) ? damages : [];
+    this.ensureTargetStatusElements(values.length);
+    if (!this.targetStatusLayer || typeof document === 'undefined') return;
+
+    values.forEach((damage, index) => {
+      const amount = Math.max(0, Math.floor(Number(damage) || 0));
+      if (amount <= 0) return;
+      const status = this.targetStatusElements[index];
+      if (!status) return;
+
+      const popup = document.createElement('span');
+      popup.className = `target-damage${critical ? ' target-damage--critical' : ''}${reducedMotion ? ' target-damage--reduced-motion' : ''}`;
+      popup.textContent = `-${amount.toLocaleString()}`;
+      popup.setAttribute('aria-hidden', 'true');
+      status.append(popup);
+      setTimeout(() => popup.remove(), reducedMotion ? 260 : 720);
+    });
   }
 
   /** Show manual MISS/HIT/critical-tier feedback and awarded XP. */
