@@ -53,7 +53,10 @@ describe('HUD mobile/accessibility presentation', () => {
     const { hud, feedback } = createHudFixture();
 
     hud.showPlayerResult({ result: 'CRITICAL', awardedXp: 40 });
-    expect(feedback.textContent).toBe('PERFECT! +40 XP');
+    expect(feedback.textContent).toBe('CRITICAL! +40 XP');
+
+    hud.showPlayerResult({ result: 'OMEGA_CRITICAL', awardedXp: 100 });
+    expect(feedback.textContent).toBe('OMEGA CRIT! +100 XP');
 
     hud.showDogResult({ critical: true, awardedXp: 12 });
     expect(feedback.textContent).toBe('GOOD BOY! +12 XP');
