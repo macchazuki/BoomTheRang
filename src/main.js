@@ -12,10 +12,17 @@ if (!mountElement) {
   throw new Error('Expected #app mount element.');
 }
 
-const app = new GameApp({ mountElement });
+const debugEnabled = import.meta.env.VITE_DEBUG === 'true';
+const app = new GameApp({
+  mountElement,
+  saveKey: debugEnabled ? 'boomTheRang.debug.save.v1' : undefined,
+});
 app.start();
 
-// Expose only in development for manual debugging; gameplay code must not depend on it.
-if (import.meta.env.DEV) {
+if (debugEnabled) {
+  window.__boomTheRang = app;
+  import('./debug/createDebugPanel.js').then(({ createDebugPanel }) => createDebugPanel(app));
+} else if (import.meta.env.DEV) {
+  // Keep the existing local-development console hook without shipping it in production.
   window.__boomTheRang = app;
 }
