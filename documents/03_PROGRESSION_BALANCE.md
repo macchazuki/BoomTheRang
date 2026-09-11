@@ -11,24 +11,25 @@ BoomTheRang uses a fast-start, steep-growth progression curve inspired by the pa
 - late upgrades climb through hundreds of thousands;
 - Grandmaster is the final `1,000,000 XP` blocker.
 
-This is a pacing reference only. BoomTheRang keeps its existing one-time upgrade graph and XP economy rather than copying Fortune Mill's systems directly.
+This is a pacing reference only. BoomTheRang keeps its existing one-time upgrade graph and damage/XP economy rather than copying Fortune Mill's systems directly.
 
 ## Required timing anchors
 
 Measure using **optimal active play** and `optimalProgressionSimulator.js`.
 
-Current v1 targets:
+Current targets:
 
 - Better Training I: roughly `10–30 sec`;
 - Twin Throw / 2 player boomerangs: roughly `1 min`;
-- Second Dummy / 2 targets: roughly `1.5–2.25 min`;
 - Combo Training: within roughly `3 min`;
 - Mega Critical can be reached within `5 min` when prioritizing its branch;
-- Dog Companion: early-mid game, around the first several minutes;
-- later multi-boomerang and multi-target unlocks must remain ordered;
-- full optimal progression should remain roughly `30–100 min` for the current fast-progression build.
+- Dog Companion: early-mid game;
+- later multi-boomerang unlocks must remain ordered;
+- the single-target progression should complete within the simulator's intended session window.
 
 These are tuning ranges, not timers. Do not gate upgrades by elapsed play time.
+
+There is no target-count pacing anchor. The game has one target dummy for the entire run.
 
 ## Progression shape
 
@@ -37,13 +38,13 @@ Use widening cost bands instead of keeping most upgrades in one narrow range.
 | Stage | Typical cost band | Examples |
 |---|---:|---|
 | Starter | `100–500 XP` | Better Training I, Quick Reload I, Steady Hands I |
-| Early mechanics | `900–5,000 XP` | Twin Throw, Second Dummy, Combo Training, early critical upgrades |
+| Early mechanics | `900–5,000 XP` | Twin Throw, Combo Training, early critical upgrades |
 | First engine expansion | `6,000–35,000 XP` | precision follow-ups, Dog Companion, Better Training III, Triple Throw |
-| Mid game | `50,000–160,000 XP` | Third Dummy, Critical Training II, Ultra Critical, dog improvements |
-| Late mechanics | `200,000–550,000 XP` | Quad Throw, Omega Critical, Fourth Dummy, masteries, Fetch Mastery |
+| Mid game | `50,000–160,000 XP` | Critical Training II, Ultra Critical, dog improvements |
+| Late mechanics | `200,000–550,000 XP` | Quad Throw, Omega Critical, masteries, Fetch Mastery |
 | End game | `650,000–1,000,000 XP` | final side upgrades and Grandmaster |
 
-Important mechanic unlocks should generally be worth saving for before small convenience upgrades, matching the Fortune Mill pattern of prioritizing new engines and helpers over minor local gains.
+Important mechanic unlocks should generally be worth saving for before small convenience upgrades.
 
 ## Base balance constants
 
@@ -57,28 +58,29 @@ missReloadSeconds = 5.0
 
 basePlayerBoomerangs = 1
 baseTargets = 1
+maxTargets = 1
 
 dogBaseIntervalSeconds = 10
 dogBaseXpFactor = 0.25
 ```
 
-The base gauge uses 80% red / 17% green / 3% white. With the gauge restarting from an edge, first entry into the 3% center white zone occurs at roughly 48.5% of a one-way sweep.
-
-Use the real implemented timing in the simulator rather than relying on hand-calculated approximations.
+The base gauge uses 80% red / 17% green / 3% white.
 
 ## Reward formula
 
-Player reward for one successful throw:
+Player reward uses the production reward calculator:
 
 ```text
 baseXpPerTarget
-× playerBoomerangCount
+× boomerangCount for the resolved throw
 × targetCount
 × globalTrainingMultiplier
 × zoneMultiplier
 × comboMultiplier
 × boomerangMasteryMultiplier
 ```
+
+`targetCount` is always `1`, so target progression never changes reward scaling.
 
 Where:
 - Green `zoneMultiplier = 1`;
@@ -96,6 +98,8 @@ baseXpPerTarget
 × globalTrainingMultiplier
 × dogCriticalMultiplier
 ```
+
+Again, `targetCount = 1` for the entire game.
 
 Round final awarded XP once, after all multipliers.
 
@@ -129,11 +133,12 @@ When changing costs:
 
 ## Progression invariants
 
-- Twin Throw is the first major multiplier and should arrive early.
-- Second Dummy compounds the value of multiple boomerangs.
-- Combo Training follows shortly after the second target.
+- The game has exactly one target dummy from start to completion.
+- `baseTargets` and `maxTargets` are both `1`.
+- No target-count upgrade IDs or dependencies may exist.
+- Twin Throw is the first major active multiplier and should arrive early.
+- Combo Training follows Twin Throw.
 - Dog remains supplemental; fully upgraded dog must not exceed optimal manual player earnings.
 - Higher critical tiers should become progressively more expensive and more difficult to hit.
-- White timing remains the best baseline active-play choice before higher critical layers are considered.
 - No mandatory upgrade may reduce player power.
 - No offline XP in v1.
