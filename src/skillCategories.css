@@ -1,0 +1,33 @@
+.skill-tree-panel {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.skill-category-tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0.1rem 0 0.35rem;
+  scrollbar-width: thin;
+}
+
+.skill-category-tab {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0.35rem 0.7rem;
+  color: #aeb8c9;
+  background: #111827;
+  border: 1px solid #3f4b60;
+  font-size: 0.72rem;
+}
+
+.skill-category-tab--active {
+  color: #ffe8a4;
+  background: #49350d;
+  border-color: #f0c35a;
+  box-shadow: 0 0 10px rgb(240 195 90 / 25%);
+}
+
+.skill-tree-canvas {
+  min-width: 620px;
+  min-height: 900px;
+}
