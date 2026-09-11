@@ -4,17 +4,17 @@
 
 Measured using **optimal active play** and a progression-optimal purchase route.
 
-- First purchased upgrade: ~`1 min`
-- Twin Throw / 2 player boomerangs: ~`30 min`
-- Second Dummy / 2 targets: ~`45 min`
-- Main progression completion: ~`300 min` (5 hours)
+- First purchased upgrade: ~`40 sec`
+- Twin Throw / 2 player boomerangs: ~`18 min`
+- Second Dummy / 2 targets: ~`27 min`
+- Main progression completion: ~`180 min` (3 hours)
 - Time between important purchases should trend upward.
 
 Acceptable tuning tolerance for v1:
-- 1-minute upgrade: ±20 seconds
-- 30-minute milestone: ±3 minutes
-- 45-minute milestone: ±4 minutes
-- 5-hour completion: ±20 minutes
+- First upgrade: ±15 seconds
+- 18-minute milestone: ±2 minutes
+- 27-minute milestone: ±3 minutes
+- 3-hour completion: ±15 minutes
 
 ## What "optimal play" means
 
@@ -26,7 +26,7 @@ For the balance simulator:
 - Dog operates whenever unlocked.
 - Assistance upgrades that do not increase theoretical perfect-play XP may be skipped by the optimal route.
 
-Do not measure the 5-hour target using wall-clock sessions with menus/background time.
+Do not measure the 3-hour target using wall-clock sessions with menus/background time.
 
 ## Timing spine
 
@@ -34,25 +34,25 @@ Use these as tuning targets, not hard-coded timers:
 
 | Time | Intended progression point |
 |---:|---|
-| 1m | Better Training I |
-| 3m | early recovery upgrade |
-| 6m | early precision upgrade |
-| 10m | Better Training II |
-| 15m | Critical Training I |
-| 21m | Quick Reload II / prerequisite completion |
-| 30m | **Twin Throw** |
-| 45m | **Second Dummy** |
-| 62m | **Dog Companion** |
-| 82m | first dog XP upgrade |
-| 105m | first dog speed upgrade |
-| 130m | **Triple Throw** |
-| 160m | **Third Dummy** |
-| 190–195m | **Combo Training / mid-late mastery** |
-| 225m | **Quad Throw** |
-| 260m | **Fourth Dummy** |
-| 300m | **Grandmaster/final completion path** |
+| 0.7m | Better Training I |
+| 2m | early recovery upgrade |
+| 4m | early precision upgrade |
+| 6m | Better Training II |
+| 9m | Critical Training I |
+| 13m | Quick Reload II / prerequisite completion |
+| 18m | **Twin Throw** |
+| 27m | **Second Dummy** |
+| 37m | **Dog Companion** |
+| 49m | first dog XP upgrade |
+| 63m | first dog speed upgrade |
+| 78m | **Triple Throw** |
+| 96m | **Third Dummy** |
+| 114–120m | **Combo Training / mid-late mastery** |
+| 135m | **Quad Throw** |
+| 156m | **Fourth Dummy** |
+| 180m | **Grandmaster/final completion path** |
 
-Dog and mastery side nodes can be purchased between these points. Tune their costs so completing required Grandmaster prerequisites still lands near 300 minutes.
+Dog and mastery side nodes can be purchased between these points. Tune their costs so completing required Grandmaster prerequisites still lands near 180 minutes.
 
 ## Base balance constants
 
@@ -136,20 +136,18 @@ Store each upgrade's:
 
 in one balance/definitions file.
 
-Initial costs should be generated/tuned against the balance simulator. A rough seed for the early spine, using the base timing above, is:
+The v1 easier-progression pass reduces upgrade costs to roughly 60% of the original five-hour curve. Early reference costs are:
 
-| Upgrade | Seed cost XP |
+| Upgrade | Cost XP |
 |---|---:|
-| Better Training I | 800 |
-| Quick Reload I | 2,000 |
-| Steady Hands I | 3,000 |
-| Better Training II | 4,000 |
-| Critical Training I | 6,000 |
-| Quick Reload II | 8,000 |
-| Twin Throw | 12,000 |
-| Second Dummy | 40,000 |
-
-These are **seed values**, not locked requirements. Actual animation/gauge cadence determines final values.
+| Better Training I | 480 |
+| Quick Reload I | 1,800 |
+| Steady Hands I | 1,800 |
+| Better Training II | 3,000 |
+| Critical Training I | 3,600 |
+| Quick Reload II | 5,700 |
+| Twin Throw | 8,100 |
+| Second Dummy | 24,000 |
 
 For later upgrades, derive seed cost approximately as:
 
