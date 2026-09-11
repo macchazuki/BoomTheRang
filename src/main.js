@@ -1,5 +1,6 @@
 import './style.css';
 import './skillCategories.css';
+import './targetStatus.css';
 import './comic.css';
 import { GameApp } from './app/GameApp.js';
 
