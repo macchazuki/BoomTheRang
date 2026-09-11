@@ -38,6 +38,7 @@ export function createDefaultSave() {
       musicVolume: 1,
       sfxVolume: 1,
       haptics: true,
+      screenShake: true,
       reducedMotion: false,
     },
   };
