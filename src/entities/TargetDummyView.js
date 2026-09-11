@@ -15,17 +15,11 @@ export class TargetDummyView {
     this.body = new THREE.Group();
     this.object3d.add(this.body);
 
-    this.torso = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1.4, 0.45),
-      new THREE.MeshStandardMaterial({ color: 0xc78b52, emissive: 0x000000 }),
-    );
-    this.body.add(this.torso);
-
     this.modelUrl = modelUrl;
     this.loader = loader;
     this.model = null;
     this.disposed = false;
-    this.reactionMaterials = [this.torso.material];
+    this.reactionMaterials = [];
 
     this.reactionDuration = 0.24;
     this.reactionRemaining = 0;
@@ -35,7 +29,7 @@ export class TargetDummyView {
     this.modelReady = this.loadModel();
   }
 
-  /** Load the authored GLB and replace the temporary primitive once ready. */
+  /** Load the authored GLB. Nothing is rendered until the real asset is ready. */
   async loadModel() {
     try {
       const gltf = await this.loader.loadAsync(this.modelUrl);
@@ -56,16 +50,12 @@ export class TargetDummyView {
         });
       });
 
-      this.body.remove(this.torso);
-      this.disposeObject(this.torso);
-
       this.model = model;
       this.body.add(model);
       this.reactionMaterials = materials;
       return model;
     } catch (error) {
       console.error('Failed to load target dummy model', error);
-      // Keep the cheap fallback visible if the asset cannot be loaded.
       return null;
     }
   }
