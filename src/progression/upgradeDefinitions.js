@@ -27,9 +27,9 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
   define('criticalTraining1', 'Critical Training I', 'Player critical multiplier becomes 2.25x.', ['betterTraining2'], 'criticalMultiplier', 2.25),
   define('criticalTraining2', 'Critical Training II', 'Player critical multiplier becomes 2.5x.', ['criticalTraining1', 'thirdDummy'], 'criticalMultiplier', 2.5),
   define('criticalMastery', 'Critical Mastery', 'Player critical multiplier becomes 3x.', ['criticalTraining2'], 'criticalMultiplier', 3),
-  define('megaCritical', 'Mega Critical', 'White-zone criticals become Mega Crits worth 4x XP.', ['criticalTraining1'], 'criticalMultiplier', 4),
-  define('ultraCritical', 'Ultra Critical', 'White-zone criticals become Ultra Crits worth 6x XP.', ['megaCritical', 'criticalTraining2'], 'criticalMultiplier', 6),
-  define('omegaCritical', 'Omega Critical', 'White-zone criticals become Omega Crits worth 10x XP.', ['ultraCritical', 'criticalMastery'], 'criticalMultiplier', 10),
+  define('megaCritical', 'Mega Critical', 'Adds a Mega Crit layer in the center of the white critical zone.', ['criticalTraining1'], 'criticalLayerCount', 2),
+  define('ultraCritical', 'Ultra Critical', 'Adds an Ultra Crit layer in the center and pushes earlier crit layers outward.', ['megaCritical', 'criticalTraining2'], 'criticalLayerCount', 3),
+  define('omegaCritical', 'Omega Critical', 'Adds an Omega Crit layer at the very center of the gauge.', ['ultraCritical', 'criticalMastery'], 'criticalLayerCount', 4),
 
   define('quickReload1', 'Quick Reload I', 'Miss reload becomes 4.5s.', ['betterTraining1'], 'missReloadSeconds', 4.5),
   define('quickReload2', 'Quick Reload II', 'Miss reload becomes 4s.', ['quickReload1'], 'missReloadSeconds', 4),
