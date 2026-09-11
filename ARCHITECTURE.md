@@ -96,7 +96,7 @@ Persisted:
 
 Derived on load, not persisted:
 - player boomerang count;
-- target count;
+- target count, fixed at `1` for the entire game;
 - critical multiplier;
 - reload duration;
 - gauge widths;
@@ -105,6 +105,8 @@ Derived on load, not persisted:
 - dog XP factor;
 - combo cap;
 - boomerang mastery multiplier.
+
+There are no target-count upgrades. Progression must never increase the number of target dummies.
 
 ## Gameplay state machine
 
