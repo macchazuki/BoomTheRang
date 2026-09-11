@@ -215,7 +215,7 @@ export class GameApp {
   /** Main RAF loop: update logic first, then visual mirrors. */
   frame(frameMs) {
     const rawDelta = this.previousFrameMs === null ? 0 : (frameMs - this.previousFrameMs) / 1000;
-    const deltaSeconds = clampDeltaSeconds(rawDelta) * this.debugTimeScale;
+    const deltaSeconds = clampDeltaSeconds(rawDelta) * (this.debugTimeScale ?? 1);
     this.previousFrameMs = frameMs;
 
     this.gameController?.update(deltaSeconds);
