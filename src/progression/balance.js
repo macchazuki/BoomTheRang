@@ -7,6 +7,11 @@
 export const BALANCE = Object.freeze({
   baseXpPerTarget: 10,
   baseCriticalMultiplier: 2,
+  higherCriticalMultipliers: Object.freeze({
+    MEGA_CRITICAL: 4,
+    ULTRA_CRITICAL: 6,
+    OMEGA_CRITICAL: 10,
+  }),
   gaugeOneWaySeconds: 1.35,
   successRecoverySeconds: 0.7,
   missReloadSeconds: 5,
