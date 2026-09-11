@@ -32,7 +32,7 @@ describe('RewardCalculator contract', () => {
     ).toBe(BALANCE.baseXpPerTarget);
   });
 
-  it('white uses current critical multiplier', () => {
+  it('base critical keeps the current critical multiplier', () => {
     expect(
       calculatePlayerReward({
         result: GAUGE_RESULT.CRITICAL,
@@ -41,6 +41,14 @@ describe('RewardCalculator contract', () => {
         criticalMultiplier: 2.5,
       }),
     ).toBe(25);
+  });
+
+  it('higher critical tiers use their own multipliers without changing base crit', () => {
+    const common = { boomerangCount: 1, targetCount: 1, criticalMultiplier: 2.5 };
+    expect(calculatePlayerReward({ ...common, result: GAUGE_RESULT.MEGA_CRITICAL })).toBe(40);
+    expect(calculatePlayerReward({ ...common, result: GAUGE_RESULT.ULTRA_CRITICAL })).toBe(60);
+    expect(calculatePlayerReward({ ...common, result: GAUGE_RESULT.OMEGA_CRITICAL })).toBe(100);
+    expect(calculatePlayerReward({ ...common, result: GAUGE_RESULT.CRITICAL })).toBe(25);
   });
 
   it('boomerangCount × targetCount is applied exactly once', () => {
@@ -122,9 +130,11 @@ describe('RewardCalculator contract', () => {
     ).toBe(13);
   });
 
-  it('green adds one combo step and white adds two', () => {
+  it('green adds one combo step and every critical tier adds two', () => {
     expect(getNextCombo(4, GAUGE_RESULT.HIT, true)).toBe(5);
     expect(getNextCombo(4, GAUGE_RESULT.CRITICAL, true)).toBe(6);
+    expect(getNextCombo(4, GAUGE_RESULT.MEGA_CRITICAL, true)).toBe(6);
+    expect(getNextCombo(4, GAUGE_RESULT.OMEGA_CRITICAL, true)).toBe(6);
   });
 
   it('miss resets combo', () => {
