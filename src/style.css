@@ -176,7 +176,6 @@ input:focus-visible {
   bottom: 0;
   width: 0.24rem;
   background: #fff;
-  box-shadow: 0 0 0 2px #05080f;
   transform: translateX(-50%);
   pointer-events: none;
 }
