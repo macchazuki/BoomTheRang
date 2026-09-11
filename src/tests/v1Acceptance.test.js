@@ -77,7 +77,7 @@ function tapAt(fixture, position) {
 }
 
 function finishPlayerRecovery(fixture) {
-  fixture.controller.update(BALANCE.successRecoverySeconds);
+  fixture.controller.update(fixture.gaugeController.oneWaySeconds);
 }
 
 function purchaseAndApply(fixture, upgradeId) {
@@ -102,9 +102,9 @@ describe('v1 release acceptance', () => {
     expect(fixture.controller.state).toBe(GAMEPLAY_STATE.READY);
 
     tapAt(fixture, 0.1);
-    expect(fixture.controller.state).toBe(GAMEPLAY_STATE.MISS_RELOAD);
+    expect(fixture.controller.state).toBe(GAMEPLAY_STATE.READY);
     expect(fixture.gameState.xp).toBe(0);
-    fixture.controller.update(BALANCE.missReloadSeconds);
+    finishPlayerRecovery(fixture);
 
     tapAt(fixture, 0.4);
     expect(fixture.gameState.xp).toBe(10);
@@ -150,7 +150,7 @@ describe('v1 release acceptance', () => {
     purchaseAndApply(fixture, 'dogTraining2');
     purchaseAndApply(fixture, 'fastFetch2');
 
-    tapAt(fixture, 0.4);
+    tapAt(fixture, (1 + 0.4) / 3);
     expect(fixture.gameState.gameplay.combo).toBe(1);
     finishPlayerRecovery(fixture);
     tapAt(fixture, 0.5);
@@ -201,7 +201,7 @@ describe('v1 release acceptance', () => {
     reloaded.controller.resume();
     expect(reloaded.controller.state).toBe(GAMEPLAY_STATE.FINAL_CHALLENGE);
 
-    tapAt(reloaded, 0.5);
+    tapAt(reloaded, 0.625);
     expect(reloaded.gameState.progression.gameCompleted).toBe(true);
     const throwsAtCompletion = reloaded.gameState.stats.manualThrows;
     await flushCompletion();
@@ -212,7 +212,7 @@ describe('v1 release acceptance', () => {
     expect(reloaded.controller.state).toBe(GAMEPLAY_STATE.READY);
 
     const xpBeforeContinuedPlay = reloaded.gameState.xp;
-    tapAt(reloaded, 0.5);
+    tapAt(reloaded, 0.625);
     expect(reloaded.gameState.stats.manualThrows).toBe(throwsAtCompletion + 1);
     expect(reloaded.gameState.xp).toBeGreaterThan(xpBeforeContinuedPlay);
 
