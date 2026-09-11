@@ -5,41 +5,41 @@ const report = simulateOptimalProgression();
 const minutes = (milestone) => report.milestones[milestone] / 60;
 
 describe('optimal progression balance contract', () => {
-  it('Better Training I is acquired around 1 minute ±20 seconds', () => {
+  it('Better Training I is acquired in roughly 40 seconds', () => {
     expect(report.implemented).toBe(true);
     expect(report.completed).toBe(true);
-    expect(report.milestones.betterTraining1).toBeGreaterThanOrEqual(40);
-    expect(report.milestones.betterTraining1).toBeLessThanOrEqual(80);
+    expect(report.milestones.betterTraining1).toBeGreaterThanOrEqual(25);
+    expect(report.milestones.betterTraining1).toBeLessThanOrEqual(55);
   });
 
-  it('Twin Throw is acquired around 30 minutes ±3 minutes', () => {
-    expect(minutes('twinThrow')).toBeGreaterThanOrEqual(27);
-    expect(minutes('twinThrow')).toBeLessThanOrEqual(33);
+  it('Twin Throw is acquired around 18 minutes ±2 minutes', () => {
+    expect(minutes('twinThrow')).toBeGreaterThanOrEqual(16);
+    expect(minutes('twinThrow')).toBeLessThanOrEqual(20);
   });
 
-  it('Second Dummy is acquired around 45 minutes ±4 minutes', () => {
-    expect(minutes('secondDummy')).toBeGreaterThanOrEqual(41);
-    expect(minutes('secondDummy')).toBeLessThanOrEqual(49);
+  it('Second Dummy is acquired around 27 minutes ±3 minutes', () => {
+    expect(minutes('secondDummy')).toBeGreaterThanOrEqual(24);
+    expect(minutes('secondDummy')).toBeLessThanOrEqual(30);
   });
 
-  it('Grandmaster completion path is around 300 minutes ±20 minutes', () => {
-    expect(report.completionSeconds / 60).toBeGreaterThanOrEqual(280);
-    expect(report.completionSeconds / 60).toBeLessThanOrEqual(320);
+  it('Grandmaster completion path is around 180 minutes ±15 minutes', () => {
+    expect(report.completionSeconds / 60).toBeGreaterThanOrEqual(165);
+    expect(report.completionSeconds / 60).toBeLessThanOrEqual(195);
   });
 
   it('reports the intended intermediate progression spine', () => {
-    expect(minutes('dogCompanion')).toBeGreaterThanOrEqual(57);
-    expect(minutes('dogCompanion')).toBeLessThanOrEqual(67);
-    expect(minutes('tripleThrow')).toBeGreaterThanOrEqual(120);
-    expect(minutes('tripleThrow')).toBeLessThanOrEqual(140);
-    expect(minutes('thirdDummy')).toBeGreaterThanOrEqual(150);
-    expect(minutes('thirdDummy')).toBeLessThanOrEqual(170);
-    expect(minutes('comboTraining')).toBeGreaterThanOrEqual(185);
-    expect(minutes('comboTraining')).toBeLessThanOrEqual(200);
-    expect(minutes('quadThrow')).toBeGreaterThanOrEqual(215);
-    expect(minutes('quadThrow')).toBeLessThanOrEqual(235);
-    expect(minutes('fourthDummy')).toBeGreaterThanOrEqual(250);
-    expect(minutes('fourthDummy')).toBeLessThanOrEqual(270);
+    expect(minutes('dogCompanion')).toBeGreaterThanOrEqual(34);
+    expect(minutes('dogCompanion')).toBeLessThanOrEqual(41);
+    expect(minutes('tripleThrow')).toBeGreaterThanOrEqual(72);
+    expect(minutes('tripleThrow')).toBeLessThanOrEqual(85);
+    expect(minutes('thirdDummy')).toBeGreaterThanOrEqual(90);
+    expect(minutes('thirdDummy')).toBeLessThanOrEqual(103);
+    expect(minutes('comboTraining')).toBeGreaterThanOrEqual(110);
+    expect(minutes('comboTraining')).toBeLessThanOrEqual(122);
+    expect(minutes('quadThrow')).toBeGreaterThanOrEqual(128);
+    expect(minutes('quadThrow')).toBeLessThanOrEqual(142);
+    expect(minutes('fourthDummy')).toBeGreaterThanOrEqual(148);
+    expect(minutes('fourthDummy')).toBeLessThanOrEqual(165);
   });
 
   it('important late progression gaps generally increase over the run', () => {
