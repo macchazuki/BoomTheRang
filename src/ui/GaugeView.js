@@ -39,6 +39,7 @@ export class GaugeView {
         const zone = document.createElement('div');
         zone.className = `gauge__zone gauge__zone--${name}`;
         zone.dataset.segment = String(segment);
+        zone.dataset.zone = name;
         zone.setAttribute('aria-hidden', 'true');
         zones.push(zone);
       }
@@ -57,7 +58,8 @@ export class GaugeView {
     for (const zone of this.root.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
       zone.classList.toggle('gauge__zone--consumed', isConsumed);
-      zone.style.background = isConsumed ? '#8f2637' : '';
+      zone.classList.remove('gauge__zone--red', 'gauge__zone--green', 'gauge__zone--white');
+      zone.classList.add(`gauge__zone--${isConsumed ? 'red' : zone.dataset.zone}`);
     }
 
     this.marker.style.left = `${snapshot.position * 100}%`;
