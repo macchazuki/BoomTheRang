@@ -62,7 +62,7 @@ Recommended starting values:
 baseXpPerTarget = 10
 baseCriticalMultiplier = 2.0
 
-gaugeOneWaySeconds = 1.6
+gaugeOneWaySeconds = 1.35
 successRecoverySeconds = 0.7
 missReloadSeconds = 5.0
 
@@ -73,7 +73,7 @@ dogBaseIntervalSeconds = 10
 dogBaseXpFactor = 0.25
 ```
 
-With the gauge restarting from an edge, first entry into the 5% center white zone occurs at roughly 47.5% of a one-way sweep. A perfect-play throw cycle is therefore roughly `0.76 s gauge wait + 0.7 s recovery ≈ 1.46 s`.
+The harder base gauge uses 80% red / 17% green / 3% white. With the gauge restarting from an edge, first entry into the 3% center white zone occurs at roughly 48.5% of a one-way sweep. A perfect-play throw cycle is therefore roughly `0.65 s gauge wait + 0.7 s recovery ≈ 1.35 s`.
 
 Use the real implemented timing in the simulator; do not permanently rely on this approximation.
 
