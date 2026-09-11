@@ -1,5 +1,4 @@
 const THROW_UPGRADES = ['twinThrow', 'tripleThrow', 'quadThrow'];
-const TARGET_UPGRADES = ['secondDummy', 'thirdDummy', 'fourthDummy'];
 
 function button(label, onClick) {
   const element = document.createElement('button');
@@ -30,7 +29,6 @@ export function createDebugPanel(app) {
       <div class="debug-panel__group debug-panel__xp"></div>
       <div class="debug-panel__group debug-panel__combo"></div>
       <div class="debug-panel__group debug-panel__boomerangs"></div>
-      <div class="debug-panel__group debug-panel__targets"></div>
       <div class="debug-panel__group debug-panel__speed"></div>
       <div class="debug-panel__group debug-panel__actions"></div>
     </div>
@@ -89,12 +87,6 @@ export function createDebugPanel(app) {
   const boomerangGroup = root.querySelector('.debug-panel__boomerangs');
   [1, 2, 3, 4].forEach((count) => boomerangGroup.append(button(`${count} boomerang${count === 1 ? '' : 's'}`, () => {
     setCountUpgrades(app.gameState, THROW_UPGRADES, count);
-    applyEffects();
-  })));
-
-  const targetGroup = root.querySelector('.debug-panel__targets');
-  [1, 2, 3, 4].forEach((count) => targetGroup.append(button(`${count} target${count === 1 ? '' : 's'}`, () => {
-    setCountUpgrades(app.gameState, TARGET_UPGRADES, count);
     applyEffects();
   })));
 
