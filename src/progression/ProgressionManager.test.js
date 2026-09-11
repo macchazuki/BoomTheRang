@@ -12,6 +12,9 @@ const EXPECTED_UPGRADES = [
   ['criticalTraining1', ['betterTraining2'], 'criticalMultiplier', 2.25],
   ['criticalTraining2', ['criticalTraining1', 'thirdDummy'], 'criticalMultiplier', 2.5],
   ['criticalMastery', ['criticalTraining2'], 'criticalMultiplier', 3],
+  ['megaCritical', ['criticalMastery'], 'criticalMultiplier', 4],
+  ['ultraCritical', ['megaCritical', 'quadThrow'], 'criticalMultiplier', 6],
+  ['omegaCritical', ['ultraCritical', 'fourthDummy'], 'criticalMultiplier', 10],
   ['quickReload1', ['betterTraining1'], 'missReloadSeconds', 4.5],
   ['quickReload2', ['quickReload1'], 'missReloadSeconds', 4],
   ['quickReload3', ['quickReload2'], 'missReloadSeconds', 3],
@@ -154,6 +157,9 @@ describe('ProgressionManager contract', () => {
     expect(effectsFor(['criticalTraining1']).criticalMultiplier).toBe(2.25);
     expect(effectsFor(['criticalTraining1', 'criticalTraining2']).criticalMultiplier).toBe(2.5);
     expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'criticalMastery']).criticalMultiplier).toBe(3);
+    expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'criticalMastery', 'megaCritical']).criticalMultiplier).toBe(4);
+    expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'criticalMastery', 'megaCritical', 'ultraCritical']).criticalMultiplier).toBe(6);
+    expect(effectsFor(['criticalTraining1', 'criticalTraining2', 'criticalMastery', 'megaCritical', 'ultraCritical', 'omegaCritical']).criticalMultiplier).toBe(10);
 
     expect(effectsFor(['quickReload1']).missReloadSeconds).toBe(4.5);
     expect(effectsFor(['quickReload1', 'quickReload2']).missReloadSeconds).toBe(4);
