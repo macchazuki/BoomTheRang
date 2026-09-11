@@ -4,8 +4,10 @@
 export class HUD {
   constructor({ mountElement }) {
     this.mountElement = mountElement;
-    this.feedbackElement =
-      this.mountElement.closest?.('.game-screen')?.querySelector?.('[data-feedback]') ?? null;
+    this.gameScreen = this.mountElement.closest?.('.game-screen') ?? null;
+    this.feedbackElement = this.gameScreen?.querySelector?.('[data-feedback]') ?? null;
+    this.canvasHost = this.gameScreen?.querySelector?.('[data-canvas-host]') ?? null;
+    this.impactIndex = 0;
   }
 
   /** Render always-visible state from authoritative models. */
@@ -25,19 +27,69 @@ export class HUD {
   }
 
   /** Show manual MISS/HIT/PERFECT and awarded XP. */
-  showPlayerResult({ result, awardedXp }) {
+  showPlayerResult({ result, awardedXp, targetCount = 1, reducedMotion = false }) {
     if (!this.feedbackElement) return;
 
     const label = result === 'CRITICAL' ? 'PERFECT!' : result === 'HIT' ? 'HIT!' : 'MISS';
     this.feedbackElement.textContent = awardedXp > 0 ? `${label} +${awardedXp} XP` : label;
+
+    if (result === 'HIT' || result === 'CRITICAL') {
+      this.scheduleComicImpacts({
+        critical: result === 'CRITICAL',
+        targetCount,
+        reducedMotion,
+      });
+    }
   }
 
   /** Show smaller independent dog feedback. */
-  showDogResult({ critical, awardedXp }) {
+  showDogResult({ critical, awardedXp, targetCount = 1, reducedMotion = false }) {
     if (!this.feedbackElement) return;
     this.feedbackElement.textContent = critical
       ? `GOOD BOY! +${awardedXp} XP`
       : `Dog +${awardedXp} XP`;
+    this.scheduleComicImpacts({ critical, dog: true, targetCount, reducedMotion });
+  }
+
+  /**
+   * Time one comic impact per target around the point where the boomerang crosses
+   * the target chain. Multi-target hits therefore read as sequential impacts.
+   */
+  scheduleComicImpacts({ critical = false, dog = false, targetCount = 1, reducedMotion = false }) {
+    const count = Math.max(1, Math.floor(targetCount));
+    const centerDelayMs = reducedMotion ? 90 : dog ? 290 : 310;
+    const spacingMs = reducedMotion ? 20 : 48;
+    const firstDelayMs = centerDelayMs - ((count - 1) * spacingMs) / 2;
+
+    for (let index = 0; index < count; index += 1) {
+      setTimeout(() => this.showComicImpact({ critical, dog }), firstDelayMs + index * spacingMs);
+    }
+  }
+
+  /** Spawn a short comic-book impact word over the target area. */
+  showComicImpact({ critical = false, dog = false } = {}) {
+    if (!this.canvasHost) return;
+
+    const normalWords = dog ? ['BAP!', 'BONK!', 'POW!'] : ['POW!', 'BAM!', 'WHAM!'];
+    const criticalWords = dog ? ['KAPOW!', 'WOOF!'] : ['KAPOW!', 'BOOM!', 'CRACK!'];
+    const words = critical ? criticalWords : normalWords;
+    const callout = document.createElement('div');
+    const position = ['left', 'center', 'right'][this.impactIndex % 3];
+
+    callout.className = `comic-impact comic-impact--${position}${critical ? ' comic-impact--critical' : ''}`;
+    callout.textContent = words[this.impactIndex % words.length];
+    callout.setAttribute('aria-hidden', 'true');
+    this.impactIndex += 1;
+    this.canvasHost.append(callout);
+
+    setTimeout(() => callout.remove(), 650);
+
+    if (critical && document.documentElement.dataset.screenShake !== 'off') {
+      this.canvasHost.classList.remove('comic-shake');
+      void this.canvasHost.offsetWidth;
+      this.canvasHost.classList.add('comic-shake');
+      setTimeout(() => this.canvasHost?.classList.remove('comic-shake'), 240);
+    }
   }
 
   /** Clear temporary feedback when desired by final visual implementation. */

@@ -93,6 +93,10 @@ export class SaveManager {
           typeof input.settings?.haptics === 'boolean'
             ? input.settings.haptics
             : defaults.settings.haptics,
+        screenShake:
+          typeof input.settings?.screenShake === 'boolean'
+            ? input.settings.screenShake
+            : defaults.settings.screenShake,
         reducedMotion:
           typeof input.settings?.reducedMotion === 'boolean'
             ? input.settings.reducedMotion

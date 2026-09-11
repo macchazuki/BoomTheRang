@@ -156,7 +156,12 @@ export class GameController {
 
     void this.gameScene.playPlayerThrow({ ...throwData, reducedMotion: this.gameState.settings.reducedMotion });
     this.gameScene.playResultFeedback(result);
-    this.hud.showPlayerResult({ result, awardedXp });
+    this.hud.showPlayerResult({
+      result,
+      awardedXp,
+      targetCount: effects.targetCount,
+      reducedMotion: this.gameState.settings.reducedMotion,
+    });
     this.renderMirrors();
   }
 
@@ -176,7 +181,12 @@ export class GameController {
     this.gameState.incrementStat('targetsHit', effects.targetCount);
     if (critical) this.gameState.incrementStat('dogCriticals');
     void this.gameScene.playDogThrow({ ...throwData, reducedMotion: this.gameState.settings.reducedMotion });
-    this.hud.showDogResult({ critical, awardedXp: reward });
+    this.hud.showDogResult({
+      critical,
+      awardedXp: reward,
+      targetCount: effects.targetCount,
+      reducedMotion: this.gameState.settings.reducedMotion,
+    });
   }
 
   pause(reason = 'manual') {

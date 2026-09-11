@@ -9,6 +9,7 @@ export class SettingsPanel {
     this.onChange = onChange;
     this.onClose = onClose;
     this.isOpen = false;
+    this.syncMotionSettings();
   }
 
   /** Open settings overlay. */
@@ -46,6 +47,7 @@ export class SettingsPanel {
       this.createRange('Music volume', 'musicVolume', settings.musicVolume),
       this.createRange('SFX volume', 'sfxVolume', settings.sfxVolume),
       this.createToggle('Haptics', 'haptics', settings.haptics),
+      this.createToggle('Screenshake on critical', 'screenShake', settings.screenShake),
       this.createToggle('Reduced motion', 'reducedMotion', settings.reducedMotion),
     );
 
@@ -90,10 +92,19 @@ export class SettingsPanel {
     input.checked = checked;
     input.addEventListener('change', () => {
       this.gameState.updateSettings({ [key]: input.checked });
+      this.syncMotionSettings();
       this.onChange();
     });
 
     label.append(input);
     return label;
+  }
+
+  /** Mirror presentation-only motion preferences for lightweight DOM effects. */
+  syncMotionSettings() {
+    if (typeof document === 'undefined') return;
+    const settings = this.gameState.settings;
+    document.documentElement.dataset.screenShake =
+      settings.screenShake !== false && settings.reducedMotion !== true ? 'on' : 'off';
   }
 }
