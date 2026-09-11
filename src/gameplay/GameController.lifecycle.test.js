@@ -13,6 +13,9 @@ function createUpdateHarness() {
   controller.gaugeView = { render: vi.fn() };
   controller.hud = { render: vi.fn() };
   controller.reloadRemainingSeconds = 0;
+  controller.currentPlayerBoomerangCount = 1;
+  controller.maxPlayerBoomerangCount = 1;
+  controller.missedBoomerangReloads = [];
   return controller;
 }
 
