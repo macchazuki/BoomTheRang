@@ -44,8 +44,8 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `bindInput(...)` — binds the single gameplay Pointer Events path and UI controls.
 - `handleResize()` — keeps renderer/camera responsive.
 - `setPlayerBoomerangCount(count)` — mirrors 1–4 derived player boomerangs.
-- `setTargetCount(count)` — mirrors 1–4 target formation.
-- `getTargetPositions(count)` — deterministic narrow-screen formations.
+- `setTargetCount(count)` — mirrors the derived target count, which progression fixes at `1`.
+- `getTargetPositions(count)` — deterministic target placement helper.
 - `setDogVisible(visible)` — creates/shows dog after unlock.
 - `playPlayerThrow(...)` — deterministic resolved player throw animation contract.
 - `playDogThrow(...)` — non-blocking dog animation contract.
@@ -79,14 +79,14 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `GAUGE_RESULT` — result constants.
 
 ### `src/gameplay/RewardCalculator.js`
-- `calculatePlayerReward(...)` — pure player XP formula.
-- `calculateDogReward(...)` — pure dog XP formula.
+- `calculatePlayerReward(...)` — pure player XP formula; target count is supplied by progression and remains `1`.
+- `calculateDogReward(...)` — pure dog XP formula; target count remains `1`.
 - `getNextCombo(...)` — per-throw combo mutation rule.
 - `calculateComboMultiplier(...)` — capped combo multiplier.
 
 ### `src/gameplay/ThrowController.js` — `ThrowController`
-- `resolvePlayerThrow(...)` — logical target-chain/hit-count description for one tap.
-- `resolveDogThrow(...)` — logical dog target-chain description.
+- `resolvePlayerThrow(...)` — logical single-target hit description for one press.
+- `resolveDogThrow(...)` — logical single-target dog hit description.
 
 ### `src/gameplay/DogController.js` — `DogController`
 - `configure(...)` — applies derived unlock/interval/crit chance.
@@ -101,10 +101,7 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `isActivePlay()` — determines whether active-play time counts.
 - `update(deltaSeconds)` — state-machine/timer update.
 - `handlePointerDown(event)` — single legal manual input path.
-- `resolvePlayerInput()` — lock/classify/reward/animate one player throw.
-- `beginMissReload(seconds)` / `updateMissReload(deltaSeconds)` — miss lockout.
-- `updateSuccessRecovery(deltaSeconds)` — successful return timing.
-- `returnToReady()` — explicit cycle reset.
+- `resolvePlayerInput()` — classify/reward/animate one boomerang press during the current gauge sweep.
 - `handleDogThrow({ critical })` — independent dog reward/visual request.
 - `pause(reason)` / `resume()` — modal/background pause semantics.
 - `applyProgressionEffects(effects)` — propagates derived counts/timers.
@@ -117,9 +114,10 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 
 ### `src/progression/balance.js`
 - `BALANCE` — all tuneable gameplay constants, costs, optional lifetime gates.
+- `baseTargets` and `maxTargets` are both `1`; there is no target-count progression.
 
 ### `src/progression/upgradeDefinitions.js`
-- `UPGRADE_DEFINITIONS` — complete data-driven v1 graph.
+- `UPGRADE_DEFINITIONS` — complete data-driven v1 graph with no target-count skills.
 - `UPGRADE_BY_ID` — direct lookup map.
 - `UPGRADE_IDS` — canonical save-schema IDs.
 
@@ -130,10 +128,10 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `canPurchase(upgradeId)` — boolean convenience check.
 - `purchase(upgradeId)` — transactional XP spend + ownership update.
 - `getVisibleUpgrades()` — UI-facing reachable graph subset.
-- `getDerivedEffects()` — rebuilds all gameplay values from ownership.
+- `getDerivedEffects()` — rebuilds all gameplay values from ownership, including fixed `targetCount: 1`.
 
 ### `src/progression/optimalProgressionSimulator.js`
-- `DEFAULT_OPTIMAL_ROUTE` — initial purchase-route contract.
+- `DEFAULT_OPTIMAL_ROUTE` — initial purchase-route contract without target-count nodes.
 - `getPerfectGaugeWaitSeconds(...)` — time from edge to first white boundary.
 - `getPerfectThrowCycleSeconds(...)` — base perfect-play cadence helper.
 - `simulateOptimalProgression(...)` — deterministic logical-time simulator contract.
@@ -143,13 +141,13 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 ### `src/persistence/defaultSave.js`
 - `SAVE_VERSION` — v1 schema version.
 - `SAVE_KEY` — `localStorage` key.
-- `createDefaultSave()` — fresh canonical save object containing every upgrade ID.
+- `createDefaultSave()` — fresh canonical save object containing every current upgrade ID.
 
 ### `src/persistence/SaveManager.js` — `SaveManager`
 - `load()` — safe parse/migrate/sanitize with fallback.
 - `save(saveData)` — non-throwing persistence.
 - `migrate(saveData)` — explicit schema-version branch.
-- `sanitize(saveData)` — allowlist/merge/clamp logic.
+- `sanitize(saveData)` — allowlist/merge/clamp logic; removed target-count upgrade IDs are discarded.
 - `sanitizeStats(stats, defaults)` — known-stat cleanup.
 - `numberOr(value, fallback)` / `nonNegativeNumber(...)` — numeric guards.
 - `clear()` — development/reset utility.
@@ -180,7 +178,8 @@ These classes are presentation-only and must never become authoritative gameplay
 - `render(snapshot)` — normalized controller mirror only.
 
 ### `src/ui/UpgradePanel.js` — `UpgradePanel`
-- `open()`, `close()`, `render()`, `createUpgradeCard(definition)`.
+- `open()`, `close()`, `render()` and category-local skill-tree presentation helpers.
+- Arsenal contains only boomerang/combo/mastery progression; no target-count nodes.
 
 ### `src/ui/SettingsPanel.js` — `SettingsPanel`
 - `open()`, `close()`, `render()`, `createRange(...)`, `createToggle(...)`.
@@ -190,4 +189,4 @@ These classes are presentation-only and must never become authoritative gameplay
 
 ## Tests
 
-The colocated test files deliberately use `it.todo(...)` to define implementation contracts without pretending the unfinished systems are already verified. `src/tests/gameplayFlow.test.js` defines cross-system integration acceptance, and `src/progression/optimalProgression.test.js` defines the 1m/30m/45m/5h balance anchors.
+Colocated unit tests cover source contracts. `src/tests/gameplayFlow.test.js` verifies the cross-system single-target flow, and `src/progression/optimalProgression.test.js` verifies current deterministic pacing/order constraints.
