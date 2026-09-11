@@ -33,6 +33,10 @@ export const SKILL_TREE_LAYOUT = Object.freeze({
 
 export function getSkillNodePresentation({ purchased, status }) { if (purchased) return STATUS_PRESENTATION.purchased; if (status.ok) return STATUS_PRESENTATION.available; return STATUS_PRESENTATION[status.reason] ?? STATUS_PRESENTATION.PREREQUISITES; }
 
+export function categoryHasPurchasableSkill(category, progressionManager) {
+  return category.skills.some((upgradeId) => progressionManager.getPurchaseStatus(upgradeId).ok);
+}
+
 export class UpgradePanel {
   constructor({ mountElement, progressionManager, onPurchase, onClose }) { this.mountElement = mountElement; this.progressionManager = progressionManager; this.onPurchase = onPurchase; this.onClose = onClose; this.isOpen = false; this.selectedUpgradeId = null; this.activeCategoryId = 'xp'; }
   open() { this.isOpen = true; this.mountElement.hidden = false; this.render(); }
@@ -44,15 +48,23 @@ export class UpgradePanel {
     if (!this.selectedUpgradeId || SKILL_CATEGORY_BY_UPGRADE[this.selectedUpgradeId] !== category.id) this.selectedUpgradeId = this.getDefaultSelection(category);
     const panel = document.createElement('section'); panel.className = 'modal-panel skill-tree-panel'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-labelledby', 'skills-panel-title');
     const header = document.createElement('header'); header.className = 'skill-tree-header';
-    const headingGroup = document.createElement('div'); const heading = document.createElement('h2'); heading.id = 'skills-panel-title'; heading.textContent = 'Skills'; const subtitle = document.createElement('p'); subtitle.className = 'skill-tree-subtitle'; subtitle.textContent = `${category.label} tree — each tab has its own focused root and paths.`; headingGroup.append(heading, subtitle);
-    const close = document.createElement('button'); close.type = 'button'; close.className = 'skill-tree-close'; close.textContent = '×'; close.setAttribute('aria-label', 'Close skills'); close.addEventListener('click', this.onClose); header.append(headingGroup, close);
+    const heading = document.createElement('h2'); heading.id = 'skills-panel-title'; heading.textContent = 'Skills';
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'skill-tree-close'; close.textContent = '×'; close.setAttribute('aria-label', 'Close skills'); close.addEventListener('click', this.onClose); header.append(heading, close);
     const tabs = this.createCategoryTabs(); const legend = this.createLegend(); const viewport = this.createTreeViewport(category); const detail = document.createElement('section'); detail.className = 'skill-detail'; detail.dataset.skillDetail = ''; detail.setAttribute('aria-live', 'polite');
     panel.append(header, tabs, legend, viewport, detail); this.mountElement.replaceChildren(panel); this.renderDetails(); this.centerSelectedNode(viewport);
   }
 
   createCategoryTabs() {
     const tabs = document.createElement('div'); tabs.className = 'skill-category-tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Skill categories');
-    for (const category of SKILL_CATEGORIES) { const button = document.createElement('button'); button.type = 'button'; button.className = 'skill-category-tab'; button.textContent = category.label; button.dataset.categoryId = category.id; const active = category.id === this.activeCategoryId; button.classList.toggle('skill-category-tab--active', active); button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', active ? 'true' : 'false'); button.addEventListener('click', () => { if (category.id === this.activeCategoryId) return; this.activeCategoryId = category.id; this.selectedUpgradeId = null; this.render(); }); tabs.append(button); }
+    for (const category of SKILL_CATEGORIES) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'skill-category-tab'; button.dataset.categoryId = category.id;
+      const active = category.id === this.activeCategoryId; const hasAvailableUpgrade = categoryHasPurchasableSkill(category, this.progressionManager);
+      button.classList.toggle('skill-category-tab--active', active); button.classList.toggle('skill-category-tab--has-upgrade', hasAvailableUpgrade);
+      button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', active ? 'true' : 'false'); button.setAttribute('aria-label', hasAvailableUpgrade ? `${category.label}, upgrade available` : category.label);
+      const label = document.createElement('span'); label.textContent = category.label; button.append(label);
+      if (hasAvailableUpgrade) { const indicator = document.createElement('span'); indicator.className = 'skill-category-tab__indicator'; indicator.setAttribute('aria-hidden', 'true'); button.append(indicator); }
+      button.addEventListener('click', () => { if (category.id === this.activeCategoryId) return; this.activeCategoryId = category.id; this.selectedUpgradeId = null; this.render(); }); tabs.append(button);
+    }
     return tabs;
   }
 
