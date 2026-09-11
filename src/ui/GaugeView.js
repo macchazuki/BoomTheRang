@@ -13,6 +13,11 @@ export class GaugeView {
     this.mountElement = mountElement;
     this.root = document.createElement('div');
     this.root.className = 'gauge';
+    // Gauge framing is intentionally disabled here so later presentation CSS cannot
+    // reintroduce the consumed-area box/outline regression.
+    this.root.style.border = 'none';
+    this.root.style.outline = 'none';
+    this.root.style.boxShadow = 'none';
     this.root.setAttribute('role', 'img');
     this.root.setAttribute(
       'aria-label',
