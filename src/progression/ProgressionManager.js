@@ -1,17 +1,28 @@
 import { BALANCE } from './balance.js';
+import { SKILL_BY_ID, SKILL_DEFINITIONS } from './skillDefinitions.js';
 import { UPGRADE_BY_ID, UPGRADE_DEFINITIONS } from './upgradeDefinitions.js';
 
 /**
- * Owns upgrade visibility/requirements/purchases and every derived progression effect.
+ * Owns upgrade/skill purchases and every derived progression effect.
  */
 export class ProgressionManager {
   constructor(gameState) {
     this.gameState = gameState;
   }
 
-  /** Convenience ownership query. */
+  /** Convenience upgrade ownership query. */
   hasUpgrade(upgradeId) {
     return this.gameState.hasUpgrade(upgradeId);
+  }
+
+  /** Convenience learned-skill query. */
+  hasSkill(skillId) {
+    return this.gameState.hasSkill(skillId);
+  }
+
+  /** Convenience active-skill query. */
+  isSkillActive(skillId) {
+    return this.gameState.isSkillActive(skillId);
   }
 
   /** Return whether every prerequisite is already purchased. */
@@ -59,6 +70,43 @@ export class ProgressionManager {
     return { ok: true, reason: null, upgrade: definition };
   }
 
+  /** Return whether an active skill can be learned now. */
+  getSkillLearnStatus(skillId) {
+    const definition = SKILL_BY_ID[skillId];
+    if (!definition) return { ok: false, reason: 'UNKNOWN_SKILL' };
+    if (this.hasSkill(skillId)) return { ok: false, reason: 'ALREADY_LEARNED' };
+    if (this.gameState.xp < definition.costXp) return { ok: false, reason: 'INSUFFICIENT_XP' };
+    return { ok: true, reason: null };
+  }
+
+  /** Transactionally learn a skill; newly learned skills start active. */
+  learnSkill(skillId) {
+    const status = this.getSkillLearnStatus(skillId);
+    if (!status.ok) return status;
+
+    const definition = SKILL_BY_ID[skillId];
+    if (!this.gameState.spendXp(definition.costXp)) {
+      return { ok: false, reason: 'INSUFFICIENT_XP' };
+    }
+
+    if (!this.gameState.learnSkill(skillId)) {
+      this.gameState.xp += definition.costXp;
+      return { ok: false, reason: 'LEARN_FAILED' };
+    }
+
+    return { ok: true, reason: null, skill: definition };
+  }
+
+  /** Enable or disable a learned active skill. */
+  setSkillActive(skillId, active) {
+    if (!SKILL_BY_ID[skillId]) return { ok: false, reason: 'UNKNOWN_SKILL' };
+    if (!this.hasSkill(skillId)) return { ok: false, reason: 'NOT_LEARNED' };
+    if (!this.gameState.setSkillActive(skillId, active)) {
+      return { ok: false, reason: 'ACTIVATION_FAILED' };
+    }
+    return { ok: true, reason: null, active: this.isSkillActive(skillId) };
+  }
+
   /**
    * Return upgrades that UI may show.
    * Purchased upgrades are retained; future nodes appear when their direct branch is reachable.
@@ -71,7 +119,7 @@ export class ProgressionManager {
     });
   }
 
-  /** Rebuild every derived gameplay value from upgrade ownership. */
+  /** Rebuild every derived gameplay value from upgrade and active-skill ownership. */
   getDerivedEffects() {
     const ownedEffects = { globalTrainingBonus: 0 };
 
@@ -83,6 +131,19 @@ export class ProgressionManager {
       } else {
         ownedEffects[definition.effectKey] = definition.effectValue;
       }
+    }
+
+    let missReturnChance = 0;
+    let gaugeSpeedMultiplier = 1;
+    let autoFirstBoomerang = false;
+    for (const definition of SKILL_DEFINITIONS) {
+      if (!this.isSkillActive(definition.id)) continue;
+      missReturnChance = Math.max(
+        missReturnChance,
+        definition.effects.missReturnChance ?? 0,
+      );
+      gaugeSpeedMultiplier *= definition.effects.gaugeSpeedMultiplier ?? 1;
+      autoFirstBoomerang ||= definition.effects.autoFirstBoomerang === true;
     }
 
     const baseWidths = BALANCE.baseGaugeZoneWidths;
@@ -100,6 +161,9 @@ export class ProgressionManager {
       criticalMultiplier: ownedEffects.criticalMultiplier ?? BALANCE.baseCriticalMultiplier,
       criticalLayerCount,
       missReloadSeconds: ownedEffects.missReloadSeconds ?? BALANCE.missReloadSeconds,
+      missReturnChance,
+      gaugeSpeedMultiplier,
+      autoFirstBoomerang,
       gaugeZoneWidths: { red, green, white, criticalLayerCount },
       playerBoomerangCount: Math.min(
         ownedEffects.playerBoomerangs ?? BALANCE.basePlayerBoomerangs,
