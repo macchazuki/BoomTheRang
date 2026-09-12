@@ -1,22 +1,34 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { HUD } from './HUD.js';
 
 function createHudFixture() {
   const feedback = { textContent: '' };
+  let impactHandler = null;
+  const canvasHost = {
+    addEventListener: vi.fn((type, handler) => {
+      if (type === 'boomerangimpact') impactHandler = handler;
+    }),
+  };
   const gameScreen = {
-    querySelector: (selector) => (selector === '[data-feedback]' ? feedback : null),
+    querySelector: (selector) => {
+      if (selector === '[data-feedback]') return feedback;
+      if (selector === '[data-canvas-host]') return canvasHost;
+      return null;
+    },
   };
   const mountElement = {
     innerHTML: '',
     closest: (selector) => (selector === '.game-screen' ? gameScreen : null),
   };
 
-  return { hud: new HUD({ mountElement }), mountElement, feedback };
+  return {
+    hud: new HUD({ mountElement }),
+    mountElement,
+    feedback,
+    canvasHost,
+    dispatchImpact: (detail) => impactHandler?.({ detail }),
+  };
 }
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe('HUD mobile/accessibility presentation', () => {
   it('keeps XP visible while hiding combo until it is unlocked', () => {
@@ -62,36 +74,51 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(feedback.textContent).toBe('GOOD BOY! +12 XP');
   });
 
-  it('waits until the player boomerang reaches the target before comic impact and shake', () => {
-    vi.useFakeTimers();
-    const { hud } = createHudFixture();
+  it('waits for the exact player impact event before damage popup, comic text, and shake', () => {
+    const { hud, dispatchImpact } = createHudFixture();
+    hud.showTargetDamageAt = vi.fn();
     hud.showComicImpact = vi.fn();
 
-    hud.showPlayerResult({
-      result: 'CRITICAL',
-      awardedXp: 40,
-      targetCount: 1,
+    hud.showTargetDamage({ damages: [40], critical: true, reducedMotion: false });
+    hud.showPlayerResult({ result: 'CRITICAL', awardedXp: 40 });
+
+    expect(hud.showTargetDamageAt).not.toHaveBeenCalled();
+    expect(hud.showComicImpact).not.toHaveBeenCalled();
+
+    dispatchImpact({ targetIndex: 0, result: 'CRITICAL', dog: false, reducedMotion: false });
+
+    expect(hud.showTargetDamageAt).toHaveBeenCalledWith(0, 40, {
+      critical: true,
       reducedMotion: false,
     });
-
-    vi.advanceTimersByTime(524);
-    expect(hud.showComicImpact).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
-    expect(hud.showComicImpact).toHaveBeenCalledTimes(1);
-    expect(hud.showComicImpact).toHaveBeenCalledWith({ critical: true, dog: false });
+    expect(hud.showComicImpact).toHaveBeenCalledWith({
+      critical: true,
+      dog: false,
+      reducedMotion: false,
+    });
   });
 
-  it('keeps dog impact timing aligned with its immediate throw', () => {
-    vi.useFakeTimers();
-    const { hud } = createHudFixture();
+  it('keeps dog damage and comic feedback tied to the dog boomerang impact', () => {
+    const { hud, dispatchImpact } = createHudFixture();
+    hud.showTargetDamageAt = vi.fn();
     hud.showComicImpact = vi.fn();
 
-    hud.showDogResult({ critical: true, awardedXp: 12, targetCount: 1, reducedMotion: false });
+    hud.showTargetDamage({ damages: [12], critical: true, reducedMotion: false });
+    hud.showDogResult({ critical: true, awardedXp: 12 });
 
-    vi.advanceTimersByTime(289);
+    expect(hud.showTargetDamageAt).not.toHaveBeenCalled();
     expect(hud.showComicImpact).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
-    expect(hud.showComicImpact).toHaveBeenCalledTimes(1);
-    expect(hud.showComicImpact).toHaveBeenCalledWith({ critical: true, dog: true });
+
+    dispatchImpact({ targetIndex: 0, result: 'CRITICAL', dog: true, reducedMotion: false });
+
+    expect(hud.showTargetDamageAt).toHaveBeenCalledWith(0, 12, {
+      critical: true,
+      reducedMotion: false,
+    });
+    expect(hud.showComicImpact).toHaveBeenCalledWith({
+      critical: true,
+      dog: true,
+      reducedMotion: false,
+    });
   });
 });
