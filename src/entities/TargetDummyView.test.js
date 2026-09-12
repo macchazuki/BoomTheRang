@@ -5,6 +5,22 @@ import { TargetDummyView } from './TargetDummyView.js';
 const pendingLoader = () => ({ loadAsync: vi.fn(() => new Promise(() => {})) });
 
 describe('TargetDummyView', () => {
+  it('loads the authored 2D target sprite', async () => {
+    const texture = new THREE.Texture();
+    texture.image = { width: 200, height: 400 };
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new TargetDummyView({ spriteUrl: '/target.png', loader });
+
+    await view.spriteReady;
+
+    expect(loader.loadAsync).toHaveBeenCalledWith('/target.png');
+    expect(view.sprite).toBeInstanceOf(THREE.Sprite);
+    expect(view.sprite.scale.y).toBeCloseTo(3.7);
+    expect(view.sprite.scale.x).toBeCloseTo(1.85);
+
+    view.dispose();
+  });
+
   it('does not recoil on MISS', () => {
     const view = new TargetDummyView({ loader: pendingLoader() });
 
@@ -16,19 +32,9 @@ describe('TargetDummyView', () => {
     expect(view.reactionRemaining).toBe(0);
   });
 
-  it('makes CRITICAL feedback stronger than HIT feedback', async () => {
-    const createLoadedView = async () => {
-      const material = new THREE.MeshStandardMaterial();
-      const model = new THREE.Group();
-      model.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material));
-      const loader = { loadAsync: vi.fn().mockResolvedValue({ scene: model }) };
-      const view = new TargetDummyView({ index: 0, loader });
-      await view.modelReady;
-      return { view, material };
-    };
-
-    const { view: hitView, material: hitMaterial } = await createLoadedView();
-    const { view: criticalView, material: criticalMaterial } = await createLoadedView();
+  it('makes CRITICAL feedback stronger than HIT feedback', () => {
+    const hitView = new TargetDummyView({ index: 0, loader: pendingLoader() });
+    const criticalView = new TargetDummyView({ index: 0, loader: pendingLoader() });
 
     hitView.playReaction('HIT');
     criticalView.playReaction('CRITICAL');
@@ -37,9 +43,6 @@ describe('TargetDummyView', () => {
 
     expect(Math.abs(criticalView.object3d.rotation.z)).toBeGreaterThan(
       Math.abs(hitView.object3d.rotation.z),
-    );
-    expect(criticalMaterial.emissiveIntensity).toBeGreaterThan(
-      hitMaterial.emissiveIntensity,
     );
 
     hitView.dispose();
