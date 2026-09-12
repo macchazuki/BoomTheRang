@@ -7,20 +7,27 @@ import { ThrowController } from '../gameplay/ThrowController.js';
 import { DogController } from '../gameplay/DogController.js';
 import { ProgressionManager } from '../progression/ProgressionManager.js';
 import { SaveManager } from '../persistence/SaveManager.js';
+import { createDefaultSave } from '../persistence/defaultSave.js';
+import { ChallengeManager } from '../challenges/ChallengeManager.js';
+import { getChallengeGaugeOneWaySeconds } from '../challenges/challengeDefinitions.js';
 import { HUD } from '../ui/HUD.js';
 import { GaugeView } from '../ui/GaugeView.js';
 import { ActiveSkillBar } from '../ui/ActiveSkillBar.js';
 import { UpgradePanel } from '../ui/ProgressionPanel.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
 import { CompletionPanel } from '../ui/CompletionPanel.js';
+import { ChallengePanel } from '../ui/ChallengePanel.js';
 import { clampDeltaSeconds } from '../game.js';
 
 export class GameApp {
   constructor({ mountElement, saveKey } = {}) {
     this.mountElement = mountElement;
     this.saveManager = new SaveManager(saveKey ? { key: saveKey } : undefined);
-    this.gameState = new GameState(this.saveManager.load());
+    this.accountGameState = new GameState(this.saveManager.load());
+    this.gameState = this.accountGameState;
     this.progressionManager = new ProgressionManager(this.gameState);
+    this.challengeManager = new ChallengeManager(this.accountGameState);
+    this.activeChallenge = null;
     this.debugTimeScale = 1;
     this.mainMenuScene = null;
     this.gameScene = null;
@@ -34,6 +41,7 @@ export class GameApp {
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
+    this.challengePanel = null;
     this.animationFrameId = null;
     this.previousFrameMs = null;
     this.lastPeriodicSaveSeconds = 0;
@@ -55,26 +63,68 @@ export class GameApp {
     this.mountElement.replaceChildren();
   }
 
+  useGameState(gameState) {
+    this.gameState = gameState;
+    this.progressionManager = new ProgressionManager(gameState);
+  }
+
+  restoreAccountState() {
+    if (this.accountGameState) this.useGameState(this.accountGameState);
+  }
+
   showMainMenu() {
     this.disposeGameplay();
+    this.restoreAccountState();
     this.mainMenuScene?.unmount();
     this.mainMenuScene = new MainMenuScene({
       mountElement: this.mountElement,
       onStartGame: () => this.startGame(),
+      onOpenChallenges: () => this.openChallenges(),
       onOpenSettings: () => this.openSettings({ returnTo: 'menu' }),
     });
     const uiHosts = this.mainMenuScene.mount();
+    this.challengePanel = new ChallengePanel({
+      mountElement: uiHosts.overlay,
+      challengeManager: this.challengeManager,
+      onStart: (challengeId) => this.startChallenge(challengeId),
+      onClose: () => this.challengePanel?.close(),
+    });
     this.settingsPanel = new SettingsPanel({
       mountElement: uiHosts.overlay,
       gameState: this.gameState,
-      onChange: () => this.saveManager.save(this.gameState.toSaveData()),
+      onChange: () => this.saveCurrentSettings(),
       onClose: () => this.settingsPanel?.close(),
     });
   }
 
   startGame() {
+    this.activeChallenge = null;
+    this.restoreAccountState();
+    this.startGameplay();
+  }
+
+  startChallenge(challengeId) {
+    const attempt = this.challengeManager.startAttempt(challengeId);
+    if (!attempt.ok) {
+      this.challengePanel?.render();
+      return attempt;
+    }
+
+    this.saveManager.save(this.accountGameState.toSaveData());
+
+    const freshSave = createDefaultSave();
+    freshSave.settings = { ...this.accountGameState.settings };
+    const challengeState = new GameState(freshSave);
+    this.useGameState(challengeState);
+    this.activeChallenge = { id: challengeId, definition: attempt.definition };
+    this.startGameplay({ challengeDefinition: attempt.definition });
+    return attempt;
+  }
+
+  startGameplay({ challengeDefinition = null } = {}) {
     this.mainMenuScene?.unmount();
     this.mainMenuScene = null;
+    this.challengePanel = null;
     this.lastPeriodicSaveSeconds = 0;
     this.gameScene = new GameScene({ mountElement: this.mountElement });
     const uiHosts = this.gameScene.mount();
@@ -95,9 +145,15 @@ export class GameApp {
       onUpgradeSkill: (skillId) => this.upgradeSkill(skillId),
       onClose: () => this.closeModal(),
     });
-    this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveManager.save(this.gameState.toSaveData()), onClose: () => this.closeModal() });
+    this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveCurrentSettings(), onClose: () => this.closeModal() });
     this.completionPanel = new CompletionPanel({ mountElement: uiHosts.overlay, onContinue: () => this.closeModal() });
     this.dogController = new DogController({ onThrow: (dogThrow) => this.gameController?.handleDogThrow(dogThrow) });
+    const challengeRules = challengeDefinition ? {
+      permanentMissLoss: true,
+      disableMissReturns: true,
+      minGaugeOneWaySeconds: challengeDefinition.minGaugeOneWaySeconds,
+      getGaugeOneWaySeconds: (hits) => getChallengeGaugeOneWaySeconds(challengeDefinition.id, hits),
+    } : null;
     this.gameController = new GameController({
       gameState: this.gameState,
       gaugeController: this.gaugeController,
@@ -109,11 +165,18 @@ export class GameApp {
       gaugeView: this.gaugeView,
       activeSkillBar: this.activeSkillBar,
       saveManager: this.saveManager,
+      challengeRules,
+      onChallengeFinished: challengeDefinition ? (result) => this.finishChallenge(result) : null,
       onOpenUpgrades: () => this.openUpgrades(),
       onOpenSettings: () => this.openSettings({ returnTo: 'game' }),
       onCompleted: () => this.openCompletion(),
     });
     this.gameController.start();
+  }
+
+  openChallenges() {
+    this.settingsPanel?.close();
+    this.challengePanel?.open();
   }
 
   openUpgrades() {
@@ -128,6 +191,7 @@ export class GameApp {
       this.settingsPanel?.open();
       return;
     }
+    this.challengePanel?.close();
     this.settingsPanel?.open();
   }
 
@@ -143,11 +207,31 @@ export class GameApp {
     this.completionPanel?.open(this.gameState.stats);
   }
 
+  finishChallenge({ hits }) {
+    const challengeId = this.activeChallenge?.id;
+    if (!challengeId) return;
+
+    const result = this.challengeManager.recordResult(challengeId, hits);
+    this.saveManager.save(this.accountGameState.toSaveData());
+    this.activeChallenge = null;
+    this.showMainMenu();
+    this.challengePanel?.open(result);
+  }
+
+  saveCurrentSettings() {
+    if (this.activeChallenge) {
+      this.accountGameState.updateSettings(this.gameState.settings);
+      this.saveManager.save(this.accountGameState.toSaveData());
+      return;
+    }
+    this.saveManager.save(this.gameState.toSaveData());
+  }
+
   purchaseUpgrade(upgradeId) {
     const result = this.progressionManager.purchase(upgradeId);
     if (!result.ok) return result;
     this.gameController?.applyProgressionEffects(this.progressionManager.getDerivedEffects());
-    this.saveManager.save(this.gameState.toSaveData());
+    if (!this.activeChallenge) this.saveManager.save(this.gameState.toSaveData());
     this.upgradePanel?.render();
     return result;
   }
@@ -155,7 +239,7 @@ export class GameApp {
   learnSkill(skillId) {
     const result = this.progressionManager.learnSkill(skillId);
     if (!result.ok) return result;
-    this.saveManager.save(this.gameState.toSaveData());
+    if (!this.activeChallenge) this.saveManager.save(this.gameState.toSaveData());
     this.gameController?.renderMirrors();
     this.upgradePanel?.render();
     return result;
@@ -164,7 +248,7 @@ export class GameApp {
   upgradeSkill(skillId) {
     const result = this.progressionManager.upgradeSkill(skillId);
     if (!result.ok) return result;
-    this.saveManager.save(this.gameState.toSaveData());
+    if (!this.activeChallenge) this.saveManager.save(this.gameState.toSaveData());
     this.gameController?.renderMirrors();
     this.upgradePanel?.render();
     return result;
@@ -173,7 +257,8 @@ export class GameApp {
   handleVisibilityChange() {
     if (document.hidden) {
       this.gameController?.pause('document-hidden');
-      this.saveManager.save(this.gameState.toSaveData());
+      const stateToSave = this.activeChallenge ? this.accountGameState : this.gameState;
+      this.saveManager.save(stateToSave.toSaveData());
     } else {
       this.previousFrameMs = performance.now();
       const gameplayModalOpen = this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen;
@@ -187,7 +272,7 @@ export class GameApp {
     this.previousFrameMs = frameMs;
     this.gameController?.update(deltaSeconds);
     this.gameScene?.update(deltaSeconds);
-    if (this.gameController?.isActivePlay()) {
+    if (!this.activeChallenge && this.gameController?.isActivePlay()) {
       this.lastPeriodicSaveSeconds += deltaSeconds;
       if (this.lastPeriodicSaveSeconds >= 20) {
         this.saveManager.save(this.gameState.toSaveData());
