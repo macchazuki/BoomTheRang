@@ -1,28 +1,35 @@
 import { BALANCE } from './balance.js';
 
+function freezeLevels(levels) {
+  return Object.freeze(levels.map((level) => Object.freeze({ ...level })));
+}
+
 export const SKILL_DEFINITIONS = Object.freeze([
   Object.freeze({
     id: 'rapidRecall',
+    icon: '↩',
     name: 'Rapid Recall',
-    description: `While active, missed boomerangs have a ${Math.round(BALANCE.activeSkills.rapidRecall.missReturnChance * 100)}% chance to return immediately and the gauge moves ${Math.round(BALANCE.activeSkills.rapidRecall.gaugeSpeedBonus * 100)}% faster.`,
-    costXp: BALANCE.activeSkills.rapidRecall.costXp,
-    effects: Object.freeze({
-      missReturnChance: BALANCE.activeSkills.rapidRecall.missReturnChance,
-      gaugeSpeedMultiplier: 1 + BALANCE.activeSkills.rapidRecall.gaugeSpeedBonus,
-    }),
+    description: 'Temporarily gives missed boomerangs a chance to return immediately and increases gauge speed.',
+    learnCostXp: BALANCE.activeSkills.rapidRecall.learnCostXp,
+    upgradeCostsXp: BALANCE.activeSkills.rapidRecall.upgradeCostsXp,
+    levels: freezeLevels(BALANCE.activeSkills.rapidRecall.levels),
   }),
   Object.freeze({
     id: 'openingBullseye',
+    icon: '◎',
     name: 'Opening Bullseye',
-    description: 'While active, the first boomerang of each gauge sweep fires automatically at the exact centre of the first gauge area. Taps in that first area do nothing.',
-    costXp: BALANCE.activeSkills.openingBullseye.costXp,
-    effects: Object.freeze({
-      autoFirstBoomerang: true,
-    }),
+    description: 'Temporarily auto-fires the first boomerang of each sweep at the exact centre. Taps in the first area do nothing while active.',
+    learnCostXp: BALANCE.activeSkills.openingBullseye.learnCostXp,
+    upgradeCostsXp: BALANCE.activeSkills.openingBullseye.upgradeCostsXp,
+    levels: freezeLevels(BALANCE.activeSkills.openingBullseye.levels),
   }),
 ]);
 
 export const SKILL_IDS = Object.freeze(SKILL_DEFINITIONS.map(({ id }) => id));
-export const SKILL_BY_ID = Object.freeze(
-  Object.fromEntries(SKILL_DEFINITIONS.map((definition) => [definition.id, definition])),
-);
+export const SKILL_BY_ID = Object.freeze(Object.fromEntries(SKILL_DEFINITIONS.map((definition) => [definition.id, definition])));
+
+export function getSkillLevelDefinition(skillId, level) {
+  const definition = SKILL_BY_ID[skillId];
+  if (!definition || !Number.isInteger(level) || level < 1) return null;
+  return definition.levels[level - 1] ?? null;
+}
