@@ -16,9 +16,77 @@ function formatLevelStats(definition, levelData) {
 }
 
 export class UpgradePanel extends BaseUpgradePanel {
-  constructor({ onUpgradeSkill, ...options }) {
+  constructor({ challengeManager, onUnlockChallenge, onStartChallenge, onUpgradeSkill, ...options }) {
     super({ ...options, onToggleSkill: null });
+    this.challengeManager = challengeManager;
+    this.onUnlockChallenge = onUnlockChallenge;
+    this.onStartChallenge = onStartChallenge;
     this.onUpgradeSkill = onUpgradeSkill;
+    this.lastChallengeResult = null;
+  }
+
+  render() {
+    if (!this.isOpen) return;
+
+    const panel = document.createElement('section');
+    panel.className = 'modal-panel skill-tree-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'progression-panel-title');
+
+    const header = document.createElement('header');
+    header.className = 'skill-tree-header';
+    const heading = document.createElement('h2');
+    heading.id = 'progression-panel-title';
+    heading.textContent = 'Progression';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'skill-tree-close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', 'Close progression');
+    close.addEventListener('click', this.onClose);
+    header.append(heading, close);
+
+    const tabs = this.createProgressionTabs();
+    const content = this.activeTab === 'skills'
+      ? this.createSkillsView()
+      : this.activeTab === 'challenges'
+        ? this.createChallengesView()
+        : this.createUpgradesView();
+    panel.append(header, tabs, content);
+    this.mountElement.replaceChildren(panel);
+
+    if (this.activeTab === 'upgrades') {
+      this.renderDetails();
+      const viewport = panel.querySelector('.skill-tree-viewport');
+      if (viewport) this.centerSelectedNode(viewport);
+    }
+  }
+
+  createProgressionTabs() {
+    const tabs = document.createElement('div');
+    tabs.className = 'progression-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Progression views');
+
+    for (const [id, label] of [['upgrades', 'Upgrades'], ['skills', 'Skills'], ['challenges', 'Challenges']]) {
+      const button = document.createElement('button');
+      const active = this.activeTab === id;
+      button.type = 'button';
+      button.className = 'progression-tab';
+      button.classList.toggle('progression-tab--active', active);
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+      button.textContent = label;
+      button.addEventListener('click', () => {
+        if (this.activeTab === id) return;
+        this.activeTab = id;
+        this.render();
+      });
+      tabs.append(button);
+    }
+
+    return tabs;
   }
 
   createSkillsView() {
@@ -88,5 +156,90 @@ export class UpgradePanel extends BaseUpgradePanel {
     }
 
     return view;
+  }
+
+  createChallengesView() {
+    const view = document.createElement('div');
+    view.className = 'active-skill-list';
+    view.setAttribute('aria-label', 'Challenge modes');
+
+    const summary = document.createElement('p');
+    summary.textContent = `Permanent damage bonus: +${this.formatPercent(this.challengeManager?.getTotalDamageBonus() ?? 0)}`;
+    view.append(summary);
+
+    if (this.lastChallengeResult) {
+      const result = document.createElement('p');
+      result.setAttribute('aria-live', 'polite');
+      result.textContent = `${this.lastChallengeResult.improved ? 'New best!' : 'Attempt complete.'} ${this.lastChallengeResult.hits} hits. Best: ${this.lastChallengeResult.bestHits}.`;
+      view.append(result);
+    }
+
+    for (const status of this.challengeManager?.getStatuses() ?? []) {
+      const { definition, record, unlocked, meetsLifetimeXp, canUnlock, cooldownRemainingMs, canStart } = status;
+      const card = document.createElement('section');
+      card.className = 'active-skill-card';
+      card.dataset.challengeId = definition.id;
+
+      const titleRow = document.createElement('div');
+      titleRow.className = 'active-skill-card__title-row';
+      const name = document.createElement('h3');
+      name.textContent = definition.name;
+      const badge = document.createElement('span');
+      badge.className = 'active-skill-card__badge';
+      badge.textContent = unlocked ? 'Unlocked' : 'Locked';
+      titleRow.append(name, badge);
+
+      const description = document.createElement('p');
+      description.className = 'active-skill-card__description';
+      description.textContent = definition.description;
+
+      const meta = document.createElement('p');
+      meta.className = 'active-skill-card__levels';
+      meta.textContent = `Best: ${record.bestHits} hits • Bonus: +${this.formatPercent(record.damageBonus)} • Max: +${this.formatPercent(definition.maxDamageBonus)}`;
+
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'active-skill-card__action';
+      if (!unlocked) {
+        action.disabled = !canUnlock;
+        if (!meetsLifetimeXp) {
+          action.textContent = `Locked — ${definition.unlockLifetimeXp.toLocaleString()} lifetime XP required`;
+        } else if (!canUnlock) {
+          action.textContent = `Need ${definition.unlockCostXp.toLocaleString()} XP to unlock`;
+        } else {
+          action.textContent = `Unlock for ${definition.unlockCostXp.toLocaleString()} XP`;
+        }
+        action.addEventListener('click', () => this.onUnlockChallenge?.(definition.id));
+      } else {
+        action.disabled = !canStart;
+        action.textContent = cooldownRemainingMs > 0
+          ? `Ready in ${this.formatDuration(cooldownRemainingMs)}`
+          : 'Start Challenge';
+        action.addEventListener('click', () => this.onStartChallenge?.(definition.id));
+      }
+
+      card.append(titleRow, description, meta, action);
+      view.append(card);
+    }
+
+    return view;
+  }
+
+  showChallengeResult(result) {
+    this.lastChallengeResult = result;
+    this.activeTab = 'challenges';
+  }
+
+  formatPercent(value) {
+    return `${(Math.max(0, Number(value) || 0) * 100).toFixed(1)}%`;
+  }
+
+  formatDuration(milliseconds) {
+    const totalMinutes = Math.max(1, Math.ceil(Math.max(0, milliseconds) / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours <= 0) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
   }
 }

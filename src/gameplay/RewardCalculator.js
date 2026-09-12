@@ -9,6 +9,7 @@ export function calculatePlayerReward({
   boomerangCount,
   targetCount,
   globalTrainingMultiplier = 1,
+  challengeDamageMultiplier = 1,
   criticalMultiplier = BALANCE.baseCriticalMultiplier,
   comboMultiplier = 1,
   boomerangMasteryMultiplier = 1,
@@ -24,6 +25,7 @@ export function calculatePlayerReward({
       boomerangCount *
       targetCount *
       globalTrainingMultiplier *
+      challengeDamageMultiplier *
       zoneMultiplier *
       comboMultiplier *
       boomerangMasteryMultiplier,
@@ -37,6 +39,7 @@ export function calculateDogReward({
   targetCount,
   dogXpFactor,
   globalTrainingMultiplier = 1,
+  challengeDamageMultiplier = 1,
   dogCritical = false,
   baseXpPerTarget = BALANCE.baseXpPerTarget,
 }) {
@@ -46,6 +49,7 @@ export function calculateDogReward({
       targetCount *
       dogXpFactor *
       globalTrainingMultiplier *
+      challengeDamageMultiplier *
       dogCriticalMultiplier,
   );
 }

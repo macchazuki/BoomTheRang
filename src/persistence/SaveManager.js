@@ -2,6 +2,7 @@ import { clamp, cloneData } from '../game.js';
 import { SAVE_KEY, SAVE_VERSION, createDefaultSave } from './defaultSave.js';
 import { UPGRADE_IDS } from '../progression/upgradeDefinitions.js';
 import { SKILL_BY_ID, SKILL_IDS } from '../progression/skillDefinitions.js';
+import { CHALLENGE_DEFINITIONS } from '../challenges/challengeDefinitions.js';
 
 const MAX_SAFE_SAVE_NUMBER = Number.MAX_SAFE_INTEGER;
 
@@ -60,6 +61,17 @@ export class SaveManager {
         return [id, { learned, level }];
       }),
     );
+    const challenges = Object.fromEntries(
+      CHALLENGE_DEFINITIONS.map((definition) => {
+        const record = input.challenges?.[definition.id] ?? {};
+        return [definition.id, {
+          unlocked: record.unlocked === true,
+          bestHits: Math.floor(this.nonNegativeNumber(record.bestHits, 0)),
+          damageBonus: clamp(this.numberOr(record.damageBonus, 0), 0, definition.maxDamageBonus),
+          cooldownUntil: Math.floor(this.nonNegativeNumber(record.cooldownUntil, 0)),
+        }];
+      }),
+    );
 
     const xp = this.nonNegativeNumber(input.xp, defaults.xp);
     const lifetimeXp = Math.max(xp, this.nonNegativeNumber(input.lifetimeXp, defaults.lifetimeXp));
@@ -71,6 +83,7 @@ export class SaveManager {
       upgrades,
       skills,
       progression: { gameCompleted: input.progression?.gameCompleted === true },
+      challenges,
       gameplay: { combo: Math.floor(this.nonNegativeNumber(input.gameplay?.combo, 0)) },
       stats: this.sanitizeStats(input.stats, defaults.stats),
       settings: {

@@ -1,5 +1,5 @@
 /**
- * DOM-only HUD: XP, combo, target health, and temporary feedback.
+ * DOM-only HUD: XP, combo, challenge score, target health, and temporary feedback.
  */
 export class HUD {
   constructor({ mountElement }) {
@@ -13,10 +13,13 @@ export class HUD {
   }
 
   /** Render always-visible state from authoritative models. */
-  render({ xp, combo, comboUnlocked, reloadRemainingSeconds, state }) {
-    const comboMarkup = comboUnlocked
-      ? `<span class="hud__combo">Combo: ${combo}</span>`
+  render({ xp, combo, comboUnlocked, reloadRemainingSeconds, state, challengeHits = null, gaugeOneWaySeconds = null }) {
+    const challengeMarkup = Number.isFinite(challengeHits)
+      ? `<span class="hud__combo">Hits: ${Math.floor(challengeHits)} · Gauge: ${Number(gaugeOneWaySeconds).toFixed(2)}s</span>`
       : '';
+    const comboMarkup = challengeMarkup || (comboUnlocked
+      ? `<span class="hud__combo">Combo: ${combo}</span>`
+      : '');
     const reloadMarkup = state === 'MISS_RELOAD'
       ? `<span class="hud__reload">Reload: ${reloadRemainingSeconds.toFixed(1)}s</span>`
       : '';

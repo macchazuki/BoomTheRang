@@ -1,6 +1,7 @@
 import { BALANCE } from './balance.js';
 import { SKILL_BY_ID, getSkillLevelDefinition } from './skillDefinitions.js';
 import { UPGRADE_BY_ID, UPGRADE_DEFINITIONS } from './upgradeDefinitions.js';
+import { getTotalChallengeDamageBonus } from '../challenges/challengeDefinitions.js';
 
 /** Owns upgrade/skill purchases and every derived progression effect. */
 export class ProgressionManager {
@@ -95,7 +96,7 @@ export class ProgressionManager {
     });
   }
 
-  /** Rebuild passive gameplay values from upgrade ownership only. */
+  /** Rebuild passive gameplay values from persistent progression state. */
   getDerivedEffects() {
     const ownedEffects = { globalTrainingBonus: 0 };
     for (const definition of UPGRADE_DEFINITIONS) {
@@ -113,6 +114,7 @@ export class ProgressionManager {
 
     return {
       globalTrainingMultiplier: 1 + ownedEffects.globalTrainingBonus,
+      challengeDamageMultiplier: 1 + getTotalChallengeDamageBonus(this.gameState.challenges),
       criticalMultiplier: ownedEffects.criticalMultiplier ?? BALANCE.baseCriticalMultiplier,
       criticalLayerCount,
       missReloadSeconds: ownedEffects.missReloadSeconds ?? BALANCE.missReloadSeconds,
