@@ -260,6 +260,13 @@ export class GameScene {
     ];
   }
 
+  dispatchImpact({ targetIndex, result, dog = false, reducedMotion = false }) {
+    if (!this.canvasHost || typeof CustomEvent === 'undefined') return;
+    this.canvasHost.dispatchEvent(new CustomEvent('boomerangimpact', {
+      detail: { targetIndex, result, dog, reducedMotion },
+    }));
+  }
+
   async playPlayerThrow({ result, targetCount, boomerangCount, reducedMotion = false }) {
     const motionReduced = this.isReducedMotionRequested(reducedMotion);
     this.playerResultReducedMotion = motionReduced;
@@ -280,6 +287,7 @@ export class GameScene {
           if (targetIndex < 0 || targetIndex >= targetCount || reactedTargets.has(targetIndex)) return;
           reactedTargets.add(targetIndex);
           this.targetViews[targetIndex]?.playReaction(result, { reducedMotion: motionReduced });
+          this.dispatchImpact({ targetIndex, result, reducedMotion: motionReduced });
         };
 
     this.boomerangViews.forEach((view, index) => {
@@ -332,6 +340,7 @@ export class GameScene {
           if (targetIndex < 0 || targetIndex >= targetCount || reactedTargets.has(targetIndex)) return;
           reactedTargets.add(targetIndex);
           this.targetViews[targetIndex]?.playReaction(result, { reducedMotion: motionReduced });
+          this.dispatchImpact({ targetIndex, result, dog: true, reducedMotion: motionReduced });
         },
       });
     }
