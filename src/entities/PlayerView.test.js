@@ -3,62 +3,62 @@ import { describe, expect, it, vi } from 'vitest';
 import { PlayerView } from './PlayerView.js';
 
 describe('PlayerView', () => {
-  it('loads the GLB character and hides its decorative boomerang', async () => {
-    const model = new THREE.Group();
-    const bodyMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial(),
-    );
-    const decorativeBoomerang = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial(),
-    );
-    decorativeBoomerang.name = 'Boomerang';
-    model.add(bodyMesh, decorativeBoomerang);
-
+  it('loads the four-frame hero sprite sheet', async () => {
+    const texture = new THREE.Texture();
     const loader = {
-      loadAsync: vi.fn().mockResolvedValue({ scene: model }),
+      loadAsync: vi.fn().mockResolvedValue(texture),
     };
-    const view = new PlayerView({ modelUrl: '/character.glb', loader });
+    const view = new PlayerView({ spriteUrl: '/hero.png', loader });
 
-    await view.modelReady;
+    await view.spriteReady;
 
-    expect(loader.loadAsync).toHaveBeenCalledWith('/character.glb');
-    expect(view.model).toBe(model);
-    expect(view.body.children).toContain(model);
-    expect(model.scale.x).toBeCloseTo(0.8);
-    expect(decorativeBoomerang.visible).toBe(false);
+    expect(loader.loadAsync).toHaveBeenCalledWith('/hero.png');
+    expect(view.sprite).toBeInstanceOf(THREE.Sprite);
+    expect(view.body.children).toContain(view.sprite);
+    expect(texture.repeat.x).toBeCloseTo(0.25);
+    expect(texture.offset.x).toBe(0);
+    expect(view.currentFrame).toBe(0);
 
     view.dispose();
   });
 
-  it('renders nothing if the GLB cannot be loaded', async () => {
+  it('renders nothing if the sprite sheet cannot be loaded', async () => {
     const loader = {
       loadAsync: vi.fn().mockRejectedValue(new Error('missing asset')),
     };
-    const view = new PlayerView({ modelUrl: '/missing.glb', loader });
+    const view = new PlayerView({ spriteUrl: '/missing.png', loader });
 
-    await view.modelReady;
+    await view.spriteReady;
 
-    expect(view.model).toBeNull();
+    expect(view.sprite).toBeNull();
     expect(view.body.children).toHaveLength(0);
 
     view.dispose();
   });
 
-  it('keeps the existing throw animation hook', () => {
-    const loader = { loadAsync: vi.fn(() => new Promise(() => {})) };
+  it('animates wind up, throw, follow through, then returns to idle', async () => {
+    const texture = new THREE.Texture();
+    const loader = {
+      loadAsync: vi.fn().mockResolvedValue(texture),
+    };
     const view = new PlayerView({ loader });
+    await view.spriteReady;
 
     view.playThrow();
-    view.update(0.16);
+    expect(view.currentFrame).toBe(1);
+    expect(texture.offset.x).toBeCloseTo(0.25);
 
-    expect(view.body.rotation.z).not.toBe(0);
-    expect(view.object3d.scale.x).toBeGreaterThan(1);
+    view.update(0.12);
+    expect(view.currentFrame).toBe(2);
+    expect(texture.offset.x).toBeCloseTo(0.5);
 
-    view.update(0.16);
-    expect(view.body.rotation.z).toBe(0);
-    expect(view.object3d.scale.x).toBe(1);
+    view.update(0.11);
+    expect(view.currentFrame).toBe(3);
+    expect(texture.offset.x).toBeCloseTo(0.75);
+
+    view.update(0.09);
+    expect(view.currentFrame).toBe(0);
+    expect(texture.offset.x).toBe(0);
 
     view.dispose();
   });
