@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PlayerView } from './PlayerView.js';
 
 describe('PlayerView', () => {
-  it('loads the four-frame hero sprite sheet', async () => {
+  it('loads the four-frame hero sprite sheet without stretching it', async () => {
     const texture = new THREE.Texture();
     const loader = {
       loadAsync: vi.fn().mockResolvedValue(texture),
@@ -15,8 +15,10 @@ describe('PlayerView', () => {
     expect(loader.loadAsync).toHaveBeenCalledWith('/hero.png');
     expect(view.sprite).toBeInstanceOf(THREE.Sprite);
     expect(view.body.children).toContain(view.sprite);
-    expect(texture.repeat.x).toBeCloseTo(0.25);
-    expect(texture.offset.x).toBe(0);
+    expect(texture.offset.x).toBeCloseTo(0.5 / 2172);
+    expect(texture.repeat.x).toBeCloseTo(542 / 2172);
+    expect(view.sprite.scale.x).toBeCloseTo(3.2 * (543 / 724));
+    expect(view.sprite.scale.y).toBeCloseTo(3.2);
     expect(view.currentFrame).toBe(0);
 
     view.dispose();
@@ -36,7 +38,7 @@ describe('PlayerView', () => {
     view.dispose();
   });
 
-  it('animates wind up, throw, follow through, then returns to idle', async () => {
+  it('uses the wider throw crop and separated follow-through crop', async () => {
     const texture = new THREE.Texture();
     const loader = {
       loadAsync: vi.fn().mockResolvedValue(texture),
@@ -46,19 +48,23 @@ describe('PlayerView', () => {
 
     view.playThrow();
     expect(view.currentFrame).toBe(1);
-    expect(texture.offset.x).toBeCloseTo(0.25);
+    expect(texture.offset.x).toBeCloseTo(543.5 / 2172);
+    expect(texture.repeat.x).toBeCloseTo(542 / 2172);
 
     view.update(0.12);
     expect(view.currentFrame).toBe(2);
-    expect(texture.offset.x).toBeCloseTo(0.5);
+    expect(texture.offset.x).toBeCloseTo(1086.5 / 2172);
+    expect(texture.repeat.x).toBeCloseTo(554 / 2172);
 
     view.update(0.11);
     expect(view.currentFrame).toBe(3);
-    expect(texture.offset.x).toBeCloseTo(0.75);
+    expect(texture.offset.x).toBeCloseTo(1642.5 / 2172);
+    expect(texture.repeat.x).toBeCloseTo(529 / 2172);
+    expect(view.sprite.position.x).toBeCloseTo(-0.035);
 
     view.update(0.1);
     expect(view.currentFrame).toBe(0);
-    expect(texture.offset.x).toBe(0);
+    expect(view.sprite.position.x).toBe(0);
 
     view.dispose();
   });
