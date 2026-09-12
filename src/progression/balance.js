@@ -35,6 +35,33 @@ export const BALANCE = Object.freeze({
 
   boomerangMasteryMultiplier: 1.5,
 
+  challenges: Object.freeze({
+    speedTrial: Object.freeze({
+      unlockLifetimeXp: 0,
+      cooldownSeconds: 6 * 60 * 60,
+      speedFactorPerHit: 0.965,
+      minGaugeOneWaySeconds: 0.10,
+      damageBonusPerHit: 0.001,
+      maxDamageBonus: 0.15,
+    }),
+    pressureTrial: Object.freeze({
+      unlockLifetimeXp: 25_000,
+      cooldownSeconds: 12 * 60 * 60,
+      speedFactorPerHit: 0.960,
+      minGaugeOneWaySeconds: 0.10,
+      damageBonusPerHit: 0.0015,
+      maxDamageBonus: 0.25,
+    }),
+    masterTrial: Object.freeze({
+      unlockLifetimeXp: 200_000,
+      cooldownSeconds: 24 * 60 * 60,
+      speedFactorPerHit: 0.955,
+      minGaugeOneWaySeconds: 0.10,
+      damageBonusPerHit: 0.002,
+      maxDamageBonus: 0.35,
+    }),
+  }),
+
   activeSkills: Object.freeze({
     rapidRecall: Object.freeze({
       learnCostXp: 5000,
