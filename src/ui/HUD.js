@@ -139,12 +139,12 @@ export class HUD {
   }
 
   /**
-   * Time one comic impact per target around the point where the boomerang crosses
-   * the target chain. Multi-target hits therefore read as sequential impacts.
+   * Time comic impact words/screen shake to the boomerang reaching the target.
+   * Player throws wait for the hero release frame first; dog throws launch immediately.
    */
   scheduleComicImpacts({ critical = false, dog = false, targetCount = 1, reducedMotion = false }) {
     const count = Math.max(1, Math.floor(targetCount));
-    const centerDelayMs = reducedMotion ? 90 : dog ? 290 : 310;
+    const centerDelayMs = reducedMotion ? (dog ? 90 : 210) : dog ? 290 : 525;
     const spacingMs = reducedMotion ? 20 : 48;
     const firstDelayMs = centerDelayMs - ((count - 1) * spacingMs) / 2;
 
