@@ -35,6 +35,17 @@ export const BALANCE = Object.freeze({
 
   boomerangMasteryMultiplier: 1.5,
 
+  activeSkills: Object.freeze({
+    rapidRecall: Object.freeze({
+      costXp: 5000,
+      missReturnChance: 0.30,
+      gaugeSpeedBonus: 0.20,
+    }),
+    openingBullseye: Object.freeze({
+      costXp: 25000,
+    }),
+  }),
+
   // Fortune Mill-style pacing: cheap early purchases, then wider cost bands
   // around transformative unlocks and a steep late-game climb.
   upgradeCosts: Object.freeze({
