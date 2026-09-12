@@ -1,5 +1,35 @@
 .skill-tree-panel {
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.progression-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.progression-tab {
+  min-height: 42px;
+  color: #aeb8c9;
+  background: #111827;
+  border: 1px solid #3f4b60;
+  border-radius: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.progression-tab--active {
+  color: #ffe8a4;
+  background: #49350d;
+  border-color: #f0c35a;
+  box-shadow: 0 0 10px rgb(240 195 90 / 25%);
+}
+
+.upgrade-view {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  min-height: 0;
 }
 
 .skill-category-tabs {
@@ -53,4 +83,90 @@
 .skill-tree-canvas {
   min-width: 620px;
   min-height: 900px;
+}
+
+.active-skill-list {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.15rem;
+}
+
+.active-skill-card {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.8rem;
+  background: #0d1422;
+  border: 1px solid #46536a;
+  border-radius: 0.45rem;
+}
+
+.active-skill-card--active {
+  border-color: #73d7ff;
+  box-shadow: 0 0 14px rgb(85 190 233 / 20%);
+}
+
+.active-skill-card__title-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.active-skill-card h3,
+.active-skill-card p {
+  margin: 0;
+}
+
+.active-skill-card h3 {
+  color: #eef3fb;
+  font-size: 1rem;
+}
+
+.active-skill-card__badge {
+  flex: none;
+  color: #f0c35a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.active-skill-card--active .active-skill-card__badge {
+  color: #73d7ff;
+}
+
+.active-skill-card__description {
+  color: #c7cfdb;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.active-skill-card__meta {
+  color: #9da9bb;
+  font-size: 0.74rem;
+}
+
+.active-skill-card__action {
+  width: 100%;
+  min-height: 44px;
+  color: #101621;
+  background: #e3bd62;
+  border: 0;
+  border-radius: 0.35rem;
+  font-weight: 900;
+}
+
+.active-skill-card--active .active-skill-card__action {
+  color: #d9f5ff;
+  background: #174d68;
+  border: 1px solid #73d7ff;
+}
+
+.active-skill-card__action:disabled {
+  color: #8993a2;
+  background: #202938;
 }
