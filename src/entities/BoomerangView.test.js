@@ -1,10 +1,29 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BoomerangView } from './BoomerangView.js';
 
+const pendingLoader = () => ({ loadAsync: vi.fn(() => new Promise(() => {})) });
+
 describe('BoomerangView', () => {
+  it('loads the authored 2D boomerang sprite', async () => {
+    const texture = new THREE.Texture();
+    texture.image = { width: 300, height: 150 };
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new BoomerangView({ spriteUrl: '/boomerang.png', loader });
+
+    await view.spriteReady;
+
+    expect(loader.loadAsync).toHaveBeenCalledWith('/boomerang.png');
+    expect(view.object3d).toBeInstanceOf(THREE.Sprite);
+    expect(view.object3d.scale.x).toBeCloseTo(1.8);
+    expect(view.object3d.scale.y).toBeCloseTo(0.9);
+    expect(view.material.map).toBe(texture);
+
+    view.dispose();
+  });
+
   it('interpolates a deterministic path and resets after returning', () => {
-    const view = new BoomerangView();
+    const view = new BoomerangView({ loader: pendingLoader() });
     const owner = new THREE.Vector3(0, 0, 0);
 
     view.playHitPath({
@@ -22,7 +41,7 @@ describe('BoomerangView', () => {
   });
 
   it('uses a compact owner-local path when reduced motion is enabled', () => {
-    const view = new BoomerangView({ index: 1 });
+    const view = new BoomerangView({ index: 1, loader: pendingLoader() });
     const owner = new THREE.Vector3(0, 0, 0);
 
     view.playHitPath({
@@ -36,7 +55,7 @@ describe('BoomerangView', () => {
   });
 
   it('honors a deterministic launch delay', () => {
-    const view = new BoomerangView();
+    const view = new BoomerangView({ loader: pendingLoader() });
     const owner = new THREE.Vector3(0, 0, 0);
 
     view.playMissPath({
