@@ -5,10 +5,10 @@ import { GameState } from './GameState.js';
 import { ProgressionManager } from '../progression/ProgressionManager.js';
 
 describe('permanent challenge damage bonus', () => {
-  it('is included in derived effects from saved challenge bonuses', () => {
+  it('is included in derived effects from saved base challenge bonuses', () => {
     const gameState = new GameState();
-    gameState.challenges.speedTrial.damageBonus = 0.10;
-    gameState.challenges.pressureTrial.damageBonus = 0.20;
+    gameState.challenges.speedTrial.damageBonus = 0.20;
+    gameState.challenges.blindTrial.damageBonus = 0.10;
 
     const effects = new ProgressionManager(gameState).getDerivedEffects();
 
