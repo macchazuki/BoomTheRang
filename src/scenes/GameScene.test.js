@@ -188,15 +188,26 @@ describe('GameScene gameplay presentation', () => {
     expect(Math.abs(missPoints[1].x)).toBeGreaterThan(1);
   });
 
-  it('plays dog animation independently and chains its boomerang through all targets', async () => {
+  it('plays dog animation independently and reacts only when the boomerang reaches each target', async () => {
     const scene = createAnimationFixture({ targetCount: 2, boomerangCount: 1 });
 
     await scene.playDogThrow({ targetCount: 2, critical: true, reducedMotion: false });
 
     expect(scene.dogView.playThrow).toHaveBeenCalledWith({ critical: true, reducedMotion: false });
     expect(scene.dogBoomerangView.playHitPath).toHaveBeenCalledOnce();
-    expect(scene.dogBoomerangView.playHitPath.mock.calls[0][0].points).toHaveLength(4);
+    const pathOptions = scene.dogBoomerangView.playHitPath.mock.calls[0][0];
+    expect(pathOptions.points).toHaveLength(4);
+    expect(scene.targetViews[0].playReaction).not.toHaveBeenCalled();
+    expect(scene.targetViews[1].playReaction).not.toHaveBeenCalled();
+
+    pathOptions.onPathPoint(1);
     expect(scene.targetViews[0].playReaction).toHaveBeenCalledWith('CRITICAL', {
+      reducedMotion: false,
+    });
+    expect(scene.targetViews[1].playReaction).not.toHaveBeenCalled();
+
+    pathOptions.onPathPoint(2);
+    expect(scene.targetViews[1].playReaction).toHaveBeenCalledWith('CRITICAL', {
       reducedMotion: false,
     });
   });
