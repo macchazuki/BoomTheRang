@@ -42,6 +42,7 @@ export class GameApp {
     this.settingsPanel = null;
     this.completionPanel = null;
     this.challengePanel = null;
+    this.challengeButtonsHost = null;
     this.animationFrameId = null;
     this.previousFrameMs = null;
     this.lastPeriodicSaveSeconds = 0;
@@ -74,21 +75,15 @@ export class GameApp {
 
   showMainMenu() {
     this.disposeGameplay();
+    this.activeChallenge = null;
     this.restoreAccountState();
     this.mainMenuScene?.unmount();
     this.mainMenuScene = new MainMenuScene({
       mountElement: this.mountElement,
       onStartGame: () => this.startGame(),
-      onOpenChallenges: () => this.openChallenges(),
       onOpenSettings: () => this.openSettings({ returnTo: 'menu' }),
     });
     const uiHosts = this.mainMenuScene.mount();
-    this.challengePanel = new ChallengePanel({
-      mountElement: uiHosts.overlay,
-      challengeManager: this.challengeManager,
-      onStart: (challengeId) => this.startChallenge(challengeId),
-      onClose: () => this.challengePanel?.close(),
-    });
     this.settingsPanel = new SettingsPanel({
       mountElement: uiHosts.overlay,
       gameState: this.gameState,
@@ -111,6 +106,7 @@ export class GameApp {
     }
 
     this.saveManager.save(this.accountGameState.toSaveData());
+    this.disposeGameplay();
 
     const freshSave = createDefaultSave();
     freshSave.settings = { ...this.accountGameState.settings };
@@ -124,10 +120,10 @@ export class GameApp {
   startGameplay({ challengeDefinition = null } = {}) {
     this.mainMenuScene?.unmount();
     this.mainMenuScene = null;
-    this.challengePanel = null;
     this.lastPeriodicSaveSeconds = 0;
     this.gameScene = new GameScene({ mountElement: this.mountElement });
     const uiHosts = this.gameScene.mount();
+    this.challengeButtonsHost = uiHosts.challengeButtons;
     if (uiHosts.skillsButton) {
       uiHosts.skillsButton.textContent = 'Upgrades';
       uiHosts.skillsButton.setAttribute('aria-label', 'Open upgrades and skills');
@@ -147,6 +143,13 @@ export class GameApp {
     });
     this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveCurrentSettings(), onClose: () => this.closeModal() });
     this.completionPanel = new CompletionPanel({ mountElement: uiHosts.overlay, onContinue: () => this.closeModal() });
+    this.challengePanel = challengeDefinition ? null : new ChallengePanel({
+      mountElement: uiHosts.overlay,
+      challengeManager: this.challengeManager,
+      onStart: (challengeId) => this.startChallenge(challengeId),
+      onClose: () => this.closeModal(),
+    });
+    this.renderChallengeButtons();
     this.dogController = new DogController({ onThrow: (dogThrow) => this.gameController?.handleDogThrow(dogThrow) });
     const challengeRules = challengeDefinition ? {
       permanentMissLoss: true,
@@ -174,9 +177,28 @@ export class GameApp {
     this.gameController.start();
   }
 
+  renderChallengeButtons() {
+    if (!this.challengeButtonsHost) return;
+    this.challengeButtonsHost.replaceChildren();
+    if (this.activeChallenge) return;
+
+    for (const status of this.challengeManager.getStatuses().filter(({ unlocked }) => unlocked)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'challenge-button';
+      button.textContent = status.definition.name;
+      button.setAttribute('aria-label', `Open ${status.definition.name}`);
+      button.addEventListener('click', () => this.openChallenges());
+      this.challengeButtonsHost.append(button);
+    }
+  }
+
   openChallenges() {
+    if (!this.gameController || !this.challengePanel) return;
+    this.gameController.pause('challenge-panel');
+    this.upgradePanel?.close();
     this.settingsPanel?.close();
-    this.challengePanel?.open();
+    this.challengePanel.open();
   }
 
   openUpgrades() {
@@ -191,7 +213,6 @@ export class GameApp {
       this.settingsPanel?.open();
       return;
     }
-    this.challengePanel?.close();
     this.settingsPanel?.open();
   }
 
@@ -199,6 +220,7 @@ export class GameApp {
     this.upgradePanel?.close();
     this.settingsPanel?.close();
     this.completionPanel?.close();
+    this.challengePanel?.close();
     this.gameController?.resume();
   }
 
@@ -213,8 +235,11 @@ export class GameApp {
 
     const result = this.challengeManager.recordResult(challengeId, hits);
     this.saveManager.save(this.accountGameState.toSaveData());
+    this.disposeGameplay();
     this.activeChallenge = null;
-    this.showMainMenu();
+    this.restoreAccountState();
+    this.startGameplay();
+    this.gameController?.pause('challenge-panel');
     this.challengePanel?.open(result);
   }
 
@@ -231,7 +256,10 @@ export class GameApp {
     const result = this.progressionManager.purchase(upgradeId);
     if (!result.ok) return result;
     this.gameController?.applyProgressionEffects(this.progressionManager.getDerivedEffects());
-    if (!this.activeChallenge) this.saveManager.save(this.gameState.toSaveData());
+    if (!this.activeChallenge) {
+      this.saveManager.save(this.gameState.toSaveData());
+      this.renderChallengeButtons();
+    }
     this.upgradePanel?.render();
     return result;
   }
@@ -261,7 +289,7 @@ export class GameApp {
       this.saveManager.save(stateToSave.toSaveData());
     } else {
       this.previousFrameMs = performance.now();
-      const gameplayModalOpen = this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen;
+      const gameplayModalOpen = this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen || this.challengePanel?.isOpen;
       if (this.gameController?.pauseReason === 'document-hidden' && !gameplayModalOpen) this.gameController.resume();
     }
   }
@@ -297,5 +325,7 @@ export class GameApp {
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
+    this.challengePanel = null;
+    this.challengeButtonsHost = null;
   }
 }
