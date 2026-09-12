@@ -31,12 +31,14 @@ export class GameController {
   constructor({
     gameState, gaugeController, throwController, dogController, progressionManager,
     gameScene, hud, gaugeView, activeSkillBar, saveManager,
-    onOpenUpgrades, onOpenSettings, onCompleted, random = Math.random,
+    onOpenUpgrades, onOpenSettings, onCompleted,
+    challengeRules = null, onChallengeFinished, random = Math.random,
   }) {
     Object.assign(this, {
       gameState, gaugeController, throwController, dogController, progressionManager,
       gameScene, hud, gaugeView, activeSkillBar, saveManager,
       onOpenUpgrades, onOpenSettings, onCompleted,
+      challengeRules, onChallengeFinished,
     });
     this.random = typeof random === 'function' ? random : Math.random;
     this.state = GAMEPLAY_STATE.PAUSED;
@@ -45,6 +47,8 @@ export class GameController {
     this.finalChallengeActive = false;
     this.finalChallengePending = false;
     this.finalChallengeCompleting = false;
+    this.challengeHits = 0;
+    this.challengeRunCompleting = false;
     this.maxPlayerBoomerangCount = 0;
     this.currentPlayerBoomerangCount = 0;
     this.missedBoomerangReloads = [];
@@ -77,7 +81,7 @@ export class GameController {
 
   isActivePlay() {
     const documentVisible = typeof document === 'undefined' || !document.hidden;
-    return this.state !== GAMEPLAY_STATE.PAUSED && !this.finalChallengeCompleting && documentVisible;
+    return this.state !== GAMEPLAY_STATE.PAUSED && !this.finalChallengeCompleting && !this.challengeRunCompleting && documentVisible;
   }
 
   update(deltaSeconds) {
@@ -138,11 +142,18 @@ export class GameController {
     if (this.skillRuntime.openingBullseye?.activeRemainingSeconds > 0) {
       effects.autoFirstBoomerang = true;
     }
+    if (this.challengeRules?.disableMissReturns) effects.missReturnChance = 0;
     return effects;
   }
 
   applyActiveSkillEffects() {
-    this.gaugeController.setSpeedMultiplier(this.getGameplayEffects().gaugeSpeedMultiplier);
+    let speedMultiplier = this.getGameplayEffects().gaugeSpeedMultiplier;
+    const minimumGaugeSeconds = this.challengeRules?.minGaugeOneWaySeconds;
+    if (Number.isFinite(minimumGaugeSeconds) && minimumGaugeSeconds > 0) {
+      const maximumMultiplier = this.gaugeController.baseOneWaySeconds / minimumGaugeSeconds;
+      speedMultiplier = Math.min(speedMultiplier, Math.max(1, maximumMultiplier));
+    }
+    this.gaugeController.setSpeedMultiplier(speedMultiplier);
   }
 
   getActiveSkillUiState() {
@@ -177,7 +188,7 @@ export class GameController {
   }
 
   handlePointerDown(event) {
-    if (event.defaultPrevented || this.finalChallengeCompleting) return;
+    if (event.defaultPrevented || this.finalChallengeCompleting || this.challengeRunCompleting) return;
     if (![GAMEPLAY_STATE.READY, GAMEPLAY_STATE.FINAL_CHALLENGE].includes(this.state)) return;
     this.resolvePlayerInput();
   }
@@ -207,23 +218,37 @@ export class GameController {
     const comboMultiplier = effects.comboUnlocked ? calculateComboMultiplier(nextCombo, { maxBonus: effects.comboMaxBonus }) : 1;
     const throwData = this.throwController.resolvePlayerThrow({ result, boomerangCount: 1, targetCount: effects.targetCount });
     let damageDealt = 0;
+    let challengeEnded = false;
 
     if (result === GAUGE_RESULT.MISS) {
       this.gameState.incrementStat('misses');
       const returnedImmediately = effects.missReturnChance > 0 && this.random() < effects.missReturnChance;
       if (!returnedImmediately) {
         this.currentPlayerBoomerangCount = Math.max(0, this.currentPlayerBoomerangCount - 1);
-        this.missedBoomerangReloads.push(effects.missReloadSeconds);
+        if (this.challengeRules?.permanentMissLoss) {
+          challengeEnded = this.currentPlayerBoomerangCount === 0;
+        } else {
+          this.missedBoomerangReloads.push(effects.missReloadSeconds);
+        }
       }
     } else {
       this.gameState.incrementStat('hits');
       if (isCriticalResult(result)) this.gameState.incrementStat('criticals');
       this.gameState.incrementStat('targetsHit', throwData.rewardedTargetHits);
+      if (this.challengeRules) {
+        this.challengeHits += 1;
+        const nextGaugeSeconds = this.challengeRules.getGaugeOneWaySeconds?.(this.challengeHits);
+        if (Number.isFinite(nextGaugeSeconds) && nextGaugeSeconds > 0) {
+          this.gaugeController.setBaseOneWaySeconds(nextGaugeSeconds);
+          this.applyActiveSkillEffects();
+        }
+      }
       damageDealt = calculatePlayerReward({
         result,
         boomerangCount: 1,
         targetCount: effects.targetCount,
         globalTrainingMultiplier: effects.globalTrainingMultiplier,
+        challengeDamageMultiplier: effects.challengeDamageMultiplier,
         criticalMultiplier: effects.criticalMultiplier,
         comboMultiplier,
         boomerangMasteryMultiplier: effects.boomerangMasteryMultiplier,
@@ -240,10 +265,11 @@ export class GameController {
     this.gameScene.playResultFeedback(isCriticalResult(result) ? GAUGE_RESULT.CRITICAL : result);
     this.hud.showPlayerResult({ result, awardedXp: damageDealt, targetCount: effects.targetCount, reducedMotion: this.gameState.settings.reducedMotion });
     this.renderMirrors();
+    if (challengeEnded) this.finishChallengeRun();
   }
 
   handleDogThrow({ critical }) {
-    if (this.state === GAMEPLAY_STATE.PAUSED || this.finalChallengeActive || this.finalChallengePending || this.finalChallengeCompleting) return;
+    if (this.state === GAMEPLAY_STATE.PAUSED || this.finalChallengeActive || this.finalChallengePending || this.finalChallengeCompleting || this.challengeRunCompleting) return;
     const effects = this.getGameplayEffects();
     if (!effects.dogUnlocked) return;
     const throwData = this.throwController.resolveDogThrow({ targetCount: effects.targetCount, critical });
@@ -251,6 +277,7 @@ export class GameController {
       targetCount: effects.targetCount,
       dogXpFactor: effects.dogXpFactor,
       globalTrainingMultiplier: effects.globalTrainingMultiplier,
+      challengeDamageMultiplier: effects.challengeDamageMultiplier,
       dogCritical: critical,
     });
     this.applyTargetDamage(damageDealt, effects.targetCount, { critical, reducedMotion: this.gameState.settings.reducedMotion });
@@ -284,7 +311,7 @@ export class GameController {
   }
 
   resume() {
-    if (this.state !== GAMEPLAY_STATE.PAUSED) return;
+    if (this.state !== GAMEPLAY_STATE.PAUSED || this.challengeRunCompleting) return;
     this.pauseReason = null;
     if (this.finalChallengePending) {
       this.finalChallengePending = false;
@@ -309,7 +336,18 @@ export class GameController {
     this.syncTargetHealth(effects.targetCount);
     this.gameScene.setDogVisible(effects.dogUnlocked);
     this.dogController.configure({ unlocked: effects.dogUnlocked, intervalSeconds: effects.dogIntervalSeconds, criticalChance: effects.dogCriticalChance });
-    if (this.progressionManager.hasUpgrade('grandmaster') && !this.gameState.progression.gameCompleted) this.startFinalChallenge();
+    if (!this.challengeRules && this.progressionManager.hasUpgrade('grandmaster') && !this.gameState.progression.gameCompleted) this.startFinalChallenge();
+  }
+
+  finishChallengeRun() {
+    if (!this.challengeRules || this.challengeRunCompleting) return;
+    this.challengeRunCompleting = true;
+    this.previousStateBeforePause = this.state;
+    this.state = GAMEPLAY_STATE.PAUSED;
+    this.pauseReason = 'challenge-complete';
+    this.gaugeController.stop();
+    this.dogController.pause();
+    this.onChallengeFinished?.({ hits: this.challengeHits });
   }
 
   startFinalChallenge() {
@@ -358,6 +396,8 @@ export class GameController {
       comboUnlocked: this.progressionManager.getDerivedEffects().comboUnlocked,
       reloadRemainingSeconds: 0,
       state: this.state,
+      challengeHits: this.challengeRules ? this.challengeHits : null,
+      gaugeOneWaySeconds: this.challengeRules ? this.gaugeController.oneWaySeconds : null,
     });
     this.activeSkillBar?.render(this.getActiveSkillUiState());
   }
