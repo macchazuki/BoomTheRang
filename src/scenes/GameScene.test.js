@@ -146,7 +146,7 @@ describe('GameScene pointer routing', () => {
 });
 
 describe('GameScene gameplay presentation', () => {
-  it('chains each successful player boomerang through every target and back to the player', async () => {
+  it('launches player boomerangs from the raised right-hand position on the final hero frame', async () => {
     const scene = createAnimationFixture({ targetCount: 2, boomerangCount: 2 });
 
     await scene.playPlayerThrow({ result: 'HIT', targetCount: 2, boomerangCount: 2 });
@@ -156,8 +156,25 @@ describe('GameScene gameplay presentation', () => {
     expect(scene.boomerangViews[1].playHitPath).toHaveBeenCalledOnce();
     const firstPath = scene.boomerangViews[0].playHitPath.mock.calls[0][0];
     expect(firstPath.points).toHaveLength(4);
-    expect(firstPath.delaySeconds).toBe(0);
-    expect(scene.boomerangViews[1].playHitPath.mock.calls[0][0].delaySeconds).toBeGreaterThan(0);
+    expect(firstPath.points[0].x).toBeGreaterThan(0.8);
+    expect(firstPath.points[0].y).toBeGreaterThan(-5);
+    expect(firstPath.delaySeconds).toBeCloseTo(0.215);
+    expect(scene.boomerangViews[1].playHitPath.mock.calls[0][0].delaySeconds).toBeGreaterThan(
+      firstPath.delaySeconds,
+    );
+  });
+
+  it('uses the shorter final-frame delay when reduced motion is enabled', async () => {
+    const scene = createAnimationFixture({ targetCount: 1, boomerangCount: 1 });
+
+    await scene.playPlayerThrow({
+      result: 'HIT',
+      targetCount: 1,
+      boomerangCount: 1,
+      reducedMotion: true,
+    });
+
+    expect(scene.boomerangViews[0].playHitPath.mock.calls[0][0].delaySeconds).toBeCloseTo(0.12);
   });
 
   it('uses a bypass path for MISS without triggering hit paths', async () => {
