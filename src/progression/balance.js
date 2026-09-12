@@ -38,6 +38,7 @@ export const BALANCE = Object.freeze({
   challenges: Object.freeze({
     speedTrial: Object.freeze({
       unlockLifetimeXp: 0,
+      unlockCostXp: 2_500,
       cooldownSeconds: 6 * 60 * 60,
       speedFactorPerHit: 0.965,
       minGaugeOneWaySeconds: 0.10,
@@ -46,6 +47,7 @@ export const BALANCE = Object.freeze({
     }),
     pressureTrial: Object.freeze({
       unlockLifetimeXp: 25_000,
+      unlockCostXp: 25_000,
       cooldownSeconds: 12 * 60 * 60,
       speedFactorPerHit: 0.960,
       minGaugeOneWaySeconds: 0.10,
@@ -54,6 +56,7 @@ export const BALANCE = Object.freeze({
     }),
     masterTrial: Object.freeze({
       unlockLifetimeXp: 200_000,
+      unlockCostXp: 100_000,
       cooldownSeconds: 24 * 60 * 60,
       speedFactorPerHit: 0.955,
       minGaugeOneWaySeconds: 0.10,
