@@ -36,10 +36,6 @@ export class GameScene {
     this.handleOverlayPointer = null;
   }
 
-  /**
-   * Create DOM hosts and basic Three.js renderer.
-   * Returns mount points needed by DOM UI classes.
-   */
   mount() {
     this.root = document.createElement('section');
     this.root.className = 'game-screen';
@@ -95,7 +91,6 @@ export class GameScene {
     };
   }
 
-  /** Build fixed orthographic portrait camera. */
   createCamera() {
     const camera = new THREE.OrthographicCamera(-5, 5, 9, -9, 0.1, 100);
     camera.position.set(0, 0, 10);
@@ -103,7 +98,6 @@ export class GameScene {
     return camera;
   }
 
-  /** Create simple lights. */
   createLighting() {
     const ambient = new THREE.AmbientLight(0xffffff, 1);
     const key = new THREE.DirectionalLight(0xffffff, 2);
@@ -111,26 +105,17 @@ export class GameScene {
     this.scene.add(ambient, key);
   }
 
-  /** Create background/floor presentation without gameplay significance. */
   createEnvironment() {
     this.scene.background = new THREE.Color(0x0d1220);
   }
 
-  /**
-   * Bind controller input callbacks after GameController has been created.
-   * UI controls and overlay content are excluded at the gameplay input boundary.
-   */
   bindInput({ onGameplayPointer, onOpenSkills, onOpenSettings }) {
     this.handleGameplayPointer = (event) => {
       if (event.defaultPrevented || event.isPrimary === false) return;
       if (typeof event.button === 'number' && event.button !== 0) return;
 
       const target = event.target;
-      if (
-        target?.closest?.(
-          '[data-overlay], button, input, select, textarea, a, [role="button"]',
-        )
-      ) {
+      if (target?.closest?.('[data-overlay], button, input, select, textarea, a, [role="button"]')) {
         return;
       }
 
@@ -159,7 +144,6 @@ export class GameScene {
     overlay?.addEventListener('pointerdown', this.handleOverlayPointer);
   }
 
-  /** Resize renderer/camera while preserving an authoritative portrait composition. */
   handleResize() {
     if (!this.canvasHost || !this.renderer || !this.camera) return;
 
@@ -179,7 +163,6 @@ export class GameScene {
     this.renderer.setSize(width, height, false);
   }
 
-  /** Set visual boomerang count to match derived progression state. */
   setPlayerBoomerangCount(count) {
     for (const view of this.boomerangViews) {
       this.scene?.remove(view.object3d);
@@ -193,7 +176,6 @@ export class GameScene {
     });
   }
 
-  /** Set visible target formation for 1-4 targets. */
   setTargetCount(count) {
     for (const view of this.targetViews) {
       this.scene?.remove(view.object3d);
@@ -209,7 +191,6 @@ export class GameScene {
     });
   }
 
-  /** Return deterministic readable formations for 1-4 targets. */
   getTargetPositions(count) {
     const formations = {
       1: [[0, 5, 0]],
@@ -220,7 +201,6 @@ export class GameScene {
     return formations[count] ?? formations[1];
   }
 
-  /** Show/hide the companion view after Dog Companion is purchased. */
   setDogVisible(visible) {
     if (visible && !this.dogView) {
       this.dogView = new DogView();
@@ -233,15 +213,10 @@ export class GameScene {
       this.scene?.add(this.dogBoomerangView.object3d);
     }
 
-    if (this.dogView) {
-      this.dogView.object3d.visible = visible;
-    }
-    if (!visible) {
-      this.dogBoomerangView?.reset();
-    }
+    if (this.dogView) this.dogView.object3d.visible = visible;
+    if (!visible) this.dogBoomerangView?.reset();
   }
 
-  /** Honor either the in-game option or the operating-system/browser preference. */
   isReducedMotionRequested(inGameReducedMotion = false) {
     const systemReducedMotion =
       typeof window !== 'undefined' &&
@@ -250,14 +225,12 @@ export class GameScene {
     return Boolean(inGameReducedMotion || systemReducedMotion);
   }
 
-  /** Return a render-space owner position slightly in front of the primitive meshes. */
   getOwnerThrowPosition(ownerView) {
     const position = ownerView?.object3d?.position?.clone?.() ?? new THREE.Vector3();
     position.z = 0.45;
     return position;
   }
 
-  /** Build Player/Dog -> target chain -> owner points with a small readability offset. */
   buildHitPath(ownerPosition, targetCount, lateralOffset = 0) {
     const ownerStart = ownerPosition.clone();
     ownerStart.x += lateralOffset * 0.35;
@@ -270,7 +243,6 @@ export class GameScene {
     return [ownerStart, ...targetPoints, ownerPosition.clone()];
   }
 
-  /** Build a deterministic route that clearly passes beside, not through, the target formation. */
   buildMissPath(ownerPosition, targetCount, index, lateralOffset = 0) {
     const targets = this.targetViews.slice(0, targetCount);
     const maxTargetX = Math.max(0, ...targets.map((target) => Math.abs(target.object3d.position.x)));
@@ -288,18 +260,18 @@ export class GameScene {
     ];
   }
 
-  /**
-   * Animate a resolved player throw.
-   * The result is already authoritative; paths are presentation only.
-   */
   async playPlayerThrow({ result, targetCount, boomerangCount, reducedMotion = false }) {
     const motionReduced = this.isReducedMotionRequested(reducedMotion);
     this.playerResultReducedMotion = motionReduced;
     this.playerView?.playThrow({ reducedMotion: motionReduced });
 
     const ownerPosition = this.getOwnerThrowPosition(this.playerView);
+    ownerPosition.x += 0.95;
+    ownerPosition.y += 0.65;
+
     const activeCount = Math.min(boomerangCount, this.boomerangViews.length);
     const durationSeconds = motionReduced ? 0.18 : result === 'MISS' ? 0.72 : 0.62;
+    const heroFinalFrameDelay = motionReduced ? 0.12 : 0.215;
 
     this.boomerangViews.forEach((view, index) => {
       if (index >= activeCount) {
@@ -309,7 +281,7 @@ export class GameScene {
 
       const centeredIndex = index - (activeCount - 1) / 2;
       const lateralOffset = centeredIndex * 0.16;
-      const delaySeconds = index * (motionReduced ? 0.015 : 0.055);
+      const delaySeconds = heroFinalFrameDelay + index * (motionReduced ? 0.015 : 0.055);
 
       if (result === 'MISS') {
         view.playMissPath({
@@ -331,7 +303,6 @@ export class GameScene {
     return Promise.resolve();
   }
 
-  /** Animate a resolved dog throw without blocking the player state machine. */
   async playDogThrow({ targetCount, critical, reducedMotion = false }) {
     if (!this.dogView?.object3d.visible) return Promise.resolve();
 
@@ -355,14 +326,12 @@ export class GameScene {
     return Promise.resolve();
   }
 
-  /** Play hit/critical/miss target feedback after outcome is already known. */
   playResultFeedback(result) {
     for (const target of this.targetViews) {
       target.playReaction(result, { reducedMotion: this.playerResultReducedMotion });
     }
   }
 
-  /** Visually distinguish the Grandmaster target using procedural geometry only. */
   showGrandmasterTarget() {
     if (this.grandmasterMarker || !this.scene || !this.targetViews[0]) return;
 
@@ -384,7 +353,6 @@ export class GameScene {
     this.scene.add(marker);
   }
 
-  /** Remove the procedural Grandmaster marker after completion/teardown. */
   hideGrandmasterTarget() {
     if (!this.grandmasterMarker) return;
 
@@ -394,7 +362,6 @@ export class GameScene {
     this.grandmasterMarker = null;
   }
 
-  /** Play final multi-boomerang/dog celebration after completion is authoritative. */
   async playGrandmasterSequence({ reducedMotion = false } = {}) {
     const motionReduced = this.isReducedMotionRequested(reducedMotion);
     const targetCount = this.targetViews.length;
@@ -407,28 +374,30 @@ export class GameScene {
         boomerangCount,
         reducedMotion: motionReduced,
       }),
-      this.dogView?.object3d.visible
-        ? this.playDogThrow({ targetCount, critical: true, reducedMotion: motionReduced })
-        : Promise.resolve(),
+      this.playDogThrow({
+        targetCount,
+        critical: true,
+        reducedMotion: motionReduced,
+      }),
     ]);
   }
 
-  /** Advance renderer-owned presentation state and draw the scene. */
   update(deltaSeconds) {
     this.playerView?.update(deltaSeconds);
     this.dogView?.update(deltaSeconds);
-    for (const boomerang of this.boomerangViews) boomerang.update(deltaSeconds);
     this.dogBoomerangView?.update(deltaSeconds);
-    for (const target of this.targetViews) target.update(deltaSeconds);
+    this.boomerangViews.forEach((view) => view.update(deltaSeconds));
+    this.targetViews.forEach((view) => view.update(deltaSeconds));
+  }
+
+  render() {
     this.renderer?.render(this.scene, this.camera);
   }
 
-  /** Release GPU resources, observers, listeners, and DOM. */
   dispose() {
     window.removeEventListener('resize', this.handleResize);
     this.resizeObserver?.disconnect();
-
-    if (this.handleGameplayPointer) this.root?.removeEventListener('pointerdown', this.handleGameplayPointer);
+    this.root?.removeEventListener('pointerdown', this.handleGameplayPointer);
     this.root?.querySelector('[data-action="skills"]')?.removeEventListener('click', this.handleSkillsClick);
     this.root?.querySelector('[data-action="settings"]')?.removeEventListener('click', this.handleSettingsClick);
     this.root?.querySelector('[data-overlay]')?.removeEventListener('pointerdown', this.handleOverlayPointer);
@@ -437,19 +406,9 @@ export class GameScene {
     this.playerView?.dispose();
     this.dogView?.dispose();
     this.dogBoomerangView?.dispose();
-    for (const boomerang of this.boomerangViews) boomerang.dispose();
-    for (const target of this.targetViews) target.dispose();
+    this.boomerangViews.forEach((view) => view.dispose());
+    this.targetViews.forEach((view) => view.dispose());
     this.renderer?.dispose();
-
     this.root?.remove();
-    this.root = null;
-    this.renderer = null;
-    this.scene = null;
-    this.camera = null;
-    this.playerView = null;
-    this.dogView = null;
-    this.dogBoomerangView = null;
-    this.boomerangViews = [];
-    this.targetViews = [];
   }
 }
