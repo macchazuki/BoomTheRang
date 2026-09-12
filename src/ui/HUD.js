@@ -10,6 +10,9 @@ export class HUD {
     this.impactIndex = 0;
     this.targetStatusLayer = null;
     this.targetStatusElements = [];
+    this.pendingDamageBatches = [];
+    this.handleBoomerangImpact = (event) => this.handleImpact(event?.detail ?? {});
+    this.canvasHost?.addEventListener?.('boomerangimpact', this.handleBoomerangImpact);
   }
 
   /** Render always-visible state from authoritative models. */
@@ -83,29 +86,71 @@ export class HUD {
     });
   }
 
-  /** Pop one damage number over each damaged target. */
+  /** Queue damage numbers until the rendered boomerang actually reaches each target. */
   showTargetDamage({ damages, critical = false, reducedMotion = false }) {
     const values = Array.isArray(damages) ? damages : [];
     this.ensureTargetStatusElements(values.length);
-    if (!this.targetStatusLayer || typeof document === 'undefined') return;
+    this.pendingDamageBatches.push({
+      damages: values.map((damage) => Math.max(0, Math.floor(Number(damage) || 0))),
+      critical,
+      reducedMotion,
+      source: null,
+      consumedTargets: new Set(),
+    });
+  }
 
-    values.forEach((damage, index) => {
-      const amount = Math.max(0, Math.floor(Number(damage) || 0));
-      if (amount <= 0) return;
-      const status = this.targetStatusElements[index];
-      if (!status) return;
+  markLatestDamageSource(source) {
+    for (let index = this.pendingDamageBatches.length - 1; index >= 0; index -= 1) {
+      const batch = this.pendingDamageBatches[index];
+      if (batch.source === null) {
+        batch.source = source;
+        return;
+      }
+    }
+  }
 
-      const popup = document.createElement('span');
-      popup.className = `target-damage${critical ? ' target-damage--critical' : ''}${reducedMotion ? ' target-damage--reduced-motion' : ''}`;
-      popup.textContent = `-${amount.toLocaleString()}`;
-      popup.setAttribute('aria-hidden', 'true');
-      status.append(popup);
-      setTimeout(() => popup.remove(), reducedMotion ? 260 : 720);
+  showTargetDamageAt(targetIndex, damage, { critical = false, reducedMotion = false } = {}) {
+    if (typeof document === 'undefined') return;
+    const amount = Math.max(0, Math.floor(Number(damage) || 0));
+    if (amount <= 0) return;
+    const status = this.targetStatusElements[targetIndex];
+    if (!status) return;
+
+    const popup = document.createElement('span');
+    popup.className = `target-damage${critical ? ' target-damage--critical' : ''}${reducedMotion ? ' target-damage--reduced-motion' : ''}`;
+    popup.textContent = `-${amount.toLocaleString()}`;
+    popup.setAttribute('aria-hidden', 'true');
+    status.append(popup);
+    setTimeout(() => popup.remove(), reducedMotion ? 260 : 720);
+  }
+
+  handleImpact({ targetIndex = 0, result = 'HIT', dog = false, reducedMotion = false } = {}) {
+    const source = dog ? 'dog' : 'player';
+    const batchIndex = this.pendingDamageBatches.findIndex((batch) => (
+      batch.source === source && !batch.consumedTargets.has(targetIndex)
+    ));
+
+    if (batchIndex >= 0) {
+      const batch = this.pendingDamageBatches[batchIndex];
+      this.showTargetDamageAt(targetIndex, batch.damages[targetIndex], {
+        critical: batch.critical,
+        reducedMotion: batch.reducedMotion,
+      });
+      batch.consumedTargets.add(targetIndex);
+      if (batch.consumedTargets.size >= batch.damages.length) {
+        this.pendingDamageBatches.splice(batchIndex, 1);
+      }
+    }
+
+    this.showComicImpact({
+      critical: String(result).includes('CRITICAL'),
+      dog,
+      reducedMotion,
     });
   }
 
   /** Show manual MISS/HIT/critical-tier feedback and awarded XP. */
-  showPlayerResult({ result, awardedXp, targetCount = 1, reducedMotion = false }) {
+  showPlayerResult({ result, awardedXp }) {
     if (!this.feedbackElement) return;
 
     const labels = {
@@ -117,45 +162,22 @@ export class HUD {
       MISS: 'MISS',
     };
     const label = labels[result] ?? 'HIT!';
-    const critical = result.includes('CRITICAL');
     this.feedbackElement.textContent = awardedXp > 0 ? `${label} +${awardedXp} XP` : label;
-
-    if (result !== 'MISS') {
-      this.scheduleComicImpacts({
-        critical,
-        targetCount,
-        reducedMotion,
-      });
-    }
+    if (result !== 'MISS') this.markLatestDamageSource('player');
   }
 
   /** Show smaller independent dog feedback. */
-  showDogResult({ critical, awardedXp, targetCount = 1, reducedMotion = false }) {
+  showDogResult({ critical, awardedXp }) {
     if (!this.feedbackElement) return;
     this.feedbackElement.textContent = critical
       ? `GOOD BOY! +${awardedXp} XP`
       : `Dog +${awardedXp} XP`;
-    this.scheduleComicImpacts({ critical, dog: true, targetCount, reducedMotion });
-  }
-
-  /**
-   * Time comic impact words/screen shake to the boomerang reaching the target.
-   * Player throws wait for the hero release frame first; dog throws launch immediately.
-   */
-  scheduleComicImpacts({ critical = false, dog = false, targetCount = 1, reducedMotion = false }) {
-    const count = Math.max(1, Math.floor(targetCount));
-    const centerDelayMs = reducedMotion ? (dog ? 90 : 210) : dog ? 290 : 525;
-    const spacingMs = reducedMotion ? 20 : 48;
-    const firstDelayMs = centerDelayMs - ((count - 1) * spacingMs) / 2;
-
-    for (let index = 0; index < count; index += 1) {
-      setTimeout(() => this.showComicImpact({ critical, dog }), firstDelayMs + index * spacingMs);
-    }
+    this.markLatestDamageSource('dog');
   }
 
   /** Spawn a short comic-book impact word over the target area. */
   showComicImpact({ critical = false, dog = false } = {}) {
-    if (!this.canvasHost) return;
+    if (!this.canvasHost || typeof document === 'undefined') return;
 
     const normalWords = dog ? ['BAP!', 'BONK!', 'POW!'] : ['POW!', 'BAM!', 'WHAM!'];
     const criticalWords = dog ? ['KAPOW!', 'WOOF!'] : ['KAPOW!', 'BOOM!', 'CRACK!'];
