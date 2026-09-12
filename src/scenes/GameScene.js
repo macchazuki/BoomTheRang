@@ -388,9 +388,6 @@ export class GameScene {
     this.dogBoomerangView?.update(deltaSeconds);
     this.boomerangViews.forEach((view) => view.update(deltaSeconds));
     this.targetViews.forEach((view) => view.update(deltaSeconds));
-  }
-
-  render() {
     this.renderer?.render(this.scene, this.camera);
   }
 
