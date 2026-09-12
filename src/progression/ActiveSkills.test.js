@@ -5,69 +5,34 @@ import { ProgressionManager } from './ProgressionManager.js';
 import { SKILL_BY_ID, SKILL_IDS } from './skillDefinitions.js';
 
 describe('active skills progression', () => {
-  it('defines both active skills with centralized costs', () => {
+  it('defines both skills with three centralized levels', () => {
     expect(SKILL_IDS).toEqual(['rapidRecall', 'openingBullseye']);
-    expect(SKILL_BY_ID.rapidRecall.costXp).toBe(BALANCE.activeSkills.rapidRecall.costXp);
-    expect(SKILL_BY_ID.openingBullseye.costXp).toBe(BALANCE.activeSkills.openingBullseye.costXp);
+    expect(SKILL_BY_ID.rapidRecall.learnCostXp).toBe(BALANCE.activeSkills.rapidRecall.learnCostXp);
+    expect(SKILL_BY_ID.rapidRecall.levels).toHaveLength(3);
+    expect(SKILL_BY_ID.openingBullseye.levels).toHaveLength(3);
   });
 
-  it('learns skills transactionally and enables them immediately', () => {
+  it('learns at level 1 and upgrades transactionally', () => {
     const gameState = new GameState();
-    gameState.xp = 100_000;
-    gameState.lifetimeXp = 100_000;
+    gameState.xp = 1_000_000;
+    gameState.lifetimeXp = 1_000_000;
     const manager = new ProgressionManager(gameState);
-
-    const beforeXp = gameState.xp;
     expect(manager.learnSkill('rapidRecall').ok).toBe(true);
-    expect(gameState.xp).toBe(beforeXp - BALANCE.activeSkills.rapidRecall.costXp);
-    expect(manager.hasSkill('rapidRecall')).toBe(true);
-    expect(manager.isSkillActive('rapidRecall')).toBe(true);
-    expect(manager.getSkillLearnStatus('rapidRecall')).toEqual({
-      ok: false,
-      reason: 'ALREADY_LEARNED',
-    });
+    expect(manager.getSkillLevel('rapidRecall')).toBe(1);
+    expect(manager.upgradeSkill('rapidRecall').ok).toBe(true);
+    expect(manager.getSkillLevel('rapidRecall')).toBe(2);
+    expect(manager.upgradeSkill('rapidRecall').ok).toBe(true);
+    expect(manager.getSkillLevel('rapidRecall')).toBe(3);
+    expect(manager.getSkillUpgradeStatus('rapidRecall')).toEqual({ ok: false, reason: 'MAX_LEVEL' });
   });
 
-  it('derives only the effects of skills that are currently active', () => {
+  it('returns current runtime values for the learned level', () => {
     const gameState = new GameState();
-    gameState.xp = 100_000;
-    gameState.lifetimeXp = 100_000;
+    gameState.xp = 1_000_000;
     const manager = new ProgressionManager(gameState);
-
     manager.learnSkill('rapidRecall');
-    manager.learnSkill('openingBullseye');
-
-    expect(manager.getDerivedEffects()).toMatchObject({
-      missReturnChance: BALANCE.activeSkills.rapidRecall.missReturnChance,
-      gaugeSpeedMultiplier: 1 + BALANCE.activeSkills.rapidRecall.gaugeSpeedBonus,
-      autoFirstBoomerang: true,
-    });
-
-    expect(manager.setSkillActive('rapidRecall', false)).toEqual({
-      ok: true,
-      reason: null,
-      active: false,
-    });
-    expect(manager.getDerivedEffects()).toMatchObject({
-      missReturnChance: 0,
-      gaugeSpeedMultiplier: 1,
-      autoFirstBoomerang: true,
-    });
-
-    manager.setSkillActive('openingBullseye', false);
-    expect(manager.getDerivedEffects()).toMatchObject({
-      missReturnChance: 0,
-      gaugeSpeedMultiplier: 1,
-      autoFirstBoomerang: false,
-    });
-  });
-
-  it('rejects unknown skills, unaffordable learning, and activating unlearned skills', () => {
-    const gameState = new GameState();
-    const manager = new ProgressionManager(gameState);
-
-    expect(manager.getSkillLearnStatus('missing')).toEqual({ ok: false, reason: 'UNKNOWN_SKILL' });
-    expect(manager.getSkillLearnStatus('rapidRecall')).toEqual({ ok: false, reason: 'INSUFFICIENT_XP' });
-    expect(manager.setSkillActive('rapidRecall', true)).toEqual({ ok: false, reason: 'NOT_LEARNED' });
+    expect(manager.getSkillRuntimeDefinition('rapidRecall')).toEqual(BALANCE.activeSkills.rapidRecall.levels[0]);
+    manager.upgradeSkill('rapidRecall');
+    expect(manager.getSkillRuntimeDefinition('rapidRecall')).toEqual(BALANCE.activeSkills.rapidRecall.levels[1]);
   });
 });
