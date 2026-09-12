@@ -16,7 +16,6 @@ import { ActiveSkillBar } from '../ui/ActiveSkillBar.js';
 import { UpgradePanel } from '../ui/ProgressionPanel.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
 import { CompletionPanel } from '../ui/CompletionPanel.js';
-import { ChallengePanel } from '../ui/ChallengePanel.js';
 import { clampDeltaSeconds } from '../game.js';
 
 export class GameApp {
@@ -41,8 +40,6 @@ export class GameApp {
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
-    this.challengePanel = null;
-    this.challengeButtonsHost = null;
     this.animationFrameId = null;
     this.previousFrameMs = null;
     this.lastPeriodicSaveSeconds = 0;
@@ -98,10 +95,18 @@ export class GameApp {
     this.startGameplay();
   }
 
+  unlockChallenge(challengeId) {
+    if (this.activeChallenge) return { ok: false, reason: 'ACTIVE_CHALLENGE' };
+    const result = this.challengeManager.unlock(challengeId);
+    if (result.ok) this.saveManager.save(this.accountGameState.toSaveData());
+    this.upgradePanel?.render();
+    return result;
+  }
+
   startChallenge(challengeId) {
     const attempt = this.challengeManager.startAttempt(challengeId);
     if (!attempt.ok) {
-      this.challengePanel?.render();
+      this.upgradePanel?.render();
       return attempt;
     }
 
@@ -123,10 +128,9 @@ export class GameApp {
     this.lastPeriodicSaveSeconds = 0;
     this.gameScene = new GameScene({ mountElement: this.mountElement });
     const uiHosts = this.gameScene.mount();
-    this.challengeButtonsHost = uiHosts.challengeButtons;
     if (uiHosts.skillsButton) {
       uiHosts.skillsButton.textContent = 'Upgrades';
-      uiHosts.skillsButton.setAttribute('aria-label', 'Open upgrades and skills');
+      uiHosts.skillsButton.setAttribute('aria-label', 'Open upgrades, skills, and challenges');
     }
     this.gaugeController = new GaugeController({ zoneWidths: this.progressionManager.getDerivedEffects().gaugeZoneWidths });
     this.throwController = new ThrowController();
@@ -136,20 +140,16 @@ export class GameApp {
     this.upgradePanel = new UpgradePanel({
       mountElement: uiHosts.overlay,
       progressionManager: this.progressionManager,
+      challengeManager: challengeDefinition ? null : this.challengeManager,
       onPurchase: (upgradeId) => this.purchaseUpgrade(upgradeId),
       onLearnSkill: (skillId) => this.learnSkill(skillId),
       onUpgradeSkill: (skillId) => this.upgradeSkill(skillId),
+      onUnlockChallenge: (challengeId) => this.unlockChallenge(challengeId),
+      onStartChallenge: (challengeId) => this.startChallenge(challengeId),
       onClose: () => this.closeModal(),
     });
     this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveCurrentSettings(), onClose: () => this.closeModal() });
     this.completionPanel = new CompletionPanel({ mountElement: uiHosts.overlay, onContinue: () => this.closeModal() });
-    this.challengePanel = challengeDefinition ? null : new ChallengePanel({
-      mountElement: uiHosts.overlay,
-      challengeManager: this.challengeManager,
-      onStart: (challengeId) => this.startChallenge(challengeId),
-      onClose: () => this.closeModal(),
-    });
-    this.renderChallengeButtons();
     this.dogController = new DogController({ onThrow: (dogThrow) => this.gameController?.handleDogThrow(dogThrow) });
     const challengeRules = challengeDefinition ? {
       permanentMissLoss: true,
@@ -177,30 +177,6 @@ export class GameApp {
     this.gameController.start();
   }
 
-  renderChallengeButtons() {
-    if (!this.challengeButtonsHost) return;
-    this.challengeButtonsHost.replaceChildren();
-    if (this.activeChallenge) return;
-
-    for (const status of this.challengeManager.getStatuses().filter(({ unlocked }) => unlocked)) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'challenge-button';
-      button.textContent = status.definition.name;
-      button.setAttribute('aria-label', `Open ${status.definition.name}`);
-      button.addEventListener('click', () => this.openChallenges());
-      this.challengeButtonsHost.append(button);
-    }
-  }
-
-  openChallenges() {
-    if (!this.gameController || !this.challengePanel) return;
-    this.gameController.pause('challenge-panel');
-    this.upgradePanel?.close();
-    this.settingsPanel?.close();
-    this.challengePanel.open();
-  }
-
   openUpgrades() {
     if (!this.gameController) return;
     this.gameController.pause('upgrade-panel');
@@ -220,7 +196,6 @@ export class GameApp {
     this.upgradePanel?.close();
     this.settingsPanel?.close();
     this.completionPanel?.close();
-    this.challengePanel?.close();
     this.gameController?.resume();
   }
 
@@ -239,8 +214,8 @@ export class GameApp {
     this.activeChallenge = null;
     this.restoreAccountState();
     this.startGameplay();
-    this.gameController?.pause('challenge-panel');
-    this.challengePanel?.open(result);
+    this.upgradePanel?.showChallengeResult(result);
+    this.openUpgrades();
   }
 
   saveCurrentSettings() {
@@ -256,10 +231,7 @@ export class GameApp {
     const result = this.progressionManager.purchase(upgradeId);
     if (!result.ok) return result;
     this.gameController?.applyProgressionEffects(this.progressionManager.getDerivedEffects());
-    if (!this.activeChallenge) {
-      this.saveManager.save(this.gameState.toSaveData());
-      this.renderChallengeButtons();
-    }
+    if (!this.activeChallenge) this.saveManager.save(this.gameState.toSaveData());
     this.upgradePanel?.render();
     return result;
   }
@@ -289,7 +261,7 @@ export class GameApp {
       this.saveManager.save(stateToSave.toSaveData());
     } else {
       this.previousFrameMs = performance.now();
-      const gameplayModalOpen = this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen || this.challengePanel?.isOpen;
+      const gameplayModalOpen = this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen;
       if (this.gameController?.pauseReason === 'document-hidden' && !gameplayModalOpen) this.gameController.resume();
     }
   }
@@ -325,7 +297,5 @@ export class GameApp {
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
-    this.challengePanel = null;
-    this.challengeButtonsHost = null;
   }
 }
