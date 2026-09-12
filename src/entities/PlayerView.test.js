@@ -56,7 +56,7 @@ describe('PlayerView', () => {
     expect(view.currentFrame).toBe(3);
     expect(texture.offset.x).toBeCloseTo(0.75);
 
-    view.update(0.09);
+    view.update(0.1);
     expect(view.currentFrame).toBe(0);
     expect(texture.offset.x).toBe(0);
 
