@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const DEFAULT_SPRITE_URL = new URL('../assets/sprites/hero.png', import.meta.url).href;
-const DEFAULT_ENVIRONMENT_URL = new URL('../assets/sprites/environment.png', import.meta.url).href;
+const DEFAULT_BACKGROUND_URL = new URL('../assets/background/forest_path.png', import.meta.url).href;
 const SOURCE_WIDTH = 2172;
 const SOURCE_HEIGHT = 724;
 const SPRITE_HEIGHT = 3.2;
@@ -17,13 +17,13 @@ const FRAME_RECTS = [
   { x: 1642, width: 530, shiftX: -0.035 },
 ];
 
-/** Render-only player avatar and flat training-field backdrop. */
+/** Render-only player avatar and static gameplay background. */
 export class PlayerView {
   constructor({
     spriteUrl = DEFAULT_SPRITE_URL,
-    environmentUrl = DEFAULT_ENVIRONMENT_URL,
+    backgroundUrl = DEFAULT_BACKGROUND_URL,
     loader = new THREE.TextureLoader(),
-    environmentLoader = new THREE.TextureLoader(),
+    backgroundLoader = new THREE.TextureLoader(),
   } = {}) {
     this.object3d = new THREE.Group();
     this.object3d.position.set(0, -5.5, 0);
@@ -32,30 +32,29 @@ export class PlayerView {
     this.object3d.add(this.body);
 
     this.spriteUrl = spriteUrl;
-    this.environmentUrl = environmentUrl;
+    this.backgroundUrl = backgroundUrl;
     this.loader = loader;
-    this.environmentLoader = environmentLoader;
+    this.backgroundLoader = backgroundLoader;
     this.texture = null;
     this.material = null;
     this.sprite = null;
-    this.environmentTexture = null;
-    this.environmentMaterial = null;
-    this.environmentSprite = null;
+    this.backgroundTexture = null;
+    this.backgroundMaterial = null;
+    this.backgroundSprite = null;
     this.disposed = false;
     this.currentFrame = IDLE_FRAME;
 
     this.throwAnimationDuration = 0.32;
     this.throwAnimationRemaining = 0;
 
-    this.environmentReady = this.loadEnvironment();
+    this.backgroundReady = this.loadBackground();
     this.spriteReady = this.loadSprite();
-    this.modelReady = this.spriteReady;
   }
 
-  /** Load the authored 2D training-field art behind every gameplay sprite. */
-  async loadEnvironment() {
+  /** Load the static forest path behind every gameplay sprite. */
+  async loadBackground() {
     try {
-      const texture = await this.environmentLoader.loadAsync(this.environmentUrl);
+      const texture = await this.backgroundLoader.loadAsync(this.backgroundUrl);
       if (this.disposed) {
         texture.dispose?.();
         return null;
@@ -74,13 +73,13 @@ export class PlayerView {
       sprite.scale.set(10, 18, 1);
       sprite.renderOrder = -10;
 
-      this.environmentTexture = texture;
-      this.environmentMaterial = material;
-      this.environmentSprite = sprite;
+      this.backgroundTexture = texture;
+      this.backgroundMaterial = material;
+      this.backgroundSprite = sprite;
       this.object3d.add(sprite);
       return sprite;
     } catch (error) {
-      console.error('Failed to load environment sprite', error);
+      console.error('Failed to load gameplay background', error);
       return null;
     }
   }
@@ -166,14 +165,14 @@ export class PlayerView {
     this.disposed = true;
     this.material?.dispose?.();
     this.texture?.dispose?.();
-    this.environmentMaterial?.dispose?.();
-    this.environmentTexture?.dispose?.();
+    this.backgroundMaterial?.dispose?.();
+    this.backgroundTexture?.dispose?.();
     this.object3d.clear();
     this.sprite = null;
     this.material = null;
     this.texture = null;
-    this.environmentSprite = null;
-    this.environmentMaterial = null;
-    this.environmentTexture = null;
+    this.backgroundSprite = null;
+    this.backgroundMaterial = null;
+    this.backgroundTexture = null;
   }
 }
