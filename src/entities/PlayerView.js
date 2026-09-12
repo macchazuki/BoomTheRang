@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 
 const DEFAULT_SPRITE_URL = new URL('../assets/sprites/hero.png', import.meta.url).href;
-const DEFAULT_BACKGROUND_URL = new URL('../assets/background/forest_path.png', import.meta.url).href;
 const SOURCE_WIDTH = 2172;
 const SOURCE_HEIGHT = 724;
 const SPRITE_HEIGHT = 3.2;
@@ -17,13 +16,11 @@ const FRAME_RECTS = [
   { x: 1642, width: 530, shiftX: -0.035 },
 ];
 
-/** Render-only player avatar and static gameplay background. */
+/** Render-only player avatar. */
 export class PlayerView {
   constructor({
     spriteUrl = DEFAULT_SPRITE_URL,
-    backgroundUrl = DEFAULT_BACKGROUND_URL,
     loader = new THREE.TextureLoader(),
-    backgroundLoader = new THREE.TextureLoader(),
   } = {}) {
     this.object3d = new THREE.Group();
     this.object3d.position.set(0, -5.5, 0);
@@ -32,56 +29,17 @@ export class PlayerView {
     this.object3d.add(this.body);
 
     this.spriteUrl = spriteUrl;
-    this.backgroundUrl = backgroundUrl;
     this.loader = loader;
-    this.backgroundLoader = backgroundLoader;
     this.texture = null;
     this.material = null;
     this.sprite = null;
-    this.backgroundTexture = null;
-    this.backgroundMaterial = null;
-    this.backgroundSprite = null;
     this.disposed = false;
     this.currentFrame = IDLE_FRAME;
 
     this.throwAnimationDuration = 0.32;
     this.throwAnimationRemaining = 0;
 
-    this.backgroundReady = this.loadBackground();
     this.spriteReady = this.loadSprite();
-  }
-
-  /** Load the static forest path behind every gameplay sprite. */
-  async loadBackground() {
-    try {
-      const texture = await this.backgroundLoader.loadAsync(this.backgroundUrl);
-      if (this.disposed) {
-        texture.dispose?.();
-        return null;
-      }
-
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.magFilter = THREE.LinearFilter;
-      texture.minFilter = THREE.LinearMipmapLinearFilter;
-      texture.generateMipmaps = true;
-      texture.needsUpdate = true;
-
-      const material = new THREE.SpriteMaterial({ map: texture, depthWrite: false });
-      const sprite = new THREE.Sprite(material);
-      // Player world position is y=-5.5, so +5.5 places the background at scene center.
-      sprite.position.set(0, 5.5, -5);
-      sprite.scale.set(10, 18, 1);
-      sprite.renderOrder = -10;
-
-      this.backgroundTexture = texture;
-      this.backgroundMaterial = material;
-      this.backgroundSprite = sprite;
-      this.object3d.add(sprite);
-      return sprite;
-    } catch (error) {
-      console.error('Failed to load gameplay background', error);
-      return null;
-    }
   }
 
   /** Load the authored four-frame sprite sheet. Nothing renders until it is ready. */
@@ -165,14 +123,9 @@ export class PlayerView {
     this.disposed = true;
     this.material?.dispose?.();
     this.texture?.dispose?.();
-    this.backgroundMaterial?.dispose?.();
-    this.backgroundTexture?.dispose?.();
     this.object3d.clear();
     this.sprite = null;
     this.material = null;
     this.texture = null;
-    this.backgroundSprite = null;
-    this.backgroundMaterial = null;
-    this.backgroundTexture = null;
   }
 }
