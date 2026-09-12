@@ -31,7 +31,6 @@ export class TargetDummyView {
     this.reactionReducedMotion = false;
 
     this.spriteReady = this.loadSprite();
-    this.modelReady = this.spriteReady;
   }
 
   /** Load the authored four-frame horizontal target sprite sheet. */
