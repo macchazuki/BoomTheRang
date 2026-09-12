@@ -31,11 +31,13 @@ export class GameController {
   constructor({
     gameState, gaugeController, throwController, dogController, progressionManager,
     gameScene, hud, gaugeView, saveManager, onOpenUpgrades, onOpenSettings, onCompleted,
+    random = Math.random,
   }) {
     Object.assign(this, {
       gameState, gaugeController, throwController, dogController, progressionManager,
       gameScene, hud, gaugeView, saveManager, onOpenUpgrades, onOpenSettings, onCompleted,
     });
+    this.random = typeof random === 'function' ? random : Math.random;
     this.state = GAMEPLAY_STATE.PAUSED;
     this.previousStateBeforePause = GAMEPLAY_STATE.READY;
     this.pauseReason = null;
@@ -82,9 +84,11 @@ export class GameController {
     this.dogController.update(deltaSeconds);
     this.updateMissedBoomerangs(deltaSeconds);
     if ([GAMEPLAY_STATE.READY, GAMEPLAY_STATE.FINAL_CHALLENGE].includes(this.state)) {
-      const reachesEnd = this.gaugeController.position + deltaSeconds / this.gaugeController.oneWaySeconds >= 1;
+      const previousPosition = this.gaugeController.position;
+      const reachesEnd = previousPosition + deltaSeconds / this.gaugeController.oneWaySeconds >= 1;
       this.gaugeController.update(deltaSeconds);
       if (reachesEnd) this.gaugeController.setSegmentCount(this.currentPlayerBoomerangCount);
+      this.tryAutoFirstBoomerang({ previousPosition, startedNewSweep: reachesEnd });
     }
     this.renderMirrors();
   }
@@ -125,11 +129,33 @@ export class GameController {
    * a used area rejects further taps until the marker completes the sweep.
    */
   resolvePlayerInput() {
+    const effects = this.progressionManager.getDerivedEffects();
+    if (effects.autoFirstBoomerang && this.gaugeController.getSegmentIndex() === 0) return;
     if (!this.gaugeController.consumeCurrentSegment()) return;
 
-    const result = this.gaugeController.classify();
+    this.resolvePlayerThrow(this.gaugeController.classify(), { effects, manual: true });
+  }
+
+  /** Fire the first timing area automatically when its exact centre is crossed. */
+  tryAutoFirstBoomerang({ previousPosition, startedNewSweep = false }) {
     const effects = this.progressionManager.getDerivedEffects();
-    this.gameState.incrementStat('manualThrows');
+    if (!effects.autoFirstBoomerang || this.gaugeController.segmentCount === 0) return;
+    if (this.gaugeController.consumedSegments.has(0)) return;
+
+    const firstCenter = 0.5 / this.gaugeController.segmentCount;
+    const sweepStart = startedNewSweep ? 0 : previousPosition;
+    if (sweepStart > firstCenter || this.gaugeController.position < firstCenter) return;
+    if (!this.gaugeController.consumeSegment(0)) return;
+
+    this.resolvePlayerThrow(this.gaugeController.classify(firstCenter), {
+      effects,
+      manual: false,
+    });
+  }
+
+  /** Resolve one already-selected player result for manual and active-skill throws. */
+  resolvePlayerThrow(result, { effects = this.progressionManager.getDerivedEffects(), manual = true } = {}) {
+    if (manual) this.gameState.incrementStat('manualThrows');
 
     const nextCombo = getNextCombo(this.gameState.gameplay.combo, result, effects.comboUnlocked);
     this.gameState.setCombo(nextCombo);
@@ -146,8 +172,11 @@ export class GameController {
 
     if (result === GAUGE_RESULT.MISS) {
       this.gameState.incrementStat('misses');
-      this.currentPlayerBoomerangCount = Math.max(0, this.currentPlayerBoomerangCount - 1);
-      this.missedBoomerangReloads.push(effects.missReloadSeconds);
+      const returnedImmediately = effects.missReturnChance > 0 && this.random() < effects.missReturnChance;
+      if (!returnedImmediately) {
+        this.currentPlayerBoomerangCount = Math.max(0, this.currentPlayerBoomerangCount - 1);
+        this.missedBoomerangReloads.push(effects.missReloadSeconds);
+      }
     } else {
       this.gameState.incrementStat('hits');
       if (isCriticalResult(result)) this.gameState.incrementStat('criticals');
@@ -259,6 +288,7 @@ export class GameController {
     );
 
     this.gaugeController.setZoneWidths(effects.gaugeZoneWidths);
+    this.gaugeController.setSpeedMultiplier(effects.gaugeSpeedMultiplier ?? 1);
     if (addedBoomerangs > 0) this.gaugeController.setSegmentCount(this.currentPlayerBoomerangCount);
     this.gameScene.setPlayerBoomerangCount(effects.playerBoomerangCount);
     this.gameScene.setTargetCount(effects.targetCount);
