@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 
 const DEFAULT_SPRITE_URL = new URL('../assets/sprites/boomerang.png', import.meta.url).href;
+const FRAME_COUNT = 4;
 const SPRITE_HEIGHT = 0.9;
+const HERO_LAUNCH_OFFSET_X = 0.55;
+const HERO_X_THRESHOLD = 0.75;
+const HERO_Y_THRESHOLD = -4;
 
 /**
  * Render-only player/dog boomerang.
@@ -14,6 +18,7 @@ export class BoomerangView {
     this.loader = loader;
     this.texture = null;
     this.disposed = false;
+    this.currentFrame = 0;
 
     this.material = new THREE.SpriteMaterial({
       transparent: true,
@@ -45,6 +50,8 @@ export class BoomerangView {
       }
 
       texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
       texture.magFilter = THREE.LinearFilter;
       texture.minFilter = THREE.LinearMipmapLinearFilter;
       texture.generateMipmaps = true;
@@ -52,16 +59,27 @@ export class BoomerangView {
 
       const sourceWidth = texture.image?.width || texture.source?.data?.width || 1;
       const sourceHeight = texture.image?.height || texture.source?.data?.height || 1;
-      this.object3d.scale.set(SPRITE_HEIGHT * (sourceWidth / sourceHeight), SPRITE_HEIGHT, 1);
+      const frameWidth = sourceWidth / FRAME_COUNT;
+      this.object3d.scale.set(SPRITE_HEIGHT * (frameWidth / sourceHeight), SPRITE_HEIGHT, 1);
+
       this.texture = texture;
       this.material.map = texture;
       this.material.opacity = 1;
       this.material.needsUpdate = true;
+      this.setFrame(0);
       return this.object3d;
     } catch (error) {
       console.error('Failed to load boomerang sprite', error);
       return null;
     }
+  }
+
+  setFrame(frameIndex) {
+    this.currentFrame = ((frameIndex % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT;
+    if (!this.texture) return;
+
+    this.texture.repeat.set(1 / FRAME_COUNT, 1);
+    this.texture.offset.set(this.currentFrame / FRAME_COUNT, 0);
   }
 
   playHitPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false }) {
@@ -82,6 +100,15 @@ export class BoomerangView {
       return;
     }
 
+    // The authored hero throws from his right hand. Shift only player-owned
+    // paths (centered near x=0 at the bottom of the field), not the dog path.
+    const ownerPoint = normalizedPoints[0];
+    const isHeroPath = Math.abs(ownerPoint.x) < HERO_X_THRESHOLD && ownerPoint.y < HERO_Y_THRESHOLD;
+    if (isHeroPath) {
+      normalizedPoints[0].x += HERO_LAUNCH_OFFSET_X;
+      normalizedPoints[normalizedPoints.length - 1].x += HERO_LAUNCH_OFFSET_X;
+    }
+
     this.reducedMotion = reducedMotion;
     this.pathPoints = reducedMotion
       ? this.createReducedMotionPath(normalizedPoints[0])
@@ -89,6 +116,7 @@ export class BoomerangView {
     this.durationSeconds = Math.max(0.001, durationSeconds);
     this.delayRemainingSeconds = Math.max(0, delaySeconds);
     this.elapsedSeconds = 0;
+    this.setFrame(0);
 
     this.cumulativeDistances = [0];
     this.totalDistance = 0;
@@ -125,7 +153,10 @@ export class BoomerangView {
     this.elapsedSeconds = Math.min(this.durationSeconds, this.elapsedSeconds + animationDelta);
     const progress = this.elapsedSeconds / this.durationSeconds;
     this.object3d.position.copy(this.samplePath(progress));
-    this.object3d.material.rotation += animationDelta * (this.reducedMotion ? 8 : 18);
+
+    // Cycle the four authored rotation frames while the boomerang is in flight.
+    const cycles = this.reducedMotion ? 1 : 3;
+    this.setFrame(Math.floor(progress * FRAME_COUNT * cycles));
 
     if (progress >= 1) this.reset();
   }
@@ -159,6 +190,7 @@ export class BoomerangView {
     this.durationSeconds = 0;
     this.delayRemainingSeconds = 0;
     this.reducedMotion = false;
+    this.setFrame(0);
   }
 
   dispose() {
