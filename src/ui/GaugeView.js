@@ -9,8 +9,10 @@ const CRITICAL_COLORS = Object.freeze({
 });
 
 export class GaugeView {
-  constructor({ mountElement }) {
+  constructor({ mountElement, concealAfterFirstTap = false }) {
     this.mountElement = mountElement;
+    this.concealAfterFirstTap = concealAfterFirstTap;
+    this.concealed = false;
     this.root = document.createElement('div');
     this.root.className = 'gauge';
     // Gauge framing is intentionally disabled here so later presentation CSS cannot
@@ -94,14 +96,17 @@ export class GaugeView {
     }
 
     const consumed = new Set(snapshot.consumedSegments);
+    if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;
+
     for (const zone of this.root.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
       const zoneName = isConsumed ? 'red' : zone.dataset.zone;
       zone.className = `gauge__zone gauge__zone--${zoneName}`;
       zone.style.background = isConsumed ? '' : CRITICAL_COLORS[zoneName] ?? '';
+      zone.style.visibility = this.concealed ? 'hidden' : '';
     }
 
-    this.marker.hidden = snapshot.segmentCount === 0;
+    this.marker.hidden = this.concealed || snapshot.segmentCount === 0;
     this.marker.style.left = `${snapshot.position * 100}%`;
   }
 }

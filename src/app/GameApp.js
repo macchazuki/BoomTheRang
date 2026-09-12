@@ -135,7 +135,10 @@ export class GameApp {
     this.gaugeController = new GaugeController({ zoneWidths: this.progressionManager.getDerivedEffects().gaugeZoneWidths });
     this.throwController = new ThrowController();
     this.hud = new HUD({ mountElement: uiHosts.hud });
-    this.gaugeView = new GaugeView({ mountElement: uiHosts.gauge });
+    this.gaugeView = new GaugeView({
+      mountElement: uiHosts.gauge,
+      concealAfterFirstTap: challengeDefinition?.hideGaugeAfterFirstTap === true,
+    });
     this.activeSkillBar = new ActiveSkillBar({ mountElement: uiHosts.gameplayArea, onActivate: (skillId) => this.gameController?.activateSkill(skillId) });
     this.upgradePanel = new UpgradePanel({
       mountElement: uiHosts.overlay,

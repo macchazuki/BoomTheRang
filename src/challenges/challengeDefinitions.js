@@ -7,6 +7,12 @@ const DEFINITIONS = [
     description: 'Fresh progression. Missed boomerangs are permanently lost and the gauge accelerates after every hit.',
   },
   {
+    id: 'blindTrial',
+    name: 'Blind Trial',
+    description: 'Fresh progression. The gauge is visible until your first throw, then its marker and timing colors stay hidden.',
+    hideGaugeAfterFirstTap: true,
+  },
+  {
     id: 'pressureTrial',
     name: 'Pressure Trial',
     description: 'A faster-ramping fresh run with a larger permanent damage reward.',
