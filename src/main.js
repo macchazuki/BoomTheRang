@@ -1,5 +1,6 @@
 import './style.css';
 import './skillCategories.css';
+import './activeSkills.css';
 import './targetStatus.css';
 import './comic.css';
 import { GameApp } from './app/GameApp.js';
@@ -25,6 +26,5 @@ if (debugEnabled) {
   window.__boomTheRang = app;
   import('./debug/createDebugPanel.js').then(({ createDebugPanel }) => createDebugPanel(app));
 } else if (import.meta.env.DEV) {
-  // Keep the existing local-development console hook without shipping it in production.
   window.__boomTheRang = app;
 }

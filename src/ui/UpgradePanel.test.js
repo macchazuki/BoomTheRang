@@ -1,40 +1,69 @@
 import { describe, expect, it } from 'vitest';
 import { UPGRADE_DEFINITIONS } from '../progression/upgradeDefinitions.js';
-import { categoryHasPurchasableSkill, getSkillNodePresentation, SKILL_CATEGORIES, SKILL_CATEGORY_BY_UPGRADE, SKILL_TREE_LAYOUT } from './UpgradePanel.js';
+import {
+  categoryHasPurchasableUpgrade,
+  getUpgradeNodePresentation,
+  UPGRADE_CATEGORIES,
+  UPGRADE_CATEGORY_BY_UPGRADE,
+  UPGRADE_TREE_LAYOUT,
+} from './UpgradePanel.js';
 
-describe('UpgradePanel skill-tree presentation', () => {
-  it('assigns every progression node to exactly one category and position', () => {
+describe('UpgradePanel upgrade-tree presentation', () => {
+  it('assigns every progression upgrade to exactly one category and position', () => {
     const definitionIds = UPGRADE_DEFINITIONS.map((definition) => definition.id).sort();
-    expect(Object.keys(SKILL_TREE_LAYOUT).sort()).toEqual(definitionIds);
-    expect(Object.keys(SKILL_CATEGORY_BY_UPGRADE).sort()).toEqual(definitionIds);
-    expect(SKILL_CATEGORIES.map((category) => category.id)).toEqual(['xp', 'criticals', 'precision', 'arsenal', 'pet']);
+    expect(Object.keys(UPGRADE_TREE_LAYOUT).sort()).toEqual(definitionIds);
+    expect(Object.keys(UPGRADE_CATEGORY_BY_UPGRADE).sort()).toEqual(definitionIds);
+    expect(UPGRADE_CATEGORIES.map((category) => category.id)).toEqual([
+      'xp',
+      'criticals',
+      'precision',
+      'arsenal',
+      'pet',
+    ]);
 
-    for (const category of SKILL_CATEGORIES) {
-      expect(category.skills).toContain(category.root);
+    for (const category of UPGRADE_CATEGORIES) {
+      expect(category.upgrades).toContain(category.root);
     }
-    for (const position of Object.values(SKILL_TREE_LAYOUT)) {
+    for (const position of Object.values(UPGRADE_TREE_LAYOUT)) {
       expect(position.x).toBeGreaterThan(0);
       expect(position.y).toBeGreaterThan(0);
       expect(position.sigil.length).toBeGreaterThan(0);
     }
   });
 
-  it('marks a category when at least one skill is currently purchasable', () => {
-    const category = { skills: ['a', 'b'] };
+  it('marks a category when at least one upgrade is currently purchasable', () => {
+    const category = { upgrades: ['a', 'b'] };
     const progressionManager = {
       getPurchaseStatus(upgradeId) {
         return { ok: upgradeId === 'b' };
       },
     };
 
-    expect(categoryHasPurchasableSkill(category, progressionManager)).toBe(true);
-    expect(categoryHasPurchasableSkill({ skills: ['a'] }, progressionManager)).toBe(false);
+    expect(categoryHasPurchasableUpgrade(category, progressionManager)).toBe(true);
+    expect(categoryHasPurchasableUpgrade({ upgrades: ['a'] }, progressionManager)).toBe(false);
   });
 
   it('uses purchased and available states before locked affordability states', () => {
-    expect(getSkillNodePresentation({ purchased: true, status: { ok: false, reason: 'ALREADY_PURCHASED' } })).toMatchObject({ className: 'purchased', label: 'Purchased' });
-    expect(getSkillNodePresentation({ purchased: false, status: { ok: true, reason: null } })).toMatchObject({ className: 'available', label: 'Available' });
-    expect(getSkillNodePresentation({ purchased: false, status: { ok: false, reason: 'INSUFFICIENT_XP' } })).toMatchObject({ className: 'insufficient-xp', label: 'Not enough XP' });
-    expect(getSkillNodePresentation({ purchased: false, status: { ok: false, reason: 'PREREQUISITES' } })).toMatchObject({ className: 'locked', label: 'Locked' });
+    expect(
+      getUpgradeNodePresentation({
+        purchased: true,
+        status: { ok: false, reason: 'ALREADY_PURCHASED' },
+      }),
+    ).toMatchObject({ className: 'purchased', label: 'Purchased' });
+    expect(
+      getUpgradeNodePresentation({ purchased: false, status: { ok: true, reason: null } }),
+    ).toMatchObject({ className: 'available', label: 'Available' });
+    expect(
+      getUpgradeNodePresentation({
+        purchased: false,
+        status: { ok: false, reason: 'INSUFFICIENT_XP' },
+      }),
+    ).toMatchObject({ className: 'insufficient-xp', label: 'Not enough XP' });
+    expect(
+      getUpgradeNodePresentation({
+        purchased: false,
+        status: { ok: false, reason: 'PREREQUISITES' },
+      }),
+    ).toMatchObject({ className: 'locked', label: 'Locked' });
   });
 });
