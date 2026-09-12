@@ -44,25 +44,16 @@ describe('gameplay integration contract', () => {
     expect(fixture.gameState.stats.targetsHit).toBe(1);
   });
 
-  it('Twin Throw creates two independent presses rather than one doubled throw', () => {
+  it('Twin Throw creates two independent presses against the single target', () => {
     const fixture = createGameplayFixture(['twinThrow']);
     tapAt(fixture, 0.25);
     expect(fixture.gameState.xp).toBe(20);
     expect(fixture.gameScene.playPlayerThrow).toHaveBeenLastCalledWith(expect.objectContaining({
-      result: GAUGE_RESULT.CRITICAL, boomerangCount: 1, rewardedTargetHits: 1,
+      result: GAUGE_RESULT.CRITICAL, boomerangCount: 1, targetCount: 1, rewardedTargetHits: 1,
     }));
     tapAt(fixture, 0.75);
     expect(fixture.gameState.xp).toBe(40);
     expect(fixture.gameState.stats.targetsHit).toBe(2);
-  });
-
-  it('Twin Throw + Second Dummy rewards two targets on each independent boomerang', () => {
-    const fixture = createGameplayFixture(['twinThrow', 'secondDummy']);
-    tapAt(fixture, 0.25);
-    tapAt(fixture, 0.75);
-    expect(fixture.gameState.xp).toBe(80);
-    expect(fixture.gameState.stats.targetsHit).toBe(4);
-    expect(fixture.gameScene.playPlayerThrow).toHaveBeenCalledTimes(2);
   });
 
   it('double tapping a consumed area does not fire another boomerang', () => {
@@ -83,17 +74,17 @@ describe('gameplay integration contract', () => {
   });
 
   it('dog rewards occur independently of the player gauge', () => {
-    const fixture = createGameplayFixture(['dogCompanion']);
+    const fixture = createGameplayFixture(['twinThrow', 'dogCompanion']);
     fixture.controller.handleDogThrow({ critical: false });
     expect(fixture.gameState.xp).toBe(3);
     expect(fixture.gameState.stats.dogThrows).toBe(1);
     expect(fixture.gameState.stats.manualThrows).toBe(0);
   });
 
-  it('automatic dog throws still reward every target', () => {
-    const fixture = createGameplayFixture(['secondDummy', 'dogCompanion'], { realDog: true });
+  it('automatic dog throws reward the single target', () => {
+    const fixture = createGameplayFixture(['twinThrow', 'dogCompanion'], { realDog: true });
     fixture.controller.update(10);
     expect(fixture.gameState.stats.dogThrows).toBe(1);
-    expect(fixture.gameState.stats.targetsHit).toBe(2);
+    expect(fixture.gameState.stats.targetsHit).toBe(1);
   });
 });

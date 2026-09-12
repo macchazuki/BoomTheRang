@@ -15,7 +15,7 @@ Use CSS safe-area insets for notches/home indicators.
 │ XP / combo / progression│
 │                         │
 │       TARGET AREA       │
-│      dummy formation    │
+│       single dummy      │
 │                         │
 │       throw space       │
 │                         │
@@ -36,25 +36,19 @@ Recommended:
 - fixed orthographic camera
 - player anchored near bottom center
 - dog beside player after unlock
-- target formation in upper third
+- exactly one target dummy centered in the upper third
 - no player movement
 - no camera controls
 
-Target layouts:
-- 1: center
-- 2: horizontal pair
-- 3: shallow triangle
-- 4: compact diamond/2x2-like formation
-
-Keep target positions readable on narrow screens.
+Do not add multi-target formations. The target count is fixed at `1` for the whole game.
 
 ## Gameplay input
 
-- Tap/click anywhere in unobstructed gameplay area to stop the gauge.
+- Tap/click anywhere in unobstructed gameplay area to resolve the current gauge area.
 - Buttons/panels must stop propagation or otherwise not trigger throws.
 - Use Pointer Events.
 - No small "throw" button is required.
-- Ignore repeated taps while a throw/reload is active.
+- With multiple boomerangs, each valid gauge area can be pressed once per sweep.
 
 ## Gauge presentation
 
@@ -66,49 +60,49 @@ Visually show:
 
 Animation can use CSS transform, but position/result comes from `GaugeController`.
 
-When gauge is locked, freeze marker until result feedback is established.
+Consumed timing areas should remain visually unavailable until the gauge sweep resets.
 
 ## Feedback
 
 ### Miss
 - boomerang trajectory misses target
 - text: `MISS`
-- show reload countdown
+- show reload countdown for the lost boomerang as needed
 - no target reaction
 
 ### Green
 - target recoil
 - small hit particles/impact
 - text: `HIT!`
-- show awarded XP
+- show awarded damage/XP
 
 ### White
 - stronger recoil
 - brighter impact/flash
 - light screen shake
 - text: `PERFECT!`
-- show awarded XP prominently
+- show awarded damage/XP prominently
 
 ### Dog critical
 - text: `GOOD BOY!`
 - distinct but smaller feedback than player critical
 
-Avoid effects that make the gauge or next target unreadable.
+Avoid effects that make the gauge or target unreadable.
 
 ## Boomerang trajectories
 
 Use deterministic visual paths; gameplay result is already known before animation.
 
 Successful path:
-`player/dog -> targets in sequence -> owner`
+`player/dog -> single target -> owner`
 
 Miss path:
-curve beside targets -> return.
+curve beside the target -> return.
 
 With multiple player boomerangs:
-- stagger/offset curves slightly for readability
-- all resolve the same player gauge result
-- XP is computed from counts, not collision detection
+- each press throws one boomerang
+- stagger/offset active curves slightly for readability when animations overlap
+- damage/XP is computed from resolved gameplay data, not collision detection
 
 Do not use mesh collisions as authoritative hit detection.
 
@@ -118,11 +112,12 @@ Do not use mesh collisions as authoritative hit detection.
 Always show:
 - spendable XP
 - current combo once unlocked
-- current reload countdown on miss
+- current reload state as needed
 
 Optional compact display:
 - boomerang count
-- target count
+
+Do not show target count as progression because it is always `1`.
 
 ### Upgrade panel
 Each node/card shows:
@@ -132,7 +127,7 @@ Each node/card shows:
 - locked prerequisite if unavailable
 - purchased/max state
 
-Do not show hidden future details if the UI becomes crowded; tree logic remains complete internally.
+The skill tree contains no target-count nodes.
 
 ### Settings
 Common v1 settings only:

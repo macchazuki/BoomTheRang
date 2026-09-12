@@ -25,6 +25,7 @@ Do not scan or rewrite unrelated modules by default.
 - All timers use elapsed seconds, never frame counts.
 - Never grant offline/catch-up dog XP.
 - Player hit detection is resolved before visual animation; do not use mesh collisions for rewards.
+- The game has exactly one target dummy. Do not add target-count upgrades or multi-target progression.
 
 ## Implementation style
 
@@ -39,12 +40,12 @@ Do not scan or rewrite unrelated modules by default.
 
 A v1 implementation is complete when:
 - core timing/reload/reward loop works;
-- 1-4 boomerangs and 1-4 target formations work;
+- 1-4 boomerangs work against the single target dummy;
 - full upgrade graph works;
 - dog automation/upgrades work;
 - combo and mastery branches work;
 - save/settings work safely;
 - Grandmaster final white-zone challenge and statistics work;
-- deterministic balance tests hit ~1m, ~30m, ~45m, and ~5h anchors;
+- deterministic balance tests cover the intended early, mid, and completion pacing;
 - build/tests pass;
 - narrow portrait manual acceptance passes.

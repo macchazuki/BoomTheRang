@@ -42,23 +42,23 @@ describe('GameController multi-boomerang gauge', () => {
     expect(harness.gaugeController.running).toBe(true);
   });
 
-  it('fires one boomerang per press while the gauge keeps moving', () => {
-    const harness = createHarness({ ownedUpgrades: ['twinThrow', 'secondDummy'] });
+  it('fires one boomerang per press at the single target while the gauge keeps moving', () => {
+    const harness = createHarness({ ownedUpgrades: ['twinThrow'] });
     tapAt(harness, 0.25);
     expect(harness.controller.state).toBe(GAMEPLAY_STATE.READY);
     expect(harness.gaugeController.running).toBe(true);
     expect(harness.gameState.stats.manualThrows).toBe(1);
-    expect(harness.gameState.stats.targetsHit).toBe(2);
-    expect(harness.gameState.xp).toBe(40);
+    expect(harness.gameState.stats.targetsHit).toBe(1);
+    expect(harness.gameState.xp).toBe(20);
     expect(harness.gameScene.playPlayerThrow).toHaveBeenLastCalledWith({
       owner: 'player', result: GAUGE_RESULT.CRITICAL, boomerangCount: 1,
-      targetCount: 2, rewardedTargetHits: 2, targetChain: [0, 1], reducedMotion: false,
+      targetCount: 1, rewardedTargetHits: 1, targetChain: [0], reducedMotion: false,
     });
 
     tapAt(harness, 0.75);
     expect(harness.gameState.stats.manualThrows).toBe(2);
-    expect(harness.gameState.stats.targetsHit).toBe(4);
-    expect(harness.gameState.xp).toBe(80);
+    expect(harness.gameState.stats.targetsHit).toBe(2);
+    expect(harness.gameState.xp).toBe(40);
     expect(harness.gameScene.playPlayerThrow).toHaveBeenCalledTimes(2);
   });
 
@@ -132,7 +132,7 @@ describe('GameController multi-boomerang gauge', () => {
   });
 
   it('keeps dog throws independent from the player gauge', () => {
-    const harness = createHarness({ ownedUpgrades: ['dogCompanion'] });
+    const harness = createHarness({ ownedUpgrades: ['twinThrow', 'dogCompanion'] });
     harness.controller.handleDogThrow({ critical: false });
     expect(harness.gameState.stats.dogThrows).toBe(1);
     expect(harness.gameState.stats.manualThrows).toBe(0);

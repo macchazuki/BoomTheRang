@@ -41,13 +41,14 @@ Create:
 Deliver:
 - orthographic portrait scene
 - player bottom
-- dummy top
+- exactly one target dummy at the top
 - boomerang hit/miss/return paths
 - hit/critical/miss feedback
 
 Acceptance:
 - gameplay outcome is computed before animation
 - visuals never own reward logic
+- normal play never renders additional target dummies
 
 ## Phase 3 — Progression system
 
@@ -62,11 +63,12 @@ Implement:
 - Training
 - Precision/Recovery
 - Twin Throw
-- Second Dummy
+- Combo Training
 
 Acceptance:
-- Twin Throw + Second Dummy yields 4 hits
-- 30m/45m balance simulator targets are established
+- Twin Throw creates two independent boomerang opportunities against the same target
+- target count remains `1`
+- no target-count skills exist
 
 ## Phase 4 — Dog
 
@@ -84,22 +86,22 @@ Implement:
 Acceptance:
 - dog timer never blocks player input
 - no offline/catch-up rewards
-- dog reward rules match specification
+- dog always resolves against the single target
 
 ## Phase 5 — Mid/late progression
 
 Implement:
 - Triple/Quad Throw
-- Third/Fourth Dummy
 - later Critical upgrades
 - Combo Training/Mastery
 - Boomerang Mastery
 - remaining dog ranks
 
 Acceptance:
-- scene remains readable at 4 boomerangs × 4 targets
-- combo counted per player throw only
+- scene remains readable with 4 player boomerangs against one target
+- combo counted from resolved player presses only
 - dog remains supplemental to perfect active play
+- no skill depends on removed target-count IDs
 
 ## Phase 6 — Persistence/settings
 
@@ -116,6 +118,7 @@ Implement:
 
 Acceptance:
 - save corruption cannot prevent startup
+- removed target-count upgrade IDs in older saves are discarded safely
 - no offline XP
 - current upgrade state restores correctly
 
@@ -130,10 +133,9 @@ Implement:
 - completion statistics panel
 
 Acceptance:
-- first upgrade ~1m
-- 2 boomerangs ~30m
-- 2 dummies ~45m
-- progression completion ~5h optimal
+- early upgrades retain fast pacing
+- boomerang progression stays ordered
+- target count remains `1` at full progression
 - later progression gaps trend longer
 - all tests/build pass
 

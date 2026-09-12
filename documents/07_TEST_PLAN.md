@@ -5,16 +5,17 @@ Use Vitest for deterministic gameplay/progression logic. Three.js visual polish 
 ## Required unit tests
 
 ### Gauge
-- normalized marker reflects at `0` and `1`
+- normalized marker sweep/reset behavior is deterministic
 - red/green/white classification matches configured widths
 - exact boundaries are deterministic
 - precision upgrades keep widths valid and total 100%
+- multiple boomerang timing areas are consumed independently
 
 ### Rewards
 - red = `0`
 - green = base reward
 - white = base × critical multiplier
-- `boomerangCount × targetCount` applied exactly once
+- target count remains exactly `1`
 - Training multiplier applied to player and dog
 - Boomerang Mastery applies to player only
 - combo applies to player only
@@ -26,11 +27,11 @@ Use Vitest for deterministic gameplay/progression logic. Three.js visual polish 
 - miss resets
 - normal cap is 20%
 - mastery cap is 50%
-- multiple boomerangs/targets do not multiply combo steps
+- target count never multiplies combo steps
 
 ### Reload
-- miss enters reload
-- taps ignored throughout reload
+- a missed boomerang enters reload
+- other available boomerangs can continue during the sweep
 - base reload = 5 s
 - upgrade values reach 4.5/4/3/2 s correctly
 
@@ -40,14 +41,16 @@ Use Vitest for deterministic gameplay/progression logic. Three.js visual polish 
 - purchase deducts spendable XP only
 - lifetime XP never decreases
 - duplicate/max purchase rejected
-- derived values update correctly
+- `secondDummy`, `thirdDummy`, and `fourthDummy` do not exist
+- every prerequisite references a real current upgrade ID
+- derived `targetCount` is always `1`
 
 ### Dog
 - no throws before unlock
 - base interval 10 s
 - speed upgrades 8/6/4 s
-- XP factors 25/40/60/100%
-- dog chains across all targets
+- damage factors 25/40/60/100%
+- dog hits the single target
 - Fetch Mastery crit chance uses injectable RNG
 - dog does not change combo
 - no catch-up/offline throws after a large resume delta
@@ -57,40 +60,40 @@ Use Vitest for deterministic gameplay/progression logic. Three.js visual polish 
 - round trip
 - missing fields recover
 - corrupted JSON recovers
-- unknown fields/upgrades do not crash
+- unknown/removed upgrade IDs do not crash and are discarded
 - version path is explicit
 
 ## Integration tests
 
 At minimum:
 1. White tap with 1 boomerang/1 target awards expected XP.
-2. Twin Throw doubles player hit count/reward.
-3. Twin Throw + Second Dummy gives 4 rewarded hits per successful throw.
-4. Red result awards 0 and locks player for reload.
-5. Dog reward occurs while player is otherwise ready/throwing without corrupting player state.
+2. Twin Throw provides two independent presses against the same target.
+3. A consumed gauge area cannot fire twice in the same sweep.
+4. A missed boomerang reloads without restoring at the gauge reset.
+5. Dog reward occurs independently and hits only the single target.
 6. Upgrade purchase is immediately reflected in calculations and saved state.
+7. Full late-game progression still derives `targetCount = 1`.
 
 ## Balance simulation
 
-Create a deterministic development test/helper, e.g.:
-
-`src/progression/optimalProgression.test.js`
+Use `src/progression/optimalProgression.test.js` and `optimalProgressionSimulator.js`.
 
 The simulator should:
 - advance logical time
 - perform perfect white throws at the actual modeled cadence
 - run dog timers after unlock
-- purchase a defined progression-optimal route
+- purchase a defined progression-optimal route containing only current upgrade IDs
 - report acquisition time for named milestones
 
-Assertions/tolerances:
-- Better Training I ~1 min ±20 s
-- Twin Throw ~30 min ±3 min
-- Second Dummy ~45 min ±4 min
-- Grandmaster completion path ~300 min ±20 min
-- important purchase gaps generally increase over the run
+Assertions/tolerances should verify:
+- Better Training I arrives very early
+- Twin Throw arrives around the 1 minute mark
+- Combo Training follows shortly after Twin Throw
+- Triple Throw -> Quad Throw -> Boomerang Mastery remain ordered
+- the route completes within the configured simulator session
+- deterministic runs produce identical milestones
 
-The balance test is the source of truth for final XP costs.
+There are no multi-target timing milestones.
 
 ## Manual mobile acceptance
 
@@ -102,9 +105,10 @@ Test at narrow portrait sizes:
 Verify:
 - no horizontal scroll
 - gauge readable
-- targets not clipped
+- exactly one target dummy is rendered during normal play
+- target is not clipped
 - all controls reachable
 - menu tap never throws
-- rapid multi-touch does not double-trigger
+- rapid multi-touch does not double-trigger one consumed area
 - background/resume does not grant dog/offline XP
 - rotation/resize does not break scene

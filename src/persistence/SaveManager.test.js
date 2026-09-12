@@ -80,7 +80,7 @@ describe('SaveManager contract', () => {
     expect(manager.load()).toEqual(createDefaultSave());
   });
 
-  it('ignores unknown upgrades/fields safely', () => {
+  it('ignores unknown and removed upgrades/fields safely', () => {
     const storage = createMemoryStorage();
     const manager = new SaveManager({ storage });
     storage.setItem(
@@ -91,6 +91,7 @@ describe('SaveManager contract', () => {
         unexpectedRootField: 'ignored',
         upgrades: {
           betterTraining1: true,
+          secondDummy: true,
           imaginaryUpgrade: true,
         },
         stats: {
@@ -103,6 +104,7 @@ describe('SaveManager contract', () => {
     const loaded = manager.load();
 
     expect(loaded.upgrades.betterTraining1).toBe(true);
+    expect(loaded.upgrades).not.toHaveProperty('secondDummy');
     expect(loaded.upgrades).not.toHaveProperty('imaginaryUpgrade');
     expect(loaded.stats.manualThrows).toBe(3);
     expect(loaded.stats).not.toHaveProperty('imaginaryStat');
@@ -182,7 +184,7 @@ describe('SaveManager contract', () => {
     const effects = new ProgressionManager(gameState).getDerivedEffects();
 
     expect(effects.playerBoomerangCount).toBe(4);
-    expect(effects.targetCount).toBe(4);
+    expect(effects.targetCount).toBe(1);
     expect(effects.dogUnlocked).toBe(true);
     expect(effects.dogIntervalSeconds).toBe(4);
     expect(effects.dogXpFactor).toBe(1);

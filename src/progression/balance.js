@@ -19,7 +19,7 @@ export const BALANCE = Object.freeze({
   basePlayerBoomerangs: 1,
   maxPlayerBoomerangs: 4,
   baseTargets: 1,
-  maxTargets: 4,
+  maxTargets: 1,
 
   baseGaugeZoneWidths: Object.freeze({ red: 0.80, green: 0.17, white: 0.03 }),
 
@@ -40,7 +40,6 @@ export const BALANCE = Object.freeze({
   upgradeCosts: Object.freeze({
     betterTraining1: 160,
     twinThrow: 900,
-    secondDummy: 1600,
     comboTraining: 2400,
 
     quickReload1: 300,
@@ -57,7 +56,6 @@ export const BALANCE = Object.freeze({
     fastFetch1: 22000,
     betterTraining3: 28000,
     tripleThrow: 35000,
-    thirdDummy: 50000,
     criticalTraining2: 65000,
     ultraCritical: 85000,
     criticalMastery: 100000,
@@ -67,7 +65,6 @@ export const BALANCE = Object.freeze({
     fastFetch2: 160000,
     quadThrow: 200000,
     omegaCritical: 250000,
-    fourthDummy: 300000,
     comboMastery: 375000,
     boomerangMastery: 450000,
     fetchMastery: 550000,

@@ -23,8 +23,8 @@ describe('Fortune Mill-style progression rescale', () => {
     expect(costs.twinThrow).toBeLessThan(costs.dogCompanion);
     expect(costs.dogCompanion).toBeLessThan(costs.tripleThrow);
     expect(costs.tripleThrow).toBeLessThan(costs.quadThrow);
-    expect(costs.quadThrow).toBeLessThan(costs.fourthDummy);
-    expect(costs.fourthDummy).toBeLessThan(costs.grandmaster);
+    expect(costs.quadThrow).toBeLessThan(costs.comboMastery);
+    expect(costs.comboMastery).toBeLessThan(costs.grandmaster);
     expect(costs.grandmaster).toBe(1_000_000);
   });
 

@@ -2,45 +2,36 @@
 
 ## Current-to-target approach
 
-The repository currently has a minimal `src/`. Grow it incrementally; do not rewrite build tooling.
+Grow the existing `src/` incrementally; do not rewrite build tooling.
 
-Recommended target structure:
+Recommended structure:
 
 ```text
 src/
 ├─ main.js
 ├─ style.css
-├─ game.js                         # keep shared existing helpers/constants if useful
-│
-├─ app/
-│  └─ GameApp.js                   # top-level lifecycle / screen transitions
-│
+├─ game.js
+├─ app/GameApp.js
 ├─ scenes/
 │  ├─ MainMenuScene.js
-│  └─ GameScene.js                 # Three.js scene/camera/lights + gameplay composition
-│
+│  └─ GameScene.js
 ├─ gameplay/
-│  ├─ GameState.js                 # authoritative mutable run/save state
-│  ├─ GameController.js            # state machine and gameplay orchestration
-│  ├─ GaugeController.js           # normalized sweep + zone classification
-│  ├─ ThrowController.js           # player throw resolution
-│  ├─ RewardCalculator.js          # pure XP formulas
-│  └─ DogController.js             # independent automatic timer/throws
-│
+│  ├─ GameState.js
+│  ├─ GameController.js
+│  ├─ GaugeController.js
+│  ├─ ThrowController.js
+│  ├─ RewardCalculator.js
+│  └─ DogController.js
 ├─ entities/
 │  ├─ PlayerView.js
 │  ├─ BoomerangView.js
 │  ├─ TargetDummyView.js
 │  └─ DogView.js
-│
 ├─ progression/
-│  ├─ upgradeDefinitions.js        # IDs, prerequisites, costs/gates, effects metadata
-│  ├─ ProgressionManager.js        # affordability/purchase/apply logic
-│  └─ balance.js                   # numeric gameplay/progression constants
-│
-├─ persistence/
-│  └─ SaveManager.js
-│
+│  ├─ upgradeDefinitions.js
+│  ├─ ProgressionManager.js
+│  └─ balance.js
+├─ persistence/SaveManager.js
 └─ ui/
    ├─ HUD.js
    ├─ GaugeView.js
@@ -49,7 +40,7 @@ src/
    └─ CompletionPanel.js
 ```
 
-Tests may stay colocated as `*.test.js` or follow the existing project convention.
+Tests may stay colocated as `*.test.js`.
 
 ## Ownership rules
 
@@ -57,8 +48,8 @@ Tests may stay colocated as `*.test.js` or follow the existing project conventio
 Owns:
 - gameplay state machine
 - accepting/ignoring tap input
-- player throw start/end
-- miss reload
+- player throw resolution lifecycle
+- boomerang reload state
 - calling reward/progression systems
 
 Must not:
@@ -69,9 +60,10 @@ Must not:
 ### `GaugeController`
 Pure gameplay model:
 - normalized position
-- direction
+- direction/sweep reset
 - update by `deltaSeconds`
 - classify red/green/white
+- multiple boomerang timing areas
 - apply precision upgrade widths
 
 `GaugeView` renders this state. DOM pixel position must not be authoritative.
@@ -79,8 +71,8 @@ Pure gameplay model:
 ### `RewardCalculator`
 Pure functions only. Inputs explicitly include:
 - hit type
-- boomerang count
-- target count
+- boomerang count for the resolved reward
+- target count, which progression fixes at `1`
 - training multiplier
 - critical multiplier
 - combo
@@ -98,6 +90,8 @@ Owns:
 - upgrade state queries
 
 Upgrade definitions are data, not long switch statements where avoidable.
+
+Progression invariant: `targetCount` is always `1`. No target-count upgrade or prerequisite may be added.
 
 ### `DogController`
 Owns:
@@ -147,7 +141,7 @@ Use Three.js for:
 - player
 - dog
 - boomerangs
-- targets
+- the single target dummy
 - floor/background
 - lights/shadows
 - hit/miss/critical visual effects
@@ -168,17 +162,17 @@ Use Pointer Events so one path supports touch/mouse.
 
 Gameplay tap target should cover the gameplay viewport. Prevent gameplay taps when:
 - UI control consumed the pointer
-- state is not `READY`
+- state is paused/finalized
+- the current gauge area is already consumed
 - upgrade/settings menu is open
 
-Do not attach separate gameplay logic to every 3D object.
+Do not attach separate gameplay logic to the target mesh.
 
 ## Time handling
 
 All timers use elapsed time/delta time, never frame counts:
 - gauge motion
-- success recovery
-- miss reload
+- boomerang reload
 - dog interval
 - animations
 
