@@ -40,6 +40,8 @@ export class GaugeController {
       throw new RangeError('Gauge one-way duration must be a positive finite number.');
     }
 
+    this.baseOneWaySeconds = oneWaySeconds;
+    this.speedMultiplier = 1;
     this.oneWaySeconds = oneWaySeconds;
     this.position = 0;
     this.direction = 1;
@@ -80,6 +82,15 @@ export class GaugeController {
     this.consumedSegments.clear();
   }
 
+  /** Apply a progression speed multiplier without replacing the configured base duration. */
+  setSpeedMultiplier(speedMultiplier = 1) {
+    if (!Number.isFinite(speedMultiplier) || speedMultiplier <= 0) {
+      throw new RangeError('Gauge speed multiplier must be a positive finite number.');
+    }
+    this.speedMultiplier = speedMultiplier;
+    this.oneWaySeconds = this.baseOneWaySeconds / speedMultiplier;
+  }
+
   setSegmentCount(segmentCount) {
     if (!Number.isInteger(segmentCount) || segmentCount < 0) {
       throw new RangeError('Gauge segment count must be a non-negative integer.');
@@ -116,13 +127,24 @@ export class GaugeController {
     return this.consumedSegments.has(this.getSegmentIndex());
   }
 
+  /** Consume one timing area once. Returns false for invalid or repeated areas. */
+  consumeSegment(segmentIndex) {
+    if (
+      !Number.isInteger(segmentIndex) ||
+      segmentIndex < 0 ||
+      segmentIndex >= this.segmentCount ||
+      this.consumedSegments.has(segmentIndex)
+    ) {
+      return false;
+    }
+    this.consumedSegments.add(segmentIndex);
+    return true;
+  }
+
   /** Consume the current timing area once. Returns false for a repeated tap. */
   consumeCurrentSegment() {
     if (this.segmentCount === 0) return false;
-    const segmentIndex = this.getSegmentIndex();
-    if (this.consumedSegments.has(segmentIndex)) return false;
-    this.consumedSegments.add(segmentIndex);
-    return true;
+    return this.consumeSegment(this.getSegmentIndex());
   }
 
   setZoneWidths(zoneWidths) {
@@ -167,6 +189,7 @@ export class GaugeController {
       position: this.position,
       direction: 1,
       running: this.running,
+      speedMultiplier: this.speedMultiplier,
       zoneWidths: { ...this.zoneWidths },
       criticalLayerCount: this.criticalLayerCount,
       segmentCount: this.segmentCount,
