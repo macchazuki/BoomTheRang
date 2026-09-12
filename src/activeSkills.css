@@ -1,0 +1,68 @@
+.active-skill-bar {
+  position: absolute;
+  z-index: 8;
+  right: max(0.65rem, env(safe-area-inset-right));
+  bottom: 9.5rem;
+  display: grid;
+  gap: 0.55rem;
+  pointer-events: auto;
+}
+
+.active-skill-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  min-width: 3.25rem;
+  height: 3.25rem;
+  min-height: 3.25rem;
+  padding: 0;
+  overflow: hidden;
+  color: #eef6ff;
+  background: #18243a;
+  border: 2px solid #7db8ff;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 45%);
+}
+
+.active-skill-icon__glyph {
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.active-skill-icon__timer {
+  position: absolute;
+  right: 0.1rem;
+  bottom: 0.05rem;
+  min-width: 1.2rem;
+  padding: 0.04rem 0.18rem;
+  color: #fff;
+  background: rgb(0 0 0 / 72%);
+  border-radius: 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.active-skill-icon--active {
+  color: #fff2aa;
+  border-color: #ffd45b;
+  box-shadow: 0 0 18px rgb(255 212 91 / 55%);
+}
+
+.active-skill-icon--cooldown {
+  filter: grayscale(0.7);
+  opacity: 0.65;
+}
+
+.active-skill-icon:disabled {
+  cursor: default;
+}
+
+.active-skill-card__levels {
+  color: #b9c7db;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
