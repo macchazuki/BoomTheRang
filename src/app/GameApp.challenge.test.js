@@ -40,4 +40,26 @@ describe('GameApp challenge isolation', () => {
     expect(app.saveManager.save).toHaveBeenCalledTimes(1);
     expect(app.startGameplay).toHaveBeenCalledWith({ challengeDefinition: result.definition });
   });
+
+  it('renders buttons only for challenge modes the account has unlocked', () => {
+    const app = createHarness();
+    const appended = [];
+    app.challengeButtonsHost = {
+      replaceChildren: vi.fn(() => { appended.length = 0; }),
+      append: vi.fn((button) => appended.push(button)),
+    };
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({
+        type: '',
+        className: '',
+        textContent: '',
+        setAttribute: vi.fn(),
+        addEventListener: vi.fn(),
+      })),
+    });
+
+    app.renderChallengeButtons();
+
+    expect(appended.map((button) => button.textContent)).toEqual(['Speed Trial', 'Pressure Trial']);
+  });
 });
