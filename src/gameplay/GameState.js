@@ -21,6 +21,12 @@ export class GameState {
     this.xp = data.xp;
     this.lifetimeXp = data.lifetimeXp;
     this.upgrades = { ...fresh.upgrades, ...data.upgrades };
+    this.skills = Object.fromEntries(
+      Object.entries(fresh.skills).map(([skillId, defaults]) => [
+        skillId,
+        { ...defaults, ...(data.skills?.[skillId] ?? {}) },
+      ]),
+    );
     this.progression = { ...fresh.progression, ...data.progression };
     this.gameplay = { ...fresh.gameplay, ...data.gameplay };
     this.stats = { ...fresh.stats, ...data.stats };
@@ -65,6 +71,32 @@ export class GameState {
     return this.upgrades[upgradeId] === true;
   }
 
+  /** Learn one known active skill and enable it immediately. */
+  learnSkill(skillId) {
+    const skill = this.skills[skillId];
+    if (!skill || skill.learned) return false;
+    this.skills[skillId] = { learned: true, active: true };
+    return true;
+  }
+
+  /** Return whether a skill has been learned. */
+  hasSkill(skillId) {
+    return this.skills[skillId]?.learned === true;
+  }
+
+  /** Enable or disable a learned skill. */
+  setSkillActive(skillId, active) {
+    const skill = this.skills[skillId];
+    if (!skill?.learned) return false;
+    this.skills[skillId] = { learned: true, active: Boolean(active) };
+    return true;
+  }
+
+  /** Return whether a learned skill is currently active. */
+  isSkillActive(skillId) {
+    return this.skills[skillId]?.learned === true && this.skills[skillId]?.active === true;
+  }
+
   /** Set combo and update longest-combo statistic. */
   setCombo(combo) {
     this.gameplay.combo = Math.max(0, Math.floor(combo));
@@ -96,6 +128,7 @@ export class GameState {
       xp: this.xp,
       lifetimeXp: this.lifetimeXp,
       upgrades: this.upgrades,
+      skills: this.skills,
       progression: this.progression,
       gameplay: this.gameplay,
       stats: this.stats,
