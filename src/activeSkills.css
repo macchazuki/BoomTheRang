@@ -25,6 +25,10 @@
   box-shadow: 0 4px 14px rgb(0 0 0 / 45%);
 }
 
+.active-skill-icon[hidden] {
+  display: none;
+}
+
 .active-skill-icon__glyph {
   font-size: 1.55rem;
   font-weight: 900;
