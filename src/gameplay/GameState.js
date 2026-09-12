@@ -22,6 +22,12 @@ export class GameState {
       ]),
     );
     this.progression = { ...fresh.progression, ...data.progression };
+    this.challenges = Object.fromEntries(
+      Object.entries(fresh.challenges).map(([challengeId, defaults]) => [
+        challengeId,
+        { ...defaults, ...(data.challenges?.[challengeId] ?? {}) },
+      ]),
+    );
     this.gameplay = { ...fresh.gameplay, ...data.gameplay };
     this.stats = { ...fresh.stats, ...data.stats };
     this.settings = { ...fresh.settings, ...data.settings };
@@ -103,6 +109,7 @@ export class GameState {
       upgrades: this.upgrades,
       skills: this.skills,
       progression: this.progression,
+      challenges: this.challenges,
       gameplay: this.gameplay,
       stats: this.stats,
       settings: this.settings,
