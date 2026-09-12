@@ -65,6 +65,7 @@ export class SaveManager {
       CHALLENGE_DEFINITIONS.map((definition) => {
         const record = input.challenges?.[definition.id] ?? {};
         return [definition.id, {
+          unlocked: record.unlocked === true,
           bestHits: Math.floor(this.nonNegativeNumber(record.bestHits, 0)),
           damageBonus: clamp(this.numberOr(record.damageBonus, 0), 0, definition.maxDamageBonus),
           cooldownUntil: Math.floor(this.nonNegativeNumber(record.cooldownUntil, 0)),
