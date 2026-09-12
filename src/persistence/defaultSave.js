@@ -1,5 +1,6 @@
 import { UPGRADE_IDS } from '../progression/upgradeDefinitions.js';
 import { SKILL_IDS } from '../progression/skillDefinitions.js';
+import { createDefaultChallengeRecords } from '../challenges/challengeDefinitions.js';
 
 export const SAVE_VERSION = 1;
 export const SAVE_KEY = 'boomTheRang.save.v1';
@@ -16,6 +17,7 @@ export function createDefaultSave() {
     upgrades,
     skills,
     progression: { gameCompleted: false },
+    challenges: createDefaultChallengeRecords(),
     gameplay: { combo: 0 },
     stats: {
       manualThrows: 0,
