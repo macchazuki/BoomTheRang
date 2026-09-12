@@ -64,11 +64,38 @@ export class SaveManager {
     const challenges = Object.fromEntries(
       CHALLENGE_DEFINITIONS.map((definition) => {
         const record = input.challenges?.[definition.id] ?? {};
+        const maxDamageBonus = Math.max(...definition.levels.map((level) => level.maxDamageBonus));
+        const legacyPressure = definition.id === 'speedTrial' ? input.challenges?.pressureTrial : null;
+        const legacyMaster = definition.id === 'speedTrial' ? input.challenges?.masterTrial : null;
+        const unlocked = record.unlocked === true || legacyPressure?.unlocked === true || legacyMaster?.unlocked === true;
+        const inferredLevel = legacyMaster?.unlocked === true
+          ? 3
+          : legacyPressure?.unlocked === true
+            ? 2
+            : unlocked
+              ? 1
+              : 0;
+        const rawLevel = Number.isFinite(record.level) ? Math.floor(record.level) : inferredLevel;
+        const level = unlocked ? clamp(rawLevel || inferredLevel || 1, 1, definition.levels.length) : 0;
+        const legacyBestHits = Math.max(
+          this.nonNegativeNumber(legacyPressure?.bestHits, 0),
+          this.nonNegativeNumber(legacyMaster?.bestHits, 0),
+        );
+        const legacyDamageBonus = Math.max(
+          this.numberOr(legacyPressure?.damageBonus, 0),
+          this.numberOr(legacyMaster?.damageBonus, 0),
+        );
+        const legacyCooldownUntil = Math.max(
+          this.nonNegativeNumber(legacyPressure?.cooldownUntil, 0),
+          this.nonNegativeNumber(legacyMaster?.cooldownUntil, 0),
+        );
+
         return [definition.id, {
-          unlocked: record.unlocked === true,
-          bestHits: Math.floor(this.nonNegativeNumber(record.bestHits, 0)),
-          damageBonus: clamp(this.numberOr(record.damageBonus, 0), 0, definition.maxDamageBonus),
-          cooldownUntil: Math.floor(this.nonNegativeNumber(record.cooldownUntil, 0)),
+          unlocked,
+          level,
+          bestHits: Math.floor(Math.max(this.nonNegativeNumber(record.bestHits, 0), legacyBestHits)),
+          damageBonus: clamp(Math.max(this.numberOr(record.damageBonus, 0), legacyDamageBonus), 0, maxDamageBonus),
+          cooldownUntil: Math.floor(Math.max(this.nonNegativeNumber(record.cooldownUntil, 0), legacyCooldownUntil)),
         }];
       }),
     );

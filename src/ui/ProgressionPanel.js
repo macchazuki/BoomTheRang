@@ -16,11 +16,11 @@ function formatLevelStats(definition, levelData) {
 }
 
 export class UpgradePanel extends BaseUpgradePanel {
-  constructor({ challengeManager, onUnlockChallenge, onStartChallenge, onUpgradeSkill, ...options }) {
+  constructor({ challengeManager, onUnlockChallenge, onUpgradeChallenge, onUpgradeSkill, ...options }) {
     super({ ...options, onToggleSkill: null });
     this.challengeManager = challengeManager;
     this.onUnlockChallenge = onUnlockChallenge;
-    this.onStartChallenge = onStartChallenge;
+    this.onUpgradeChallenge = onUpgradeChallenge;
     this.onUpgradeSkill = onUpgradeSkill;
     this.lastChallengeResult = null;
   }
@@ -175,7 +175,19 @@ export class UpgradePanel extends BaseUpgradePanel {
     }
 
     for (const status of this.challengeManager?.getStatuses() ?? []) {
-      const { definition, record, unlocked, meetsLifetimeXp, canUnlock, cooldownRemainingMs, canStart } = status;
+      const {
+        definition,
+        effectiveDefinition,
+        nextLevelDefinition,
+        record,
+        unlocked,
+        level,
+        maxLevel,
+        meetsLifetimeXp,
+        canUnlock,
+        meetsUpgradeLifetimeXp,
+        canUpgrade,
+      } = status;
       const card = document.createElement('section');
       card.className = 'active-skill-card';
       card.dataset.challengeId = definition.id;
@@ -186,7 +198,7 @@ export class UpgradePanel extends BaseUpgradePanel {
       name.textContent = definition.name;
       const badge = document.createElement('span');
       badge.className = 'active-skill-card__badge';
-      badge.textContent = unlocked ? 'Unlocked' : 'Locked';
+      badge.textContent = unlocked ? `Level ${level}/${maxLevel}` : 'Locked';
       titleRow.append(name, badge);
 
       const description = document.createElement('p');
@@ -195,27 +207,43 @@ export class UpgradePanel extends BaseUpgradePanel {
 
       const meta = document.createElement('p');
       meta.className = 'active-skill-card__levels';
-      meta.textContent = `Best: ${record.bestHits} hits • Bonus: +${this.formatPercent(record.damageBonus)} • Max: +${this.formatPercent(definition.maxDamageBonus)}`;
+      if (unlocked) {
+        const nextText = nextLevelDefinition
+          ? `\nNext: ${nextLevelDefinition.tierName} — ${nextLevelDefinition.description}`
+          : '';
+        meta.textContent = `Current: ${effectiveDefinition.tierName}\nBest: ${record.bestHits} hits • Bonus: +${this.formatPercent(record.damageBonus)} • Max: +${this.formatPercent(effectiveDefinition.maxDamageBonus)}${nextText}`;
+      } else {
+        meta.textContent = `Level 1: ${definition.levels[0].tierName} — ${definition.levels[0].description}`;
+      }
+      meta.style.whiteSpace = 'pre-line';
 
       const action = document.createElement('button');
       action.type = 'button';
       action.className = 'active-skill-card__action';
       if (!unlocked) {
+        const firstLevel = definition.levels[0];
         action.disabled = !canUnlock;
         if (!meetsLifetimeXp) {
-          action.textContent = `Locked — ${definition.unlockLifetimeXp.toLocaleString()} lifetime XP required`;
+          action.textContent = `Locked — ${firstLevel.unlockLifetimeXp.toLocaleString()} lifetime XP required`;
         } else if (!canUnlock) {
-          action.textContent = `Need ${definition.unlockCostXp.toLocaleString()} XP to unlock`;
+          action.textContent = `Need ${firstLevel.unlockCostXp.toLocaleString()} XP to unlock`;
         } else {
-          action.textContent = `Unlock for ${definition.unlockCostXp.toLocaleString()} XP`;
+          action.textContent = `Unlock for ${firstLevel.unlockCostXp.toLocaleString()} XP`;
         }
         action.addEventListener('click', () => this.onUnlockChallenge?.(definition.id));
+      } else if (!nextLevelDefinition) {
+        action.disabled = true;
+        action.textContent = 'Max Level';
       } else {
-        action.disabled = !canStart;
-        action.textContent = cooldownRemainingMs > 0
-          ? `Ready in ${this.formatDuration(cooldownRemainingMs)}`
-          : 'Start Challenge';
-        action.addEventListener('click', () => this.onStartChallenge?.(definition.id));
+        action.disabled = !canUpgrade;
+        if (!meetsUpgradeLifetimeXp) {
+          action.textContent = `Locked — ${nextLevelDefinition.unlockLifetimeXp.toLocaleString()} lifetime XP required`;
+        } else if (!canUpgrade) {
+          action.textContent = `Need ${nextLevelDefinition.unlockCostXp.toLocaleString()} XP`;
+        } else {
+          action.textContent = `Upgrade to ${nextLevelDefinition.tierName} for ${nextLevelDefinition.unlockCostXp.toLocaleString()} XP`;
+        }
+        action.addEventListener('click', () => this.onUpgradeChallenge?.(definition.id));
       }
 
       card.append(titleRow, description, meta, action);
