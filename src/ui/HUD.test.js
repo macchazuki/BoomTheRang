@@ -62,7 +62,7 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(feedback.textContent).toBe('GOOD BOY! +12 XP');
   });
 
-  it('delays comic impacts and emits one sequential impact per target', () => {
+  it('waits until the player boomerang reaches the target before comic impact and shake', () => {
     vi.useFakeTimers();
     const { hud } = createHudFixture();
     hud.showComicImpact = vi.fn();
@@ -70,18 +70,28 @@ describe('HUD mobile/accessibility presentation', () => {
     hud.showPlayerResult({
       result: 'CRITICAL',
       awardedXp: 40,
-      targetCount: 3,
+      targetCount: 1,
       reducedMotion: false,
     });
 
-    expect(hud.showComicImpact).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(261);
+    vi.advanceTimersByTime(524);
     expect(hud.showComicImpact).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(hud.showComicImpact).toHaveBeenCalledTimes(1);
-    vi.advanceTimersByTime(48);
-    expect(hud.showComicImpact).toHaveBeenCalledTimes(2);
-    vi.advanceTimersByTime(48);
-    expect(hud.showComicImpact).toHaveBeenCalledTimes(3);
+    expect(hud.showComicImpact).toHaveBeenCalledWith({ critical: true, dog: false });
+  });
+
+  it('keeps dog impact timing aligned with its immediate throw', () => {
+    vi.useFakeTimers();
+    const { hud } = createHudFixture();
+    hud.showComicImpact = vi.fn();
+
+    hud.showDogResult({ critical: true, awardedXp: 12, targetCount: 1, reducedMotion: false });
+
+    vi.advanceTimersByTime(289);
+    expect(hud.showComicImpact).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(hud.showComicImpact).toHaveBeenCalledTimes(1);
+    expect(hud.showComicImpact).toHaveBeenCalledWith({ critical: true, dog: true });
   });
 });
