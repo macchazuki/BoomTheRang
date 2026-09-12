@@ -1,16 +1,33 @@
 import * as THREE from 'three';
 
+const DEFAULT_SPRITE_URL = new URL('../assets/sprites/boomerang.png', import.meta.url).href;
+const FRAME_COUNT = 4;
+const SPRITE_HEIGHT = 0.9;
+const HERO_LAUNCH_OFFSET_X = 0.55;
+const HERO_X_THRESHOLD = 0.75;
+const HERO_Y_THRESHOLD = -4;
+
 /**
  * Render-only player/dog boomerang.
  * Logical hit counts come from ThrowController, never Three.js collision.
  */
 export class BoomerangView {
-  constructor({ index = 0 } = {}) {
+  constructor({ index = 0, spriteUrl = DEFAULT_SPRITE_URL, loader = new THREE.TextureLoader() } = {}) {
     this.index = index;
-    this.object3d = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.1, 8, 24, Math.PI * 1.4),
-      new THREE.MeshStandardMaterial({ color: 0xffc04d }),
-    );
+    this.spriteUrl = spriteUrl;
+    this.loader = loader;
+    this.texture = null;
+    this.disposed = false;
+    this.currentFrame = 0;
+
+    this.material = new THREE.SpriteMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    this.object3d = new THREE.Sprite(this.material);
+    this.object3d.scale.set(SPRITE_HEIGHT, SPRITE_HEIGHT, 1);
+    this.object3d.renderOrder = 20;
     this.object3d.visible = false;
 
     this.pathPoints = null;
@@ -20,19 +37,62 @@ export class BoomerangView {
     this.durationSeconds = 0;
     this.delayRemainingSeconds = 0;
     this.reducedMotion = false;
+    this.onPathPoint = null;
+    this.nextPathPointIndex = 1;
+
+    this.spriteReady = this.loadSprite();
   }
 
-  /** Configure/launch a deterministic successful target-chain path. */
-  playHitPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false }) {
-    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion });
+  async loadSprite() {
+    try {
+      const texture = await this.loader.loadAsync(this.spriteUrl);
+      if (this.disposed) {
+        texture.dispose?.();
+        return null;
+      }
+
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
+
+      const sourceWidth = texture.image?.width || texture.source?.data?.width || 1;
+      const sourceHeight = texture.image?.height || texture.source?.data?.height || 1;
+      const frameWidth = sourceWidth / FRAME_COUNT;
+      this.object3d.scale.set(SPRITE_HEIGHT * (frameWidth / sourceHeight), SPRITE_HEIGHT, 1);
+
+      this.texture = texture;
+      this.material.map = texture;
+      this.material.opacity = 1;
+      this.material.needsUpdate = true;
+      this.setFrame(0);
+      return this.object3d;
+    } catch (error) {
+      console.error('Failed to load boomerang sprite', error);
+      return null;
+    }
   }
 
-  /** Configure/launch deterministic miss curve beside target formation. */
+  setFrame(frameIndex) {
+    this.currentFrame = ((frameIndex % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT;
+    if (!this.texture) return;
+
+    this.texture.repeat.set(1 / FRAME_COUNT, 1);
+    this.texture.offset.set(this.currentFrame / FRAME_COUNT, 0);
+  }
+
+  playHitPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false, onPathPoint = null }) {
+    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint });
+  }
+
   playMissPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false }) {
-    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion });
+    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint: null });
   }
 
-  startPath({ points, durationSeconds, delaySeconds, reducedMotion }) {
+  startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint = null }) {
     const normalizedPoints = points.map((point) =>
       point?.isVector3 ? point.clone() : new THREE.Vector3(...point),
     );
@@ -42,6 +102,15 @@ export class BoomerangView {
       return;
     }
 
+    // The authored hero throws from his right hand. Shift only player-owned
+    // paths (centered near x=0 at the bottom of the field), not the dog path.
+    const ownerPoint = normalizedPoints[0];
+    const isHeroPath = Math.abs(ownerPoint.x) < HERO_X_THRESHOLD && ownerPoint.y < HERO_Y_THRESHOLD;
+    if (isHeroPath) {
+      normalizedPoints[0].x += HERO_LAUNCH_OFFSET_X;
+      normalizedPoints[normalizedPoints.length - 1].x += HERO_LAUNCH_OFFSET_X;
+    }
+
     this.reducedMotion = reducedMotion;
     this.pathPoints = reducedMotion
       ? this.createReducedMotionPath(normalizedPoints[0])
@@ -49,6 +118,9 @@ export class BoomerangView {
     this.durationSeconds = Math.max(0.001, durationSeconds);
     this.delayRemainingSeconds = Math.max(0, delaySeconds);
     this.elapsedSeconds = 0;
+    this.onPathPoint = onPathPoint;
+    this.nextPathPointIndex = 1;
+    this.setFrame(0);
 
     this.cumulativeDistances = [0];
     this.totalDistance = 0;
@@ -61,7 +133,6 @@ export class BoomerangView {
     this.object3d.visible = this.delayRemainingSeconds === 0;
   }
 
-  /** Reduced motion keeps the boomerang near its owner while target feedback still conveys the result. */
   createReducedMotionPath(ownerPosition) {
     const direction = this.index % 2 === 0 ? 1 : -1;
     return [
@@ -71,7 +142,6 @@ export class BoomerangView {
     ];
   }
 
-  /** Advance current visual path/spin. */
   update(deltaSeconds) {
     if (!this.pathPoints) return;
 
@@ -87,14 +157,23 @@ export class BoomerangView {
     this.elapsedSeconds = Math.min(this.durationSeconds, this.elapsedSeconds + animationDelta);
     const progress = this.elapsedSeconds / this.durationSeconds;
     this.object3d.position.copy(this.samplePath(progress));
-    this.object3d.rotation.z += animationDelta * (this.reducedMotion ? 8 : 18);
 
-    if (progress >= 1) {
-      this.reset();
+    const traveledDistance = progress * this.totalDistance;
+    while (
+      this.nextPathPointIndex < this.cumulativeDistances.length &&
+      traveledDistance >= this.cumulativeDistances[this.nextPathPointIndex]
+    ) {
+      this.onPathPoint?.(this.nextPathPointIndex);
+      this.nextPathPointIndex += 1;
     }
+
+    // Cycle the four authored rotation frames while the boomerang is in flight.
+    const cycles = this.reducedMotion ? 1 : 3;
+    this.setFrame(Math.floor(progress * FRAME_COUNT * cycles));
+
+    if (progress >= 1) this.reset();
   }
 
-  /** Sample the configured polyline by traveled distance for roughly constant visual speed. */
   samplePath(progress) {
     if (!this.pathPoints?.length) return new THREE.Vector3();
     if (this.totalDistance <= 0) return this.pathPoints[this.pathPoints.length - 1].clone();
@@ -115,7 +194,6 @@ export class BoomerangView {
     return this.pathPoints[this.pathPoints.length - 1].clone();
   }
 
-  /** Reset boomerang to hidden owner position. */
   reset() {
     this.object3d.visible = false;
     this.pathPoints = null;
@@ -125,11 +203,14 @@ export class BoomerangView {
     this.durationSeconds = 0;
     this.delayRemainingSeconds = 0;
     this.reducedMotion = false;
+    this.onPathPoint = null;
+    this.nextPathPointIndex = 1;
+    this.setFrame(0);
   }
 
-  /** Dispose owned GPU resources. */
   dispose() {
-    this.object3d.geometry.dispose();
-    this.object3d.material.dispose();
+    this.disposed = true;
+    this.texture?.dispose?.();
+    this.material.dispose();
   }
 }

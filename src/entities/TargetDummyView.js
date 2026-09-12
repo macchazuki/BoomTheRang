@@ -1,71 +1,97 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const DEFAULT_MODEL_URL = new URL(
-  '../assets/models/BoomTheRang_TargetDummy.glb',
-  import.meta.url,
-).href;
+const DEFAULT_SPRITE_URL = new URL('../assets/sprites/target_dummy.png', import.meta.url).href;
+const SPRITE_HEIGHT = 3.7;
+const FRAME_COUNT = 4;
+const IDLE_FRAME = 0;
+const HIT_FRAME_1 = 1;
+const HIT_FRAME_2 = 2;
+const RECOVERY_FRAME = 3;
 
-/** Render-only target dummy. */
+/** Render-only 2D target dummy. */
 export class TargetDummyView {
-  constructor({ index = 0, modelUrl = DEFAULT_MODEL_URL, loader = new GLTFLoader() } = {}) {
+  constructor({ index = 0, spriteUrl = DEFAULT_SPRITE_URL, loader = new THREE.TextureLoader() } = {}) {
     this.index = index;
     this.object3d = new THREE.Group();
 
     this.body = new THREE.Group();
     this.object3d.add(this.body);
 
-    this.modelUrl = modelUrl;
+    this.spriteUrl = spriteUrl;
     this.loader = loader;
-    this.model = null;
+    this.texture = null;
+    this.material = null;
+    this.sprite = null;
     this.disposed = false;
-    this.reactionMaterials = [];
+    this.currentFrame = IDLE_FRAME;
 
     this.reactionDuration = 0.24;
     this.reactionRemaining = 0;
     this.reactionResult = null;
     this.reactionReducedMotion = false;
 
-    this.modelReady = this.loadModel();
+    this.spriteReady = this.loadSprite();
   }
 
-  /** Load the authored GLB. Nothing is rendered until the real asset is ready. */
-  async loadModel() {
+  /** Load the authored four-frame horizontal target sprite sheet. */
+  async loadSprite() {
     try {
-      const gltf = await this.loader.loadAsync(this.modelUrl);
+      const texture = await this.loader.loadAsync(this.spriteUrl);
       if (this.disposed) {
-        this.disposeObject(gltf.scene);
+        texture.dispose?.();
         return null;
       }
 
-      const model = gltf.scene;
-      model.scale.setScalar(0.9);
-      model.position.set(0, -0.7, 0);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
 
-      const materials = [];
-      model.traverse((node) => {
-        const nodeMaterials = Array.isArray(node.material) ? node.material : [node.material];
-        nodeMaterials.filter(Boolean).forEach((material) => {
-          if ('emissive' in material) materials.push(material);
-        });
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
       });
+      const sprite = new THREE.Sprite(material);
+      sprite.renderOrder = 8;
 
-      this.model = model;
-      this.body.add(model);
-      this.reactionMaterials = materials;
-      return model;
+      this.texture = texture;
+      this.material = material;
+      this.sprite = sprite;
+      this.body.add(sprite);
+      this.setFrame(IDLE_FRAME);
+      return sprite;
     } catch (error) {
-      console.error('Failed to load target dummy model', error);
+      console.error('Failed to load target dummy sprite', error);
       return null;
     }
   }
 
-  /** Apply scene-space formation position. */
+  /** Select one of the four equal-width frames. Frame 1 is idle. */
+  setFrame(frameIndex) {
+    this.currentFrame = THREE.MathUtils.clamp(frameIndex, 0, FRAME_COUNT - 1);
+    if (!this.texture || !this.sprite) return;
+
+    const sourceWidth = this.texture.image?.width || this.texture.source?.data?.width || FRAME_COUNT;
+    const sourceHeight = this.texture.image?.height || this.texture.source?.data?.height || 1;
+    const frameWidth = sourceWidth / FRAME_COUNT;
+    const inset = 0.5;
+
+    this.texture.offset.x = (this.currentFrame * frameWidth + inset) / sourceWidth;
+    this.texture.repeat.x = (frameWidth - inset * 2) / sourceWidth;
+    this.texture.offset.y = 0;
+    this.texture.repeat.y = 1;
+
+    this.sprite.scale.set(SPRITE_HEIGHT * (frameWidth / sourceHeight), SPRITE_HEIGHT, 1);
+  }
+
   setPosition([x, y, z]) {
     this.object3d.position.set(x, y, z);
   }
 
-  /** Visual reaction only; result has already been resolved. MISS never recoils. */
   playReaction(result, { reducedMotion = false } = {}) {
     if (result === 'MISS') return;
 
@@ -73,57 +99,39 @@ export class TargetDummyView {
     this.reactionReducedMotion = reducedMotion;
     this.reactionDuration = reducedMotion ? 0.14 : result === 'CRITICAL' ? 0.34 : 0.24;
     this.reactionRemaining = this.reactionDuration;
+    this.setFrame(HIT_FRAME_1);
   }
 
-  /** Advance visual-only recoil/impact flash. */
+  /** Advance authored hit frames 2-4, then return to frame 1 idle. */
   update(deltaSeconds) {
     if (this.reactionRemaining <= 0) return;
 
     this.reactionRemaining = Math.max(0, this.reactionRemaining - deltaSeconds);
-    const progress = 1 - this.reactionRemaining / this.reactionDuration;
-    const pulse = Math.sin(progress * Math.PI);
-    const resultStrength = this.reactionResult === 'CRITICAL' ? 1 : 0.5;
-    const motionScale = this.reactionReducedMotion ? 0.25 : 1;
-    const direction = this.index % 2 === 0 ? 1 : -1;
-
-    this.object3d.rotation.z = direction * 0.18 * resultStrength * pulse * motionScale;
-    const scalePulse = 1 + 0.1 * resultStrength * pulse * motionScale;
-    this.object3d.scale.setScalar(scalePulse);
-
-    const emissiveColor = this.reactionResult === 'CRITICAL' ? 0xffd15c : 0x6b3d12;
-    const emissiveIntensity = pulse * (this.reactionResult === 'CRITICAL' ? 1.2 : 0.45);
-    this.reactionMaterials.forEach((material) => {
-      material.emissive?.setHex(emissiveColor);
-      material.emissiveIntensity = emissiveIntensity;
-    });
 
     if (this.reactionRemaining === 0) {
-      this.object3d.rotation.z = 0;
-      this.object3d.scale.setScalar(1);
-      this.reactionMaterials.forEach((material) => {
-        material.emissive?.setHex(0x000000);
-        material.emissiveIntensity = 1;
-      });
+      this.setFrame(IDLE_FRAME);
       this.reactionResult = null;
       this.reactionReducedMotion = false;
+      return;
+    }
+
+    const progress = 1 - this.reactionRemaining / this.reactionDuration;
+    if (progress < 1 / 3) {
+      this.setFrame(HIT_FRAME_1);
+    } else if (progress < 2 / 3) {
+      this.setFrame(HIT_FRAME_2);
+    } else {
+      this.setFrame(RECOVERY_FRAME);
     }
   }
 
-  disposeObject(object) {
-    object?.traverse?.((node) => {
-      node.geometry?.dispose?.();
-      if (Array.isArray(node.material)) {
-        node.material.forEach((material) => material?.dispose?.());
-      } else {
-        node.material?.dispose?.();
-      }
-    });
-  }
-
-  /** Dispose owned GPU resources. */
   dispose() {
     this.disposed = true;
-    this.disposeObject(this.object3d);
+    this.material?.dispose?.();
+    this.texture?.dispose?.();
     this.object3d.clear();
+    this.sprite = null;
+    this.material = null;
+    this.texture = null;
   }
 }

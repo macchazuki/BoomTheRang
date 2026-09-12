@@ -4,6 +4,7 @@ import './activeSkills.css';
 import './targetStatus.css';
 import './comic.css';
 import './challengeButtons.css';
+import './gameLayout.css';
 import { GameApp } from './app/GameApp.js';
 
 /**

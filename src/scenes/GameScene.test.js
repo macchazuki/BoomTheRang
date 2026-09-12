@@ -146,7 +146,7 @@ describe('GameScene pointer routing', () => {
 });
 
 describe('GameScene gameplay presentation', () => {
-  it('chains each successful player boomerang through every target and back to the player', async () => {
+  it('launches player boomerangs from the raised right-hand position on the final hero frame', async () => {
     const scene = createAnimationFixture({ targetCount: 2, boomerangCount: 2 });
 
     await scene.playPlayerThrow({ result: 'HIT', targetCount: 2, boomerangCount: 2 });
@@ -156,8 +156,25 @@ describe('GameScene gameplay presentation', () => {
     expect(scene.boomerangViews[1].playHitPath).toHaveBeenCalledOnce();
     const firstPath = scene.boomerangViews[0].playHitPath.mock.calls[0][0];
     expect(firstPath.points).toHaveLength(4);
-    expect(firstPath.delaySeconds).toBe(0);
-    expect(scene.boomerangViews[1].playHitPath.mock.calls[0][0].delaySeconds).toBeGreaterThan(0);
+    expect(firstPath.points[0].x).toBeGreaterThan(0.8);
+    expect(firstPath.points[0].y).toBeGreaterThan(-5);
+    expect(firstPath.delaySeconds).toBeCloseTo(0.215);
+    expect(scene.boomerangViews[1].playHitPath.mock.calls[0][0].delaySeconds).toBeGreaterThan(
+      firstPath.delaySeconds,
+    );
+  });
+
+  it('uses the shorter final-frame delay when reduced motion is enabled', async () => {
+    const scene = createAnimationFixture({ targetCount: 1, boomerangCount: 1 });
+
+    await scene.playPlayerThrow({
+      result: 'HIT',
+      targetCount: 1,
+      boomerangCount: 1,
+      reducedMotion: true,
+    });
+
+    expect(scene.boomerangViews[0].playHitPath.mock.calls[0][0].delaySeconds).toBeCloseTo(0.12);
   });
 
   it('uses a bypass path for MISS without triggering hit paths', async () => {
@@ -171,15 +188,26 @@ describe('GameScene gameplay presentation', () => {
     expect(Math.abs(missPoints[1].x)).toBeGreaterThan(1);
   });
 
-  it('plays dog animation independently and chains its boomerang through all targets', async () => {
+  it('plays dog animation independently and reacts only when the boomerang reaches each target', async () => {
     const scene = createAnimationFixture({ targetCount: 2, boomerangCount: 1 });
 
     await scene.playDogThrow({ targetCount: 2, critical: true, reducedMotion: false });
 
     expect(scene.dogView.playThrow).toHaveBeenCalledWith({ critical: true, reducedMotion: false });
     expect(scene.dogBoomerangView.playHitPath).toHaveBeenCalledOnce();
-    expect(scene.dogBoomerangView.playHitPath.mock.calls[0][0].points).toHaveLength(4);
+    const pathOptions = scene.dogBoomerangView.playHitPath.mock.calls[0][0];
+    expect(pathOptions.points).toHaveLength(4);
+    expect(scene.targetViews[0].playReaction).not.toHaveBeenCalled();
+    expect(scene.targetViews[1].playReaction).not.toHaveBeenCalled();
+
+    pathOptions.onPathPoint(1);
     expect(scene.targetViews[0].playReaction).toHaveBeenCalledWith('CRITICAL', {
+      reducedMotion: false,
+    });
+    expect(scene.targetViews[1].playReaction).not.toHaveBeenCalled();
+
+    pathOptions.onPathPoint(2);
+    expect(scene.targetViews[1].playReaction).toHaveBeenCalledWith('CRITICAL', {
       reducedMotion: false,
     });
   });

@@ -1,0 +1,61 @@
+.game-screen {
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 0;
+  border-inline: 0;
+}
+
+.game-canvas-host {
+  overflow: hidden;
+  background:
+    #6f9f46
+    url('./assets/background/forest_path.png')
+    center / cover
+    no-repeat;
+}
+
+.hud {
+  position: absolute;
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  left: max(0.5rem, env(safe-area-inset-left));
+  z-index: 9;
+  padding: 0;
+}
+
+.hud__xp {
+  justify-self: start;
+  max-width: min(70vw, 18rem);
+  padding: 0.38rem 0.55rem;
+  overflow: hidden;
+  background: rgb(13 18 32 / 82%);
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 0.4rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+}
+
+.game-controls {
+  padding:
+    0.5rem
+    max(0.5rem, env(safe-area-inset-right))
+    max(0.5rem, env(safe-area-inset-bottom))
+    max(0.5rem, env(safe-area-inset-left));
+  background: #0d1220;
+}
+
+@media (max-width: 22rem) {
+  .game-screen {
+    padding: 0;
+  }
+
+  .hud {
+    padding: 0;
+  }
+
+  .game-controls {
+    padding-right: max(0.35rem, env(safe-area-inset-right));
+    padding-left: max(0.35rem, env(safe-area-inset-left));
+  }
+}

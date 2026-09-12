@@ -5,10 +5,11 @@ import { PlayerView } from './PlayerView.js';
 describe('PlayerView', () => {
   it('loads the four-frame hero sprite sheet without stretching it', async () => {
     const texture = new THREE.Texture();
-    const loader = {
-      loadAsync: vi.fn().mockResolvedValue(texture),
-    };
-    const view = new PlayerView({ spriteUrl: '/hero.png', loader });
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new PlayerView({
+      spriteUrl: '/hero.png',
+      loader,
+    });
 
     await view.spriteReady;
 
@@ -24,11 +25,9 @@ describe('PlayerView', () => {
     view.dispose();
   });
 
-  it('renders nothing if the sprite sheet cannot be loaded', async () => {
-    const loader = {
-      loadAsync: vi.fn().mockRejectedValue(new Error('missing asset')),
-    };
-    const view = new PlayerView({ spriteUrl: '/missing.png', loader });
+  it('renders no hero if the sprite sheet cannot be loaded', async () => {
+    const loader = { loadAsync: vi.fn().mockRejectedValue(new Error('missing asset')) };
+    const view = new PlayerView({ loader });
 
     await view.spriteReady;
 
@@ -40,9 +39,7 @@ describe('PlayerView', () => {
 
   it('uses the wider throw crop and separated follow-through crop', async () => {
     const texture = new THREE.Texture();
-    const loader = {
-      loadAsync: vi.fn().mockResolvedValue(texture),
-    };
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
     const view = new PlayerView({ loader });
     await view.spriteReady;
 

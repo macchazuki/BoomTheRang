@@ -5,59 +5,78 @@ import { TargetDummyView } from './TargetDummyView.js';
 const pendingLoader = () => ({ loadAsync: vi.fn(() => new Promise(() => {})) });
 
 describe('TargetDummyView', () => {
-  it('does not recoil on MISS', () => {
+  it('loads frame 1 of the four-frame sprite sheet as idle', async () => {
+    const texture = new THREE.Texture();
+    texture.image = { width: 800, height: 400 };
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new TargetDummyView({ spriteUrl: '/target.png', loader });
+
+    await view.spriteReady;
+
+    expect(loader.loadAsync).toHaveBeenCalledWith('/target.png');
+    expect(view.sprite).toBeInstanceOf(THREE.Sprite);
+    expect(view.currentFrame).toBe(0);
+    expect(texture.offset.x).toBeCloseTo(0.5 / 800);
+    expect(texture.repeat.x).toBeCloseTo(199 / 800);
+    expect(view.sprite.scale.y).toBeCloseTo(3.7);
+    expect(view.sprite.scale.x).toBeCloseTo(1.85);
+
+    view.dispose();
+  });
+
+  it('plays frames 2, 3 and 4 on hit before returning to frame 1', async () => {
+    const texture = new THREE.Texture();
+    texture.image = { width: 800, height: 400 };
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new TargetDummyView({ loader });
+    await view.spriteReady;
+
+    view.playReaction('HIT');
+    expect(view.currentFrame).toBe(1);
+
+    view.update(0.09);
+    expect(view.currentFrame).toBe(2);
+
+    view.update(0.08);
+    expect(view.currentFrame).toBe(3);
+
+    view.update(0.08);
+    expect(view.currentFrame).toBe(0);
+
+    view.dispose();
+  });
+
+  it('does not animate on MISS', () => {
     const view = new TargetDummyView({ loader: pendingLoader() });
 
     view.playReaction('MISS');
     view.update(0.1);
 
-    expect(view.object3d.rotation.z).toBe(0);
-    expect(view.object3d.scale.x).toBe(1);
+    expect(view.currentFrame).toBe(0);
     expect(view.reactionRemaining).toBe(0);
   });
 
-  it('makes CRITICAL feedback stronger than HIT feedback', async () => {
-    const createLoadedView = async () => {
-      const material = new THREE.MeshStandardMaterial();
-      const model = new THREE.Group();
-      model.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material));
-      const loader = { loadAsync: vi.fn().mockResolvedValue({ scene: model }) };
-      const view = new TargetDummyView({ index: 0, loader });
-      await view.modelReady;
-      return { view, material };
-    };
-
-    const { view: hitView, material: hitMaterial } = await createLoadedView();
-    const { view: criticalView, material: criticalMaterial } = await createLoadedView();
+  it('keeps a longer hit animation for CRITICAL than HIT', () => {
+    const hitView = new TargetDummyView({ loader: pendingLoader() });
+    const criticalView = new TargetDummyView({ loader: pendingLoader() });
 
     hitView.playReaction('HIT');
     criticalView.playReaction('CRITICAL');
-    hitView.update(0.1);
-    criticalView.update(0.1);
 
-    expect(Math.abs(criticalView.object3d.rotation.z)).toBeGreaterThan(
-      Math.abs(hitView.object3d.rotation.z),
-    );
-    expect(criticalMaterial.emissiveIntensity).toBeGreaterThan(
-      hitMaterial.emissiveIntensity,
-    );
+    expect(criticalView.reactionDuration).toBeGreaterThan(hitView.reactionDuration);
 
     hitView.dispose();
     criticalView.dispose();
   });
 
-  it('reduces recoil amplitude when reduced motion is enabled', () => {
-    const normalView = new TargetDummyView({ index: 0, loader: pendingLoader() });
-    const reducedView = new TargetDummyView({ index: 0, loader: pendingLoader() });
+  it('shortens the animation when reduced motion is enabled', () => {
+    const normalView = new TargetDummyView({ loader: pendingLoader() });
+    const reducedView = new TargetDummyView({ loader: pendingLoader() });
 
-    normalView.playReaction('CRITICAL');
-    reducedView.playReaction('CRITICAL', { reducedMotion: true });
-    normalView.update(0.07);
-    reducedView.update(0.07);
+    normalView.playReaction('HIT');
+    reducedView.playReaction('HIT', { reducedMotion: true });
 
-    expect(Math.abs(reducedView.object3d.rotation.z)).toBeLessThan(
-      Math.abs(normalView.object3d.rotation.z),
-    );
+    expect(reducedView.reactionDuration).toBeLessThan(normalView.reactionDuration);
 
     normalView.dispose();
     reducedView.dispose();
