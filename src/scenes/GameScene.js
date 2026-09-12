@@ -46,6 +46,7 @@ export class GameScene {
     this.root.setAttribute('aria-label', 'BoomTheRang gameplay');
     this.root.innerHTML = `
       <div class="hud" data-hud aria-label="Game status"></div>
+      <div class="challenge-buttons" data-challenge-buttons aria-label="Challenge modes"></div>
       <div class="game-canvas-host" data-canvas-host role="img" aria-label="Boomerang training field"></div>
       <div class="game-controls">
         <div data-gauge></div>
@@ -84,6 +85,7 @@ export class GameScene {
 
     return {
       hud: this.root.querySelector('[data-hud]'),
+      challengeButtons: this.root.querySelector('[data-challenge-buttons]'),
       gauge: this.root.querySelector('[data-gauge]'),
       feedback: this.root.querySelector('[data-feedback]'),
       overlay: this.root.querySelector('[data-overlay]'),
@@ -405,72 +407,49 @@ export class GameScene {
         boomerangCount,
         reducedMotion: motionReduced,
       }),
-      this.playDogThrow({
-        targetCount,
-        critical: true,
-        reducedMotion: motionReduced,
-      }),
+      this.dogView?.object3d.visible
+        ? this.playDogThrow({ targetCount, critical: true, reducedMotion: motionReduced })
+        : Promise.resolve(),
     ]);
-
-    for (const target of this.targetViews) {
-      target.playReaction('CRITICAL', { reducedMotion: motionReduced });
-    }
-
-    await new Promise((resolve) => {
-      setTimeout(resolve, motionReduced ? 180 : 850);
-    });
   }
 
-  /** Advance visual-only animations and render one frame. */
+  /** Advance renderer-owned presentation state and draw the scene. */
   update(deltaSeconds) {
     this.playerView?.update(deltaSeconds);
     this.dogView?.update(deltaSeconds);
+    for (const boomerang of this.boomerangViews) boomerang.update(deltaSeconds);
     this.dogBoomerangView?.update(deltaSeconds);
-    this.boomerangViews.forEach((view) => view.update(deltaSeconds));
-    this.targetViews.forEach((view) => view.update(deltaSeconds));
-
-    if (this.grandmasterMarker) {
-      this.grandmasterMarker.rotation.z += Math.max(0, deltaSeconds) * 0.8;
-    }
-
-    if (this.renderer && this.scene && this.camera) {
-      this.renderer.render(this.scene, this.camera);
-    }
+    for (const target of this.targetViews) target.update(deltaSeconds);
+    this.renderer?.render(this.scene, this.camera);
   }
 
-  /** Release GPU resources, views, DOM, and listeners. */
+  /** Release GPU resources, observers, listeners, and DOM. */
   dispose() {
     window.removeEventListener('resize', this.handleResize);
     this.resizeObserver?.disconnect();
 
-    if (this.handleGameplayPointer) {
-      this.root?.removeEventListener('pointerdown', this.handleGameplayPointer);
-    }
-
-    const skillsButton = this.root?.querySelector('[data-action="skills"]');
-    const settingsButton = this.root?.querySelector('[data-action="settings"]');
-    const overlay = this.root?.querySelector('[data-overlay]');
-    if (this.handleSkillsClick) skillsButton?.removeEventListener('click', this.handleSkillsClick);
-    if (this.handleSettingsClick) settingsButton?.removeEventListener('click', this.handleSettingsClick);
-    if (this.handleOverlayPointer) {
-      overlay?.removeEventListener('pointerdown', this.handleOverlayPointer);
-    }
+    if (this.handleGameplayPointer) this.root?.removeEventListener('pointerdown', this.handleGameplayPointer);
+    this.root?.querySelector('[data-action="skills"]')?.removeEventListener('click', this.handleSkillsClick);
+    this.root?.querySelector('[data-action="settings"]')?.removeEventListener('click', this.handleSettingsClick);
+    this.root?.querySelector('[data-overlay]')?.removeEventListener('pointerdown', this.handleOverlayPointer);
 
     this.hideGrandmasterTarget();
     this.playerView?.dispose();
     this.dogView?.dispose();
     this.dogBoomerangView?.dispose();
-    this.boomerangViews.forEach((view) => view.dispose());
-    this.targetViews.forEach((view) => view.dispose());
-
+    for (const boomerang of this.boomerangViews) boomerang.dispose();
+    for (const target of this.targetViews) target.dispose();
     this.renderer?.dispose();
-    this.root?.remove();
 
+    this.root?.remove();
     this.root = null;
-    this.canvasHost = null;
     this.renderer = null;
     this.scene = null;
     this.camera = null;
-    this.resizeObserver = null;
+    this.playerView = null;
+    this.dogView = null;
+    this.dogBoomerangView = null;
+    this.boomerangViews = [];
+    this.targetViews = [];
   }
 }
