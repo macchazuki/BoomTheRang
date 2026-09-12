@@ -1,13 +1,14 @@
 import { clamp, cloneData } from '../game.js';
 import { SAVE_KEY, SAVE_VERSION, createDefaultSave } from './defaultSave.js';
 import { UPGRADE_IDS } from '../progression/upgradeDefinitions.js';
+import { SKILL_IDS } from '../progression/skillDefinitions.js';
 
 const MAX_SAFE_SAVE_NUMBER = Number.MAX_SAFE_INTEGER;
 
 /**
  * localStorage persistence boundary.
  *
- * Malformed data must never prevent game startup. Unknown upgrade IDs are ignored;
+ * Malformed data must never prevent game startup. Unknown upgrade/skill IDs are ignored;
  * missing fields are filled from current defaults.
  */
 export class SaveManager {
@@ -66,6 +67,18 @@ export class SaveManager {
     const upgrades = Object.fromEntries(
       UPGRADE_IDS.map((id) => [id, input.upgrades?.[id] === true]),
     );
+    const skills = Object.fromEntries(
+      SKILL_IDS.map((id) => {
+        const learned = input.skills?.[id]?.learned === true;
+        return [
+          id,
+          {
+            learned,
+            active: learned && input.skills?.[id]?.active === true,
+          },
+        ];
+      }),
+    );
 
     const xp = this.nonNegativeNumber(input.xp, defaults.xp);
     const lifetimeXp = Math.max(
@@ -78,6 +91,7 @@ export class SaveManager {
       xp,
       lifetimeXp,
       upgrades,
+      skills,
       progression: {
         gameCompleted: input.progression?.gameCompleted === true,
       },
