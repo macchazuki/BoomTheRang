@@ -55,8 +55,8 @@ export class ChallengePanel {
     const list = document.createElement('div');
     list.className = 'upgrade-list';
 
-    for (const status of this.challengeManager.getStatuses()) {
-      const { definition, record, unlocked, cooldownRemainingMs, canStart } = status;
+    for (const status of this.challengeManager.getStatuses().filter(({ unlocked }) => unlocked)) {
+      const { definition, record, cooldownRemainingMs, canStart } = status;
       const card = document.createElement('article');
       card.className = `upgrade-card ${canStart ? 'upgrade-card--available' : 'upgrade-card--locked'}`;
 
@@ -76,11 +76,7 @@ export class ChallengePanel {
       cap.textContent = `Bonus cap: +${this.formatPercent(definition.maxDamageBonus)} · Cooldown: ${this.formatDuration(definition.cooldownSeconds * 1000)}`;
       card.append(cap);
 
-      if (!unlocked) {
-        const gate = document.createElement('span');
-        gate.textContent = `Unlocks at ${definition.unlockLifetimeXp.toLocaleString()} lifetime XP`;
-        card.append(gate);
-      } else if (cooldownRemainingMs > 0) {
+      if (cooldownRemainingMs > 0) {
         const cooldown = document.createElement('span');
         cooldown.textContent = `Ready in ${this.formatDuration(cooldownRemainingMs)}`;
         card.append(cooldown);
@@ -89,7 +85,7 @@ export class ChallengePanel {
       const button = document.createElement('button');
       button.type = 'button';
       button.disabled = !canStart;
-      button.textContent = !unlocked ? 'Locked' : cooldownRemainingMs > 0 ? 'On Cooldown' : 'Start Challenge';
+      button.textContent = cooldownRemainingMs > 0 ? 'On Cooldown' : 'Start Challenge';
       button.addEventListener('click', () => this.onStart(definition.id));
       card.append(button);
 
