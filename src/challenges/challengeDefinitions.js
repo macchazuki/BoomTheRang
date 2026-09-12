@@ -33,7 +33,7 @@ export const CHALLENGE_IDS = Object.freeze(CHALLENGE_DEFINITIONS.map(({ id }) =>
 
 export function createDefaultChallengeRecords() {
   return Object.fromEntries(
-    CHALLENGE_IDS.map((id) => [id, { bestHits: 0, damageBonus: 0, cooldownUntil: 0 }]),
+    CHALLENGE_IDS.map((id) => [id, { unlocked: false, bestHits: 0, damageBonus: 0, cooldownUntil: 0 }]),
   );
 }
 
