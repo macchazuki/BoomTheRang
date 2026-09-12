@@ -1,0 +1,29 @@
+.challenge-buttons {
+  position: absolute;
+  top: max(3.2rem, calc(env(safe-area-inset-top) + 2.6rem));
+  left: max(0.65rem, env(safe-area-inset-left));
+  z-index: 8;
+  display: grid;
+  gap: 0.35rem;
+  width: min(42%, 10rem);
+  pointer-events: auto;
+}
+
+.challenge-buttons:empty {
+  display: none;
+}
+
+.challenge-button {
+  width: 100%;
+  min-height: 38px;
+  padding: 0.35rem 0.5rem;
+  color: #f4f7ff;
+  background: rgb(19 27 47 / 88%);
+  border: 1px solid rgb(243 214 144 / 65%);
+  border-radius: 0.4rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 35%);
+  font-size: clamp(0.7rem, 3vw, 0.85rem);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: left;
+}
