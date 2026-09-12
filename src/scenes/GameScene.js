@@ -59,7 +59,7 @@ export class GameScene {
     this.canvasHost = this.root.querySelector('[data-canvas-host]');
     this.scene = new THREE.Scene();
     this.camera = this.createCamera();
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.canvasHost.append(this.renderer.domElement);
 
     this.createLighting();
@@ -106,7 +106,10 @@ export class GameScene {
   }
 
   createEnvironment() {
-    this.scene.background = new THREE.Color(0x0d1220);
+    // The static forest image is owned by the canvas host CSS. Keep WebGL transparent
+    // so sprites render above it without aspect-ratio gaps around the background.
+    this.scene.background = null;
+    this.renderer?.setClearColor?.(0x000000, 0);
   }
 
   bindInput({ onGameplayPointer, onOpenSkills, onOpenSettings }) {
