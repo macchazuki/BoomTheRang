@@ -6,10 +6,17 @@ function createUpdateHarness() {
   controller.state = GAMEPLAY_STATE.READY;
   controller.gameState = { xp: 0, gameplay: { combo: 0 }, incrementStat: vi.fn() };
   controller.dogController = { update: vi.fn() };
-  controller.gaugeController = { update: vi.fn(), getSnapshot: vi.fn(() => ({})) };
+  controller.gaugeController = {
+    position: 0,
+    oneWaySeconds: 1,
+    update: vi.fn(),
+    setSpeedMultiplier: vi.fn(),
+    getSnapshot: vi.fn(() => ({})),
+  };
   controller.progressionManager = {
     getDerivedEffects: vi.fn(() => ({ comboUnlocked: false })),
   };
+  controller.skillRuntime = {};
   controller.gaugeView = { render: vi.fn() };
   controller.hud = { render: vi.fn() };
   controller.reloadRemainingSeconds = 0;
