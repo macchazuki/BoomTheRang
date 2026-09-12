@@ -10,12 +10,11 @@ import { SaveManager } from '../persistence/SaveManager.js';
 import { HUD } from '../ui/HUD.js';
 import { GaugeView } from '../ui/GaugeView.js';
 import { ActiveSkillBar } from '../ui/ActiveSkillBar.js';
-import { UpgradePanel } from '../ui/UpgradePanel.js';
+import { UpgradePanel } from '../ui/ProgressionPanel.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
 import { CompletionPanel } from '../ui/CompletionPanel.js';
 import { clampDeltaSeconds } from '../game.js';
 
-/** Top-level browser application. */
 export class GameApp {
   constructor({ mountElement, saveKey } = {}) {
     this.mountElement = mountElement;
@@ -23,7 +22,6 @@ export class GameApp {
     this.gameState = new GameState(this.saveManager.load());
     this.progressionManager = new ProgressionManager(this.gameState);
     this.debugTimeScale = 1;
-
     this.mainMenuScene = null;
     this.gameScene = null;
     this.gameController = null;
@@ -39,7 +37,6 @@ export class GameApp {
     this.animationFrameId = null;
     this.previousFrameMs = null;
     this.lastPeriodicSaveSeconds = 0;
-
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
     this.frame = this.frame.bind(this);
   }
@@ -79,24 +76,17 @@ export class GameApp {
     this.mainMenuScene?.unmount();
     this.mainMenuScene = null;
     this.lastPeriodicSaveSeconds = 0;
-
     this.gameScene = new GameScene({ mountElement: this.mountElement });
     const uiHosts = this.gameScene.mount();
     if (uiHosts.skillsButton) {
       uiHosts.skillsButton.textContent = 'Upgrades';
       uiHosts.skillsButton.setAttribute('aria-label', 'Open upgrades and skills');
     }
-
-    this.gaugeController = new GaugeController({
-      zoneWidths: this.progressionManager.getDerivedEffects().gaugeZoneWidths,
-    });
+    this.gaugeController = new GaugeController({ zoneWidths: this.progressionManager.getDerivedEffects().gaugeZoneWidths });
     this.throwController = new ThrowController();
     this.hud = new HUD({ mountElement: uiHosts.hud });
     this.gaugeView = new GaugeView({ mountElement: uiHosts.gauge });
-    this.activeSkillBar = new ActiveSkillBar({
-      mountElement: uiHosts.gameplayArea,
-      onActivate: (skillId) => this.gameController?.activateSkill(skillId),
-    });
+    this.activeSkillBar = new ActiveSkillBar({ mountElement: uiHosts.gameplayArea, onActivate: (skillId) => this.gameController?.activateSkill(skillId) });
     this.upgradePanel = new UpgradePanel({
       mountElement: uiHosts.overlay,
       progressionManager: this.progressionManager,
@@ -105,20 +95,9 @@ export class GameApp {
       onUpgradeSkill: (skillId) => this.upgradeSkill(skillId),
       onClose: () => this.closeModal(),
     });
-    this.settingsPanel = new SettingsPanel({
-      mountElement: uiHosts.overlay,
-      gameState: this.gameState,
-      onChange: () => this.saveManager.save(this.gameState.toSaveData()),
-      onClose: () => this.closeModal(),
-    });
-    this.completionPanel = new CompletionPanel({
-      mountElement: uiHosts.overlay,
-      onContinue: () => this.closeModal(),
-    });
-    this.dogController = new DogController({
-      onThrow: (dogThrow) => this.gameController?.handleDogThrow(dogThrow),
-    });
-
+    this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveManager.save(this.gameState.toSaveData()), onClose: () => this.closeModal() });
+    this.completionPanel = new CompletionPanel({ mountElement: uiHosts.overlay, onContinue: () => this.closeModal() });
+    this.dogController = new DogController({ onThrow: (dogThrow) => this.gameController?.handleDogThrow(dogThrow) });
     this.gameController = new GameController({
       gameState: this.gameState,
       gaugeController: this.gaugeController,
