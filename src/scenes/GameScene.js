@@ -272,6 +272,15 @@ export class GameScene {
     const activeCount = Math.min(boomerangCount, this.boomerangViews.length);
     const durationSeconds = motionReduced ? 0.18 : result === 'MISS' ? 0.72 : 0.62;
     const heroFinalFrameDelay = motionReduced ? 0.12 : 0.215;
+    const reactedTargets = new Set();
+    const onPathPoint = result === 'MISS'
+      ? null
+      : (pathPointIndex) => {
+          const targetIndex = pathPointIndex - 1;
+          if (targetIndex < 0 || targetIndex >= targetCount || reactedTargets.has(targetIndex)) return;
+          reactedTargets.add(targetIndex);
+          this.targetViews[targetIndex]?.playReaction(result, { reducedMotion: motionReduced });
+        };
 
     this.boomerangViews.forEach((view, index) => {
       if (index >= activeCount) {
@@ -296,6 +305,7 @@ export class GameScene {
           durationSeconds,
           delaySeconds,
           reducedMotion: motionReduced,
+          onPathPoint,
         });
       }
     });
@@ -311,24 +321,31 @@ export class GameScene {
 
     if (this.dogBoomerangView) {
       const ownerPosition = this.getOwnerThrowPosition(this.dogView);
+      const result = critical ? 'CRITICAL' : 'HIT';
+      const reactedTargets = new Set();
       this.dogBoomerangView.playHitPath({
         points: this.buildHitPath(ownerPosition, targetCount, 0.08),
         durationSeconds: motionReduced ? 0.18 : 0.58,
         reducedMotion: motionReduced,
+        onPathPoint: (pathPointIndex) => {
+          const targetIndex = pathPointIndex - 1;
+          if (targetIndex < 0 || targetIndex >= targetCount || reactedTargets.has(targetIndex)) return;
+          reactedTargets.add(targetIndex);
+          this.targetViews[targetIndex]?.playReaction(result, { reducedMotion: motionReduced });
+        },
       });
-    }
-
-    const result = critical ? 'CRITICAL' : 'HIT';
-    for (const target of this.targetViews.slice(0, targetCount)) {
-      target.playReaction(result, { reducedMotion: motionReduced });
     }
 
     return Promise.resolve();
   }
 
   playResultFeedback(result) {
-    for (const target of this.targetViews) {
-      target.playReaction(result, { reducedMotion: this.playerResultReducedMotion });
+    // HIT/CRITICAL target animation is triggered by the boomerang reaching the target.
+    // MISS has no target animation.
+    if (result === 'MISS') {
+      for (const target of this.targetViews) {
+        target.playReaction(result, { reducedMotion: this.playerResultReducedMotion });
+      }
     }
   }
 
