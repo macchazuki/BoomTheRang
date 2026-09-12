@@ -37,6 +37,8 @@ export class BoomerangView {
     this.durationSeconds = 0;
     this.delayRemainingSeconds = 0;
     this.reducedMotion = false;
+    this.onPathPoint = null;
+    this.nextPathPointIndex = 1;
 
     this.spriteReady = this.loadSprite();
   }
@@ -82,15 +84,15 @@ export class BoomerangView {
     this.texture.offset.set(this.currentFrame / FRAME_COUNT, 0);
   }
 
-  playHitPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false }) {
-    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion });
+  playHitPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false, onPathPoint = null }) {
+    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint });
   }
 
   playMissPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false }) {
-    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion });
+    this.startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint: null });
   }
 
-  startPath({ points, durationSeconds, delaySeconds, reducedMotion }) {
+  startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint = null }) {
     const normalizedPoints = points.map((point) =>
       point?.isVector3 ? point.clone() : new THREE.Vector3(...point),
     );
@@ -116,6 +118,8 @@ export class BoomerangView {
     this.durationSeconds = Math.max(0.001, durationSeconds);
     this.delayRemainingSeconds = Math.max(0, delaySeconds);
     this.elapsedSeconds = 0;
+    this.onPathPoint = onPathPoint;
+    this.nextPathPointIndex = 1;
     this.setFrame(0);
 
     this.cumulativeDistances = [0];
@@ -154,6 +158,15 @@ export class BoomerangView {
     const progress = this.elapsedSeconds / this.durationSeconds;
     this.object3d.position.copy(this.samplePath(progress));
 
+    const traveledDistance = progress * this.totalDistance;
+    while (
+      this.nextPathPointIndex < this.cumulativeDistances.length &&
+      traveledDistance >= this.cumulativeDistances[this.nextPathPointIndex]
+    ) {
+      this.onPathPoint?.(this.nextPathPointIndex);
+      this.nextPathPointIndex += 1;
+    }
+
     // Cycle the four authored rotation frames while the boomerang is in flight.
     const cycles = this.reducedMotion ? 1 : 3;
     this.setFrame(Math.floor(progress * FRAME_COUNT * cycles));
@@ -190,6 +203,8 @@ export class BoomerangView {
     this.durationSeconds = 0;
     this.delayRemainingSeconds = 0;
     this.reducedMotion = false;
+    this.onPathPoint = null;
+    this.nextPathPointIndex = 1;
     this.setFrame(0);
   }
 
