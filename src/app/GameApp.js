@@ -91,10 +91,7 @@ export class GameApp {
     });
   }
 
-  /**
-   * Compose the full gameplay screen and systems.
-   * TODO implementation agents: connect all callbacks to visual/reward/save behavior.
-   */
+  /** Compose the full gameplay screen and systems. */
   startGame() {
     this.mainMenuScene?.unmount();
     this.mainMenuScene = null;
@@ -102,6 +99,10 @@ export class GameApp {
 
     this.gameScene = new GameScene({ mountElement: this.mountElement });
     const uiHosts = this.gameScene.mount();
+    if (uiHosts.skillsButton) {
+      uiHosts.skillsButton.textContent = 'Upgrades';
+      uiHosts.skillsButton.setAttribute('aria-label', 'Open upgrades and skills');
+    }
 
     this.gaugeController = new GaugeController({
       zoneWidths: this.progressionManager.getDerivedEffects().gaugeZoneWidths,
@@ -115,6 +116,8 @@ export class GameApp {
       mountElement: uiHosts.overlay,
       progressionManager: this.progressionManager,
       onPurchase: (upgradeId) => this.purchaseUpgrade(upgradeId),
+      onLearnSkill: (skillId) => this.learnSkill(skillId),
+      onToggleSkill: (skillId, active) => this.setSkillActive(skillId, active),
       onClose: () => this.closeModal(),
     });
     this.settingsPanel = new SettingsPanel({
@@ -150,7 +153,7 @@ export class GameApp {
     this.gameController.start();
   }
 
-  /** Open the upgrade overlay and pause active play while it is visible. */
+  /** Open the progression overlay and pause active play while it is visible. */
   openUpgrades() {
     if (!this.gameController) return;
     this.gameController.pause('upgrade-panel');
@@ -185,6 +188,28 @@ export class GameApp {
   /** Purchase an upgrade transactionally and immediately propagate derived effects. */
   purchaseUpgrade(upgradeId) {
     const result = this.progressionManager.purchase(upgradeId);
+    if (!result.ok) return result;
+
+    this.gameController?.applyProgressionEffects(this.progressionManager.getDerivedEffects());
+    this.saveManager.save(this.gameState.toSaveData());
+    this.upgradePanel?.render();
+    return result;
+  }
+
+  /** Learn a new active skill, enable it, save, and immediately apply its effects. */
+  learnSkill(skillId) {
+    const result = this.progressionManager.learnSkill(skillId);
+    if (!result.ok) return result;
+
+    this.gameController?.applyProgressionEffects(this.progressionManager.getDerivedEffects());
+    this.saveManager.save(this.gameState.toSaveData());
+    this.upgradePanel?.render();
+    return result;
+  }
+
+  /** Toggle a learned active skill and immediately refresh gameplay effects. */
+  setSkillActive(skillId, active) {
+    const result = this.progressionManager.setSkillActive(skillId, active);
     if (!result.ok) return result;
 
     this.gameController?.applyProgressionEffects(this.progressionManager.getDerivedEffects());
