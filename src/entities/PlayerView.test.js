@@ -2,13 +2,17 @@ import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { PlayerView } from './PlayerView.js';
 
+const pendingLoader = () => ({ loadAsync: vi.fn(() => new Promise(() => {})) });
+
 describe('PlayerView', () => {
   it('loads the four-frame hero sprite sheet without stretching it', async () => {
     const texture = new THREE.Texture();
-    const loader = {
-      loadAsync: vi.fn().mockResolvedValue(texture),
-    };
-    const view = new PlayerView({ spriteUrl: '/hero.png', loader });
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new PlayerView({
+      spriteUrl: '/hero.png',
+      loader,
+      environmentLoader: pendingLoader(),
+    });
 
     await view.spriteReady;
 
@@ -24,11 +28,29 @@ describe('PlayerView', () => {
     view.dispose();
   });
 
-  it('renders nothing if the sprite sheet cannot be loaded', async () => {
-    const loader = {
-      loadAsync: vi.fn().mockRejectedValue(new Error('missing asset')),
-    };
-    const view = new PlayerView({ spriteUrl: '/missing.png', loader });
+  it('loads the environment as a full-height 2D backdrop', async () => {
+    const environmentTexture = new THREE.Texture();
+    const environmentLoader = { loadAsync: vi.fn().mockResolvedValue(environmentTexture) };
+    const view = new PlayerView({
+      loader: pendingLoader(),
+      environmentUrl: '/environment.png',
+      environmentLoader,
+    });
+
+    await view.environmentReady;
+
+    expect(environmentLoader.loadAsync).toHaveBeenCalledWith('/environment.png');
+    expect(view.environmentSprite).toBeInstanceOf(THREE.Sprite);
+    expect(view.environmentSprite.scale.y).toBe(18);
+    expect(view.environmentSprite.position.y).toBe(5.5);
+    expect(view.environmentSprite.position.z).toBeLessThan(0);
+
+    view.dispose();
+  });
+
+  it('renders no hero if the sprite sheet cannot be loaded', async () => {
+    const loader = { loadAsync: vi.fn().mockRejectedValue(new Error('missing asset')) };
+    const view = new PlayerView({ loader, environmentLoader: pendingLoader() });
 
     await view.spriteReady;
 
@@ -40,10 +62,8 @@ describe('PlayerView', () => {
 
   it('uses the wider throw crop and separated follow-through crop', async () => {
     const texture = new THREE.Texture();
-    const loader = {
-      loadAsync: vi.fn().mockResolvedValue(texture),
-    };
-    const view = new PlayerView({ loader });
+    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+    const view = new PlayerView({ loader, environmentLoader: pendingLoader() });
     await view.spriteReady;
 
     view.playThrow();
