@@ -38,7 +38,7 @@ describe('ChallengeManager', () => {
   });
 
   it('upgrades Speed Trial through Pressure and Master tiers on the same record', () => {
-    const gameState = createState({ xp: 125_000, lifetimeXp: 200_000 });
+    const gameState = createState({ xp: 130_000, lifetimeXp: 200_000 });
     const manager = new ChallengeManager(gameState);
     manager.unlock('speedTrial');
 
