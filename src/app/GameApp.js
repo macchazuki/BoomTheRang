@@ -13,6 +13,7 @@ import { getChallengeGaugeOneWaySeconds } from '../challenges/challengeDefinitio
 import { HUD } from '../ui/HUD.js';
 import { GaugeView } from '../ui/GaugeView.js';
 import { ActiveSkillBar } from '../ui/ActiveSkillBar.js';
+import { ChallengeButtonBar } from '../ui/ChallengeButtonBar.js';
 import { UpgradePanel } from '../ui/ProgressionPanel.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
 import { CompletionPanel } from '../ui/CompletionPanel.js';
@@ -37,6 +38,7 @@ export class GameApp {
     this.hud = null;
     this.gaugeView = null;
     this.activeSkillBar = null;
+    this.challengeButtonBar = null;
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
@@ -100,13 +102,23 @@ export class GameApp {
     const result = this.challengeManager.unlock(challengeId);
     if (result.ok) this.saveManager.save(this.accountGameState.toSaveData());
     this.upgradePanel?.render();
+    this.challengeButtonBar?.render();
+    return result;
+  }
+
+  upgradeChallenge(challengeId) {
+    if (this.activeChallenge) return { ok: false, reason: 'ACTIVE_CHALLENGE' };
+    const result = this.challengeManager.upgrade(challengeId);
+    if (result.ok) this.saveManager.save(this.accountGameState.toSaveData());
+    this.upgradePanel?.render();
+    this.challengeButtonBar?.render();
     return result;
   }
 
   startChallenge(challengeId) {
     const attempt = this.challengeManager.startAttempt(challengeId);
     if (!attempt.ok) {
-      this.upgradePanel?.render();
+      this.challengeButtonBar?.render();
       return attempt;
     }
 
@@ -140,6 +152,13 @@ export class GameApp {
       concealAfterFirstTap: challengeDefinition?.hideGaugeAfterFirstTap === true,
     });
     this.activeSkillBar = new ActiveSkillBar({ mountElement: uiHosts.gameplayArea, onActivate: (skillId) => this.gameController?.activateSkill(skillId) });
+    if (!challengeDefinition) {
+      this.challengeButtonBar = new ChallengeButtonBar({
+        mountElement: uiHosts.challengeButtons,
+        challengeManager: this.challengeManager,
+        onStart: (challengeId) => this.startChallenge(challengeId),
+      });
+    }
     this.upgradePanel = new UpgradePanel({
       mountElement: uiHosts.overlay,
       progressionManager: this.progressionManager,
@@ -148,7 +167,7 @@ export class GameApp {
       onLearnSkill: (skillId) => this.learnSkill(skillId),
       onUpgradeSkill: (skillId) => this.upgradeSkill(skillId),
       onUnlockChallenge: (challengeId) => this.unlockChallenge(challengeId),
-      onStartChallenge: (challengeId) => this.startChallenge(challengeId),
+      onUpgradeChallenge: (challengeId) => this.upgradeChallenge(challengeId),
       onClose: () => this.closeModal(),
     });
     this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveCurrentSettings(), onClose: () => this.closeModal() });
@@ -158,7 +177,11 @@ export class GameApp {
       permanentMissLoss: true,
       disableMissReturns: true,
       minGaugeOneWaySeconds: challengeDefinition.minGaugeOneWaySeconds,
-      getGaugeOneWaySeconds: (hits) => getChallengeGaugeOneWaySeconds(challengeDefinition.id, hits),
+      getGaugeOneWaySeconds: (hits) => getChallengeGaugeOneWaySeconds(
+        challengeDefinition.id,
+        hits,
+        challengeDefinition.level,
+      ),
     } : null;
     this.gameController = new GameController({
       gameState: this.gameState,
@@ -178,6 +201,7 @@ export class GameApp {
       onCompleted: () => this.openCompletion(),
     });
     this.gameController.start();
+    this.challengeButtonBar?.start();
   }
 
   openUpgrades() {
@@ -288,6 +312,7 @@ export class GameApp {
   disposeGameplay() {
     this.gameController?.dispose();
     this.activeSkillBar?.dispose();
+    this.challengeButtonBar?.dispose();
     this.gameScene?.dispose();
     this.gameController = null;
     this.gameScene = null;
@@ -297,6 +322,7 @@ export class GameApp {
     this.hud = null;
     this.gaugeView = null;
     this.activeSkillBar = null;
+    this.challengeButtonBar = null;
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
