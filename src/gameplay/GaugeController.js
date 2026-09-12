@@ -82,6 +82,15 @@ export class GaugeController {
     this.consumedSegments.clear();
   }
 
+  /** Replace the underlying sweep duration while preserving any active speed multiplier. */
+  setBaseOneWaySeconds(oneWaySeconds) {
+    if (!Number.isFinite(oneWaySeconds) || oneWaySeconds <= 0) {
+      throw new RangeError('Gauge one-way duration must be a positive finite number.');
+    }
+    this.baseOneWaySeconds = oneWaySeconds;
+    this.oneWaySeconds = this.baseOneWaySeconds / this.speedMultiplier;
+  }
+
   /** Apply a progression speed multiplier without replacing the configured base duration. */
   setSpeedMultiplier(speedMultiplier = 1) {
     if (!Number.isFinite(speedMultiplier) || speedMultiplier <= 0) {
