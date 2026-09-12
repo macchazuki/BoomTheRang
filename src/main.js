@@ -3,6 +3,7 @@ import './skillCategories.css';
 import './activeSkills.css';
 import './targetStatus.css';
 import './comic.css';
+import './challengeButtons.css';
 import { GameApp } from './app/GameApp.js';
 
 /**
