@@ -13,16 +13,27 @@ describe('GaugeController contract', () => {
     expect(gauge.direction).toBe(1);
   });
 
-  it('splits accuracy into one repeated timing area per boomerang', () => {
+  it('keeps each boomerang hit area the same absolute width while red space shrinks', () => {
     const gauge = new GaugeController({
       segmentCount: 2,
       zoneWidths: { red: 0.6, green: 0.3, white: 0.1 },
     });
+
     expect(gauge.classify(0.25)).toBe(GAUGE_RESULT.CRITICAL);
     expect(gauge.classify(0.75)).toBe(GAUGE_RESULT.CRITICAL);
-    expect(gauge.classify(0.175)).toBe(GAUGE_RESULT.HIT);
-    expect(gauge.classify(0.675)).toBe(GAUGE_RESULT.HIT);
-    expect(gauge.classify(0.05)).toBe(GAUGE_RESULT.MISS);
+    expect(gauge.classify(0.10)).toBe(GAUGE_RESULT.HIT);
+    expect(gauge.classify(0.60)).toBe(GAUGE_RESULT.HIT);
+    expect(gauge.classify(0.01)).toBe(GAUGE_RESULT.MISS);
+  });
+
+  it('preserves base hit widths across one through four boomerangs', () => {
+    for (const segmentCount of [1, 2, 3, 4]) {
+      const gauge = new GaugeController({ segmentCount });
+      const center = 0.5 / segmentCount;
+      expect(gauge.classify(center)).toBe(GAUGE_RESULT.CRITICAL);
+      expect(gauge.classify(center + 0.09)).toBe(GAUGE_RESULT.HIT);
+      expect(gauge.classify(center + 0.11)).toBe(GAUGE_RESULT.MISS);
+    }
   });
 
   it('adds higher crit layers at center while pushing earlier crits outward', () => {
