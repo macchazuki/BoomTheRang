@@ -36,11 +36,15 @@ export class GaugeView {
   }
 
   rebuildZones(snapshot) {
-    const { red, green, white } = snapshot.zoneWidths;
+    const { green, white } = snapshot.zoneWidths;
     const criticalLayerCount = snapshot.criticalLayerCount ?? 1;
     const expandedCriticalWidth = white * criticalLayerCount;
     const remainingGreen = Math.max(0, green - (expandedCriticalWidth - white));
-    const halfRed = red / 2;
+    const hitWidth = green + white;
+    const redPerSegment = snapshot.segmentCount > 0
+      ? Math.max(0, (1 - hitWidth * snapshot.segmentCount) / snapshot.segmentCount)
+      : 0;
+    const halfRed = redPerSegment / 2;
     const halfGreen = remainingGreen / 2;
     const halfCriticalBand = white / 2;
     const columns = [];
@@ -80,7 +84,7 @@ export class GaugeView {
     this.root.replaceChildren(...zones, this.marker);
     this.renderedSegmentCount = snapshot.segmentCount;
     this.renderedCriticalLayerCount = criticalLayerCount;
-    this.renderedZoneKey = `${red}:${green}:${white}`;
+    this.renderedZoneKey = `${snapshot.zoneWidths.red}:${green}:${white}`;
   }
 
   /** Render zone widths, used areas, and marker position; never classify from DOM. */
