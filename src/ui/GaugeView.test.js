@@ -11,6 +11,12 @@ describe('GaugeView consumed-area presentation', () => {
     expect(source).toContain("const zoneName = isConsumed ? 'red' : zone.dataset.zone;");
   });
 
+  it('keeps hit zones full width and only divides the remaining red space', () => {
+    expect(source).toContain('const hitWidth = green + white;');
+    expect(source).toContain('(1 - hitWidth * snapshot.segmentCount) / snapshot.segmentCount');
+    expect(source).toContain('const halfRed = redPerSegment / 2;');
+  });
+
   it('latches blind challenge concealment after the first consumed segment', () => {
     expect(source).toContain('if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;');
     expect(source).toContain("zone.style.visibility = this.concealed ? 'hidden' : '';");
