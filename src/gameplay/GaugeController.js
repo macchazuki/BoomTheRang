@@ -172,11 +172,17 @@ export class GaugeController {
     this.setCriticalLayerCount(criticalLayerCount);
   }
 
-  /** Classify accuracy within the current boomerang timing area. */
+  /**
+   * Classify accuracy around the center of the current boomerang timing area.
+   * Green/critical widths stay the same absolute size as the one-boomerang gauge;
+   * adding boomerangs only reduces the red space between those hit areas.
+   */
   classify(position = this.position) {
     if (this.segmentCount === 0) return GAUGE_RESULT.MISS;
-    const x = this.getLocalPosition(position);
-    const distanceFromCenter = Math.abs(x - 0.5);
+    const x = clamp(position, 0, 1 - Number.EPSILON);
+    const segmentIndex = this.getSegmentIndex(x);
+    const segmentCenter = (segmentIndex + 0.5) / this.segmentCount;
+    const distanceFromCenter = Math.abs(x - segmentCenter);
     const coreWidth = this.zoneWidths.white;
     const criticalHalfWidth = (coreWidth * this.criticalLayerCount) / 2;
     const hitHalfWidth = (this.zoneWidths.white + this.zoneWidths.green) / 2;
