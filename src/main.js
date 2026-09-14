@@ -9,26 +9,14 @@ import './gameLayout.css';
 import './gauge.css';
 import './uniformComicUI.css';
 import { GameApp } from './app/GameApp.js';
-import { GameState } from './gameplay/GameState.js';
-import { GameController } from './gameplay/GameController.js';
-import { GaugeController } from './gameplay/GaugeController.js';
-import { ThrowController } from './gameplay/ThrowController.js';
-import { DogController } from './gameplay/DogController.js';
-import { ProgressionManager } from './progression/ProgressionManager.js';
-import { SaveManager } from './persistence/SaveManager.js';
-import { createDefaultSave } from './persistence/defaultSave.js';
-import { ChallengeManager } from './challenges/ChallengeManager.js';
-import { getChallengeGaugeOneWaySeconds } from './challenges/challengeDefinitions.js';
-import { HUD } from './ui/HUD.js';
-import { GaugeView } from './ui/GaugeView.js';
-import { ActiveSkillBar } from './ui/ActiveSkillBar.js';
-import { ChallengeButtonBar } from './ui/ChallengeButtonBar.js';
-import { UpgradePanel } from './ui/ProgressionPanel.js';
-import { SettingsPanel } from './ui/SettingsPanel.js';
-import { CompletionPanel } from './ui/CompletionPanel.js';
-import { ChallengeResultPanel } from './ui/ChallengeResultPanel.js';
-import { clampDeltaSeconds } from './game.js';
+import { preloadAssets } from './assets/assetPreloader.js';
+import { LoadingScene } from './scenes/LoadingScene.js';
 
+/**
+ * Browser entry point.
+ * Assets are preloaded before GameApp starts so the main menu is never shown
+ * while authored gameplay art is still loading in the background.
+ */
 const mountElement = document.querySelector('#app');
 
 if (!mountElement) {
