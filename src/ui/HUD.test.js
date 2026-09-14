@@ -4,12 +4,16 @@ import { HUD } from './HUD.js';
 function createHudFixture() {
   const feedback = { textContent: '' };
   let impactHandler = null;
+  let pointerHandler = null;
   const canvasHost = {
     addEventListener: vi.fn((type, handler) => {
       if (type === 'boomerangimpact') impactHandler = handler;
     }),
   };
   const gameScreen = {
+    addEventListener: vi.fn((type, handler) => {
+      if (type === 'pointerdown') pointerHandler = handler;
+    }),
     querySelector: (selector) => {
       if (selector === '[data-feedback]') return feedback;
       if (selector === '[data-canvas-host]') return canvasHost;
@@ -27,6 +31,14 @@ function createHudFixture() {
     feedback,
     canvasHost,
     dispatchImpact: (detail) => impactHandler?.({ detail }),
+    dispatchPointer: ({ clientX = 120, clientY = 240 } = {}) => pointerHandler?.({
+      defaultPrevented: false,
+      isPrimary: true,
+      button: 0,
+      clientX,
+      clientY,
+      target: { closest: () => null },
+    }),
   };
 }
 
@@ -59,6 +71,29 @@ describe('HUD mobile/accessibility presentation', () => {
 
     expect(mountElement.innerHTML).toContain('Combo: 3');
     expect(mountElement.innerHTML).toContain('Reload: 4.3s');
+  });
+
+  it('pops an increased combo at the latest manual tap position', () => {
+    const { hud, dispatchPointer } = createHudFixture();
+    hud.showComboPopup = vi.fn();
+
+    hud.render({
+      xp: 0,
+      combo: 1,
+      comboUnlocked: true,
+      reloadRemainingSeconds: 0,
+      state: 'READY',
+    });
+    dispatchPointer({ clientX: 144, clientY: 388 });
+    hud.render({
+      xp: 20,
+      combo: 2,
+      comboUnlocked: true,
+      reloadRemainingSeconds: 0,
+      state: 'READY',
+    });
+
+    expect(hud.showComboPopup).toHaveBeenCalledWith(2, { clientX: 144, clientY: 388 });
   });
 
   it('writes result feedback only to the owning game screen', () => {
