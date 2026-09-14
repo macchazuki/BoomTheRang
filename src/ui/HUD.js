@@ -12,6 +12,7 @@ export class HUD {
     this.targetStatusElements = [];
     this.pendingDamageBatches = [];
     this.lastCombo = null;
+    this.comboBadge = null;
     this.handleBoomerangImpact = (event) => this.handleImpact(event?.detail ?? {});
     this.canvasHost?.addEventListener?.('boomerangimpact', this.handleBoomerangImpact);
   }
@@ -19,12 +20,11 @@ export class HUD {
   /** Render always-visible state from authoritative models. */
   render({ xp, combo, comboUnlocked, reloadRemainingSeconds, state, challengeHits = null, gaugeOneWaySeconds = null }) {
     const normalizedCombo = Math.max(0, Math.floor(Number(combo) || 0));
-    if (
-      comboUnlocked
-      && this.lastCombo !== null
-      && normalizedCombo > this.lastCombo
-    ) {
-      this.showComboPopup(normalizedCombo);
+    if (comboUnlocked && normalizedCombo > 0) {
+      this.showComboPopup(normalizedCombo, normalizedCombo > (this.lastCombo ?? 0));
+    } else if (!comboUnlocked || normalizedCombo === 0) {
+      this.comboBadge?.remove?.();
+      this.comboBadge = null;
     }
     this.lastCombo = normalizedCombo;
 
@@ -45,25 +45,26 @@ export class HUD {
     `;
   }
 
-  /** Pop the current combo from the gauge marker where the throw was registered. */
-  showComboPopup(combo) {
+  /** Keep the current combo visible above the right side of the gauge. */
+  showComboPopup(combo, punch = true) {
     if (!this.gameScreen || typeof document === 'undefined') return;
 
-    const marker = this.gameScreen.querySelector?.('.gauge__marker');
-    const screenRect = this.gameScreen.getBoundingClientRect?.();
-    const markerRect = marker?.getBoundingClientRect?.();
-    if (!screenRect || !markerRect) return;
+    const gauge = this.gameScreen.querySelector?.('.gauge');
+    if (!gauge) return;
 
-    const x = markerRect.left + markerRect.width / 2 - screenRect.left;
-    const y = markerRect.top + markerRect.height / 2 - screenRect.top;
-    const popup = document.createElement('div');
-    popup.className = 'combo-popup';
-    popup.style.left = `${x}px`;
-    popup.style.top = `${y}px`;
-    popup.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO!</span>`;
-    popup.setAttribute('aria-hidden', 'true');
-    this.gameScreen.append(popup);
-    setTimeout(() => popup.remove(), 780);
+    if (!this.comboBadge || !this.comboBadge.isConnected) {
+      this.comboBadge = document.createElement('div');
+      this.comboBadge.className = 'combo-popup';
+      this.comboBadge.setAttribute('aria-hidden', 'true');
+      gauge.append(this.comboBadge);
+    }
+
+    this.comboBadge.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO!</span>`;
+    if (!punch) return;
+
+    this.comboBadge.classList.remove('combo-popup--punch');
+    void this.comboBadge.offsetWidth;
+    this.comboBadge.classList.add('combo-popup--punch');
   }
 
   ensureTargetStatusElements(count) {
