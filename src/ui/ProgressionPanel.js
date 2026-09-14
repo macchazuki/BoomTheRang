@@ -28,6 +28,13 @@ export class UpgradePanel extends BaseUpgradePanel {
   render() {
     if (!this.isOpen) return;
 
+    const previousViewport = this.activeTab === 'upgrades' && this.selectedUpgradeId
+      ? this.mountElement.querySelector?.('.skill-tree-viewport')
+      : null;
+    const previousScroll = previousViewport
+      ? { left: previousViewport.scrollLeft, top: previousViewport.scrollTop }
+      : null;
+
     const panel = document.createElement('section');
     panel.className = 'modal-panel skill-tree-panel';
     panel.setAttribute('role', 'dialog');
@@ -59,7 +66,14 @@ export class UpgradePanel extends BaseUpgradePanel {
     if (this.activeTab === 'upgrades') {
       this.renderDetails();
       const viewport = panel.querySelector('.skill-tree-viewport');
-      if (viewport) this.centerSelectedNode(viewport);
+      if (viewport) {
+        if (previousScroll) {
+          viewport.scrollLeft = previousScroll.left;
+          viewport.scrollTop = previousScroll.top;
+        } else {
+          this.centerSelectedNode(viewport);
+        }
+      }
     }
   }
 
