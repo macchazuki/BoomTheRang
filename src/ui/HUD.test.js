@@ -4,8 +4,8 @@ import { HUD } from './HUD.js';
 function createHudFixture() {
   const feedback = { textContent: '' };
   let impactHandler = null;
-  const marker = {
-    getBoundingClientRect: () => ({ left: 150, top: 420, width: 8, height: 20 }),
+  const gauge = {
+    append: vi.fn((element) => { element.isConnected = true; }),
   };
   const canvasHost = {
     addEventListener: vi.fn((type, handler) => {
@@ -13,11 +13,10 @@ function createHudFixture() {
     }),
   };
   const gameScreen = {
-    getBoundingClientRect: () => ({ left: 20, top: 40, width: 320, height: 640 }),
     querySelector: (selector) => {
       if (selector === '[data-feedback]') return feedback;
       if (selector === '[data-canvas-host]') return canvasHost;
-      if (selector === '.gauge__marker') return marker;
+      if (selector === '.gauge') return gauge;
       return null;
     },
   };
@@ -31,6 +30,7 @@ function createHudFixture() {
     mountElement,
     feedback,
     canvasHost,
+    gauge,
     dispatchImpact: (detail) => impactHandler?.({ detail }),
   };
 }
@@ -53,6 +53,7 @@ describe('HUD mobile/accessibility presentation', () => {
 
   it('shows combo after unlock and a readable reload countdown during misses', () => {
     const { hud, mountElement } = createHudFixture();
+    hud.showComboPopup = vi.fn();
 
     hud.render({
       xp: 25,
@@ -66,7 +67,7 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(mountElement.innerHTML).toContain('Reload: 4.3s');
   });
 
-  it('pops an increased combo at the current gauge marker position', () => {
+  it('keeps the combo badge updated when the combo increases', () => {
     const { hud } = createHudFixture();
     hud.showComboPopup = vi.fn();
 
@@ -85,15 +86,17 @@ describe('HUD mobile/accessibility presentation', () => {
       state: 'READY',
     });
 
-    expect(hud.showComboPopup).toHaveBeenCalledWith(2);
+    expect(hud.showComboPopup).toHaveBeenLastCalledWith(2, true);
   });
 
-  it('positions the combo popup over the gauge marker', () => {
-    const { hud } = createHudFixture();
+  it('reuses one persistent combo badge on the gauge', () => {
+    const { hud, gauge } = createHudFixture();
     const popup = {
       className: '',
-      style: {},
+      classList: { remove: vi.fn(), add: vi.fn() },
       innerHTML: '',
+      isConnected: false,
+      offsetWidth: 100,
       setAttribute: vi.fn(),
       remove: vi.fn(),
     };
@@ -101,13 +104,15 @@ describe('HUD mobile/accessibility presentation', () => {
     globalThis.document = {
       createElement: vi.fn(() => popup),
     };
-    hud.gameScreen.append = vi.fn();
 
     try {
       hud.showComboPopup(4);
-      expect(popup.style.left).toBe('134px');
-      expect(popup.style.top).toBe('390px');
-      expect(hud.gameScreen.append).toHaveBeenCalledWith(popup);
+      hud.showComboPopup(5);
+
+      expect(gauge.append).toHaveBeenCalledTimes(1);
+      expect(popup.innerHTML).toContain('5x');
+      expect(popup.classList.add).toHaveBeenCalledWith('combo-popup--punch');
+      expect(popup.remove).not.toHaveBeenCalled();
     } finally {
       globalThis.document = originalDocument;
     }
