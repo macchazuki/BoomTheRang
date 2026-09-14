@@ -104,7 +104,7 @@ export class GaugeView {
     const burst = document.createElement('div');
     const isCritical = result !== 'HIT';
     burst.className = `gauge__hit-effect gauge__hit-effect--${isCritical ? 'critical' : 'normal'}`;
-    burst.style.setProperty('--hit-position', String(position));
+    burst.style.left = `${position * 100}%`;
 
     const angles = isCritical ? STAR_ANGLES : SPARK_ANGLES;
     angles.forEach((angle, index) => {
@@ -118,7 +118,9 @@ export class GaugeView {
     });
 
     this.effects.append(burst);
-    burst.addEventListener('animationend', () => burst.remove(), { once: true });
+    burst.addEventListener('animationend', (event) => {
+      if (event.target === burst) burst.remove();
+    });
   }
 
   /** Render zone widths, used areas, and marker position; never classify from DOM. */
