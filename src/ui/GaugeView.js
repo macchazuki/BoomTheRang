@@ -9,6 +9,9 @@ const CRITICAL_COLORS = Object.freeze({
   omega: '#f7f7ff',
 });
 
+const SPARK_ANGLES = [-82, -58, -32, -8, 18, 42, 66, 102];
+const STAR_ANGLES = [-90, -52, -18, 20, 58, 96, 142];
+
 export class GaugeView {
   constructor({ mountElement, concealAfterFirstTap = false }) {
     this.mountElement = mountElement;
@@ -17,6 +20,7 @@ export class GaugeView {
     this.renderedSegmentCount = 0;
     this.renderedCriticalLayerCount = 0;
     this.renderedZoneKey = '';
+    this.previousConsumedSegments = new Set();
 
     this.root = document.createElement('div');
     this.root.className = 'gauge';
@@ -36,8 +40,12 @@ export class GaugeView {
     this.marker.className = 'gauge__marker';
     this.marker.setAttribute('aria-hidden', 'true');
 
+    this.effects = document.createElement('div');
+    this.effects.className = 'gauge__effects';
+    this.effects.setAttribute('aria-hidden', 'true');
+
     this.rim.append(this.track);
-    this.root.append(this.rim);
+    this.root.append(this.rim, this.effects);
     this.mountElement.replaceChildren(this.root);
   }
 
@@ -90,6 +98,31 @@ export class GaugeView {
     this.renderedZoneKey = `${snapshot.zoneWidths.red}:${green}:${white}`;
   }
 
+  showHitEffect(result, position) {
+    if (result === 'MISS') return;
+
+    const burst = document.createElement('div');
+    const isCritical = result !== 'HIT';
+    burst.className = `gauge__hit-effect gauge__hit-effect--${isCritical ? 'critical' : 'normal'}`;
+    burst.style.left = `${position * 100}%`;
+
+    const angles = isCritical ? STAR_ANGLES : SPARK_ANGLES;
+    angles.forEach((angle, index) => {
+      const particle = document.createElement('span');
+      particle.className = isCritical ? 'gauge__star' : 'gauge__spark';
+      particle.style.setProperty('--particle-angle', `${angle}deg`);
+      particle.style.setProperty('--particle-distance', `${isCritical ? 1.45 + (index % 3) * 0.28 : 1.05 + (index % 3) * 0.22}rem`);
+      particle.style.setProperty('--particle-delay', `${index * 12}ms`);
+      if (isCritical) particle.textContent = '★';
+      burst.append(particle);
+    });
+
+    this.effects.append(burst);
+    burst.addEventListener('animationend', (event) => {
+      if (event.target === burst) burst.remove();
+    });
+  }
+
   /** Render zone widths, used areas, and marker position; never classify from DOM. */
   render(snapshot) {
     const criticalLayerCount = snapshot.criticalLayerCount ?? 1;
@@ -103,6 +136,10 @@ export class GaugeView {
     }
 
     const consumed = new Set(snapshot.consumedSegments);
+    const newlyConsumed = snapshot.consumedSegments.some((segment) => !this.previousConsumedSegments.has(segment));
+    if (newlyConsumed) this.showHitEffect(snapshot.resultAtCurrentPosition, snapshot.position);
+    this.previousConsumedSegments = consumed;
+
     if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;
 
     for (const zone of this.track.querySelectorAll('.gauge__zone')) {

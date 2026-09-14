@@ -33,4 +33,14 @@ describe('GaugeView DOM/CSS presentation', () => {
     expect(source).toContain("zone.style.visibility = this.concealed ? 'hidden' : '';");
     expect(source).toContain('this.marker.hidden = this.concealed || snapshot.segmentCount === 0;');
   });
+
+  it('uses CSS/DOM spark bursts for hits and star pops for criticals', () => {
+    expect(source).toContain("particle.className = isCritical ? 'gauge__star' : 'gauge__spark';");
+    expect(source).toContain("if (isCritical) particle.textContent = '★';");
+    expect(source).toContain("if (result === 'MISS') return;");
+    expect(styles).toContain('.gauge__spark');
+    expect(styles).toContain('.gauge__star');
+    expect(styles).toContain('@keyframes gauge-spark-burst');
+    expect(styles).toContain('@keyframes gauge-star-pop');
+  });
 });
