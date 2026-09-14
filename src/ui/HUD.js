@@ -11,12 +11,34 @@ export class HUD {
     this.targetStatusLayer = null;
     this.targetStatusElements = [];
     this.pendingDamageBatches = [];
+    this.lastCombo = null;
+    this.lastGameplayPointer = null;
+    this.handleGameplayPointer = (event) => {
+      if (event?.defaultPrevented || event?.isPrimary === false) return;
+      if (typeof event?.button === 'number' && event.button !== 0) return;
+      const target = event?.target;
+      if (target?.closest?.('[data-overlay], button, input, select, textarea, a, [role="button"]')) return;
+      this.lastGameplayPointer = { clientX: event.clientX, clientY: event.clientY };
+    };
     this.handleBoomerangImpact = (event) => this.handleImpact(event?.detail ?? {});
+    this.gameScreen?.addEventListener?.('pointerdown', this.handleGameplayPointer);
     this.canvasHost?.addEventListener?.('boomerangimpact', this.handleBoomerangImpact);
   }
 
   /** Render always-visible state from authoritative models. */
   render({ xp, combo, comboUnlocked, reloadRemainingSeconds, state, challengeHits = null, gaugeOneWaySeconds = null }) {
+    const normalizedCombo = Math.max(0, Math.floor(Number(combo) || 0));
+    if (
+      comboUnlocked
+      && this.lastGameplayPointer
+      && this.lastCombo !== null
+      && normalizedCombo > this.lastCombo
+    ) {
+      this.showComboPopup(normalizedCombo, this.lastGameplayPointer);
+      this.lastGameplayPointer = null;
+    }
+    this.lastCombo = normalizedCombo;
+
     const challengeMarkup = Number.isFinite(challengeHits)
       ? `<span class="hud__combo">Hits: ${Math.floor(challengeHits)} · Gauge: ${Number(gaugeOneWaySeconds).toFixed(2)}s</span>`
       : '';
@@ -32,6 +54,28 @@ export class HUD {
       ${comboMarkup}
       ${reloadMarkup}
     `;
+  }
+
+
+  /** Pop the current combo at the exact manual tap position. */
+  showComboPopup(combo, { clientX, clientY } = {}) {
+    if (!this.gameScreen || typeof document === 'undefined') return;
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
+
+    const rect = this.gameScreen.getBoundingClientRect?.();
+    if (!rect) return;
+
+    const padding = 42;
+    const x = Math.max(padding, Math.min(rect.width - padding, clientX - rect.left));
+    const y = Math.max(padding, Math.min(rect.height - padding, clientY - rect.top));
+    const popup = document.createElement('div');
+    popup.className = 'combo-popup';
+    popup.style.left = `${x}px`;
+    popup.style.top = `${y}px`;
+    popup.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO!</span>`;
+    popup.setAttribute('aria-hidden', 'true');
+    this.gameScreen.append(popup);
+    setTimeout(() => popup.remove(), 780);
   }
 
   ensureTargetStatusElements(count) {
