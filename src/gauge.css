@@ -19,11 +19,11 @@
   width: 100%;
   height: 100%;
   padding: 0.18rem;
-  background: #3e5568;
+  background: linear-gradient(180deg, #587086 0%, #3e5568 48%, #2e4152 100%);
   border-radius: 999px;
   box-shadow:
-    inset 0 1px 1px rgb(255 255 255 / 18%),
-    inset 0 -2px 3px rgb(0 0 0 / 28%);
+    inset 0 1px 1px rgb(255 255 255 / 22%),
+    inset 0 -2px 3px rgb(0 0 0 / 32%);
 }
 
 .gauge__track {
@@ -34,36 +34,73 @@
   overflow: hidden;
   background: #0d1720;
   border-radius: 999px;
-  box-shadow: inset 0 0.1rem 0.3rem rgb(0 0 0 / 48%);
+  box-shadow:
+    inset 0 0.16rem 0.34rem rgb(0 0 0 / 58%),
+    inset 0 -1px 0 rgb(255 255 255 / 8%);
 }
 
 .gauge__zone {
+  position: relative;
   min-width: 0;
   height: 100%;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 20%),
+    inset 0 -2px 0 rgb(0 0 0 / 13%);
+}
+
+.gauge__zone::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 0 34%, rgb(255 255 255 / 10%) 44%, transparent 54%),
+    linear-gradient(180deg, rgb(255 255 255 / 15%) 0%, transparent 38%, rgb(0 0 0 / 11%) 100%);
+  content: '';
+  pointer-events: none;
 }
 
 .gauge__zone--red {
-  background: #b93845;
+  background: linear-gradient(180deg, #df5a63 0%, #b93845 48%, #8d2635 100%);
 }
 
 .gauge__zone--green {
-  background: #35a95d;
+  background: linear-gradient(180deg, #63d17d 0%, #35a95d 48%, #217b45 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 24%),
+    inset 0 -2px 0 rgb(0 0 0 / 12%),
+    inset 0 0 0.35rem rgb(132 255 164 / 20%);
 }
 
 .gauge__zone--white {
-  background: #f7c948;
+  background: linear-gradient(180deg, #fff2a4 0%, #f7c948 48%, #c99418 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 56%),
+    inset 0 -2px 0 rgb(133 91 0 / 22%),
+    inset 0 0 0.5rem rgb(255 236 137 / 55%);
 }
 
 .gauge__zone--mega {
-  background: #f08c46;
+  background: linear-gradient(180deg, #ffb276 0%, #f08c46 48%, #bf5d24 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 38%),
+    inset 0 -2px 0 rgb(117 45 9 / 20%),
+    inset 0 0 0.42rem rgb(255 178 118 / 35%);
 }
 
 .gauge__zone--ultra {
-  background: #c968ff;
+  background: linear-gradient(180deg, #e6a0ff 0%, #c968ff 48%, #8f39c7 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 42%),
+    inset 0 -2px 0 rgb(78 20 111 / 22%),
+    inset 0 0 0.46rem rgb(220 137 255 / 42%);
 }
 
 .gauge__zone--omega {
-  background: #f7f7ff;
+  background: linear-gradient(180deg, #ffffff 0%, #eef5ff 50%, #b9c9df 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 80%),
+    inset 0 -2px 0 rgb(86 107 136 / 20%),
+    inset 0 0 0.55rem rgb(255 255 255 / 72%);
 }
 
 .gauge__marker {
@@ -71,9 +108,11 @@
   top: -0.1rem;
   bottom: -0.1rem;
   width: 0.24rem;
-  background: #fff;
+  background: linear-gradient(90deg, #d9e7f2 0%, #fff 45% 55%, #d9e7f2 100%);
   border-radius: 999px;
-  box-shadow: 0 0 0.35rem rgb(255 255 255 / 70%);
+  box-shadow:
+    0 0 0.35rem rgb(255 255 255 / 75%),
+    0 0.08rem 0.12rem rgb(0 0 0 / 45%);
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 2;
