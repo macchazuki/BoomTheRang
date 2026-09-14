@@ -8,6 +8,7 @@ function createHudFixture() {
     addEventListener: vi.fn((type, handler) => {
       if (type === 'boomerangimpact') impactHandler = handler;
     }),
+    append: vi.fn((element) => { element.isConnected = true; }),
   };
   const gameScreen = {
     append: vi.fn((element) => { element.isConnected = true; }),
@@ -86,8 +87,8 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(hud.showComboPopup).toHaveBeenLastCalledWith(2, true);
   });
 
-  it('reuses one persistent combo badge on the game screen', () => {
-    const { hud, gameScreen } = createHudFixture();
+  it('reuses one persistent combo badge on the map area', () => {
+    const { hud, canvasHost, gameScreen } = createHudFixture();
     const popup = {
       className: '',
       classList: { remove: vi.fn(), add: vi.fn() },
@@ -106,7 +107,8 @@ describe('HUD mobile/accessibility presentation', () => {
       hud.showComboPopup(4);
       hud.showComboPopup(5);
 
-      expect(gameScreen.append).toHaveBeenCalledTimes(1);
+      expect(canvasHost.append).toHaveBeenCalledTimes(1);
+      expect(gameScreen.append).not.toHaveBeenCalled();
       expect(popup.innerHTML).toContain('5x');
       expect(popup.innerHTML).toContain('COMBO');
       expect(popup.classList.add).toHaveBeenCalledWith('combo-popup--punch');
