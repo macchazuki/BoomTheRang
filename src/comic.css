@@ -11,6 +11,51 @@
   text-shadow: 2px 2px 0 #05070c;
 }
 
+/* Shared HUD treatment: same heavy ink, offset shadow, and warm accent language as hit/combo popups. */
+.hud__xp,
+.hud__combo,
+.hud__reload,
+.feedback,
+.challenge-button,
+.game-controls button {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.hud__xp,
+.hud__combo,
+.hud__reload {
+  width: fit-content;
+  padding: 0.18em 0.48em 0.22em;
+  color: #fff;
+  background: #ed3d4f;
+  border: 3px solid #05070c;
+  border-radius: 0.18rem;
+  box-shadow: 3px 3px 0 #05070c;
+  line-height: 1;
+  -webkit-text-stroke: 0.6px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+  transform: rotate(-1deg);
+}
+
+.hud__combo {
+  justify-self: end;
+  color: #ffe85c;
+  background: #263c75;
+  transform: rotate(1deg);
+}
+
+.hud__reload {
+  justify-self: center;
+  color: #05070c;
+  background: #fff36b;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
 .game-controls button,
 .modal-panel button {
   border: 3px solid #05070c;
@@ -21,11 +66,68 @@
   text-transform: uppercase;
 }
 
+.game-controls button {
+  color: #fff;
+  background: #263c75;
+  -webkit-text-stroke: 0.6px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+  transform: rotate(-1deg);
+}
+
+.game-controls button:nth-child(even) {
+  background: #ed3d4f;
+  transform: rotate(1deg);
+}
+
+.game-controls button:active,
+.challenge-button:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 #05070c;
+}
+
 .feedback {
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: #ffe85c;
+  font-size: clamp(1rem, 4.8vw, 1.35rem);
+  line-height: 1.05;
   -webkit-text-stroke: 1px #05070c;
+  text-shadow:
+    2px 2px 0 #ed3d4f,
+    4px 4px 0 #05070c;
+  transform: rotate(-1deg);
+}
+
+.challenge-button {
+  color: #fff;
+  background: #263c75;
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 3px 3px 0 #05070c;
+  -webkit-text-stroke: 0.45px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+  transform: rotate(-1deg);
+}
+
+.challenge-button:nth-child(even) {
+  background: #ed3d4f;
+  transform: rotate(1deg);
+}
+
+.challenge-button__name {
+  color: #fff36b;
+  letter-spacing: 0.065em;
+}
+
+.challenge-button__state {
+  color: #fff;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  -webkit-text-stroke: 0;
+}
+
+.challenge-button:disabled {
+  filter: saturate(0.55);
 }
 
 [data-canvas-host] {

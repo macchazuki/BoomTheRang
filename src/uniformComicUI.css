@@ -1,0 +1,248 @@
+/* Final UI normalization layer: keep all interface typography and buttons visually consistent. */
+:root,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.hud,
+.feedback,
+.modal-panel,
+.menu-panel,
+.challenge-button,
+.challenge-button__state,
+.upgrade-card,
+.active-skill-button,
+.target-status,
+.skill-tree-panel,
+.skill-tree-panel * {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+}
+
+button,
+.challenge-button,
+.active-skill-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.48rem 0.7rem;
+  color: #fff;
+  background: #263c75;
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 3px 3px 0 #05070c;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0.55px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+  transform: none;
+}
+
+button:hover:not(:disabled),
+.challenge-button:hover:not(:disabled),
+.active-skill-button:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+button:active:not(:disabled),
+.challenge-button:active:not(:disabled),
+.active-skill-button:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 #05070c;
+}
+
+button:disabled,
+.challenge-button:disabled,
+.active-skill-button:disabled {
+  cursor: default;
+  opacity: 0.62;
+  filter: saturate(0.55);
+}
+
+button:focus-visible,
+.challenge-button:focus-visible,
+.active-skill-button:focus-visible {
+  outline: 3px solid #fff36b;
+  outline-offset: 3px;
+}
+
+/* Keep button internals on the same type system too. */
+button *,
+.challenge-button *,
+.active-skill-button * {
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+.challenge-button__name {
+  color: #fff36b;
+}
+
+.challenge-button__state {
+  margin-top: 0.18rem;
+  color: #fff;
+  font-size: 0.82em;
+  opacity: 0.9;
+  -webkit-text-stroke: 0;
+}
+
+/* Skill trees use the same comic-book language as the gameplay HUD. */
+.skill-tree-panel {
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 5px 5px 0 #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+}
+
+.skill-tree-header h2 {
+  color: #fff36b;
+  text-transform: uppercase;
+  -webkit-text-stroke: 1px #05070c;
+  text-shadow: 3px 3px 0 #ed3d4f, 5px 5px 0 #05070c;
+}
+
+.skill-tree-subtitle,
+.skill-tree-legend,
+.skill-node__label,
+.skill-detail__description,
+.skill-detail__meta,
+.active-skill-card__description,
+.active-skill-card__meta,
+.active-skill-card__levels {
+  color: #fff;
+  font-style: italic;
+  font-weight: 900;
+  text-shadow: 2px 2px 0 #05070c;
+}
+
+.progression-tab,
+.skill-category-tab,
+.skill-detail__purchase,
+.active-skill-card__action,
+.skill-tree-close {
+  color: #fff;
+  background: #263c75;
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 3px 3px 0 #05070c;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0.55px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+}
+
+.progression-tab--active,
+.skill-category-tab--active,
+.skill-category-tab--has-upgrade,
+.skill-detail__purchase:not(:disabled),
+.active-skill-card__action:not(:disabled) {
+  color: #fff36b;
+  background: #ed3d4f;
+  border-color: #05070c;
+}
+
+.skill-category-tab__indicator {
+  background: #fff36b;
+  border: 2px solid #05070c;
+  box-shadow: 2px 2px 0 #05070c;
+}
+
+.skill-tree-viewport,
+.skill-detail,
+.active-skill-card {
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 3px 3px 0 #05070c;
+}
+
+.skill-detail--available,
+.active-skill-card--active {
+  border-color: #fff36b;
+}
+
+.skill-detail--purchased {
+  border-color: #73d7ff;
+}
+
+.skill-detail h3,
+.active-skill-card h3,
+.skill-detail__badge,
+.active-skill-card__badge,
+.skill-detail__status {
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 #05070c;
+}
+
+.skill-detail h3,
+.active-skill-card h3 {
+  color: #fff36b;
+}
+
+.skill-detail__badge,
+.active-skill-card__badge,
+.skill-detail__status {
+  color: #fff;
+}
+
+/* Tree nodes stay circular, but use the same thick ink outline and punchy palette. */
+.skill-node {
+  border: 3px solid #05070c;
+  box-shadow: 3px 3px 0 #05070c;
+  transform: translate(-50%, -50%);
+  -webkit-text-stroke: 0.35px #05070c;
+  text-shadow: 1px 1px 0 #05070c;
+}
+
+.skill-node--available {
+  color: #fff36b;
+  background: #ed3d4f;
+  border-color: #05070c;
+  box-shadow: 3px 3px 0 #05070c;
+}
+
+.skill-node--purchased {
+  color: #fff;
+  background: #263c75;
+  border-color: #05070c;
+  box-shadow: 3px 3px 0 #05070c;
+}
+
+.skill-node--insufficient-xp,
+.skill-node--locked {
+  border-color: #05070c;
+  box-shadow: 3px 3px 0 #05070c;
+}
+
+.skill-node--selected {
+  outline: 3px solid #fff36b;
+  outline-offset: 4px;
+}
+
+.skill-node:active {
+  translate: 2px 2px;
+  transform: translate(-50%, -50%) scale(0.96);
+  box-shadow: 1px 1px 0 #05070c;
+}
+
+.skill-node__sigil,
+.skill-node__label {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+}
