@@ -1,5 +1,6 @@
 /**
- * DOM mirror of GaugeController normalized state.
+ * DOM/CSS mirror of GaugeController normalized state.
+ * Gameplay classification remains authoritative in GaugeController.
  */
 const CRITICAL_COLORS = Object.freeze({
   white: '#f7c948',
@@ -13,26 +14,31 @@ export class GaugeView {
     this.mountElement = mountElement;
     this.concealAfterFirstTap = concealAfterFirstTap;
     this.concealed = false;
+    this.renderedSegmentCount = 0;
+    this.renderedCriticalLayerCount = 0;
+    this.renderedZoneKey = '';
+
     this.root = document.createElement('div');
     this.root.className = 'gauge';
-    // Gauge framing is intentionally disabled here so later presentation CSS cannot
-    // reintroduce the consumed-area box/outline regression.
-    this.root.style.border = 'none';
-    this.root.style.outline = 'none';
-    this.root.style.boxShadow = 'none';
     this.root.setAttribute('role', 'img');
     this.root.setAttribute(
       'aria-label',
       'Timing gauge: each boomerang has red, green, and nested critical timing areas per sweep.',
     );
-    this.mountElement.replaceChildren(this.root);
+
+    this.rim = document.createElement('div');
+    this.rim.className = 'gauge__rim';
+
+    this.track = document.createElement('div');
+    this.track.className = 'gauge__track';
 
     this.marker = document.createElement('div');
     this.marker.className = 'gauge__marker';
     this.marker.setAttribute('aria-hidden', 'true');
-    this.renderedSegmentCount = 0;
-    this.renderedCriticalLayerCount = 0;
-    this.renderedZoneKey = '';
+
+    this.rim.append(this.track);
+    this.root.append(this.rim);
+    this.mountElement.replaceChildren(this.root);
   }
 
   rebuildZones(snapshot) {
@@ -63,11 +69,9 @@ export class GaugeView {
     };
 
     const criticalNames = ['white', 'mega', 'ultra', 'omega'];
-
     for (let segment = 0; segment < snapshot.segmentCount; segment += 1) {
       addZone(segment, 'red', halfRed);
       addZone(segment, 'green', halfGreen);
-
       for (let tier = 0; tier < criticalLayerCount - 1; tier += 1) {
         addZone(segment, criticalNames[tier], halfCriticalBand);
       }
@@ -75,13 +79,12 @@ export class GaugeView {
       for (let tier = criticalLayerCount - 2; tier >= 0; tier -= 1) {
         addZone(segment, criticalNames[tier], halfCriticalBand);
       }
-
       addZone(segment, 'green', halfGreen);
       addZone(segment, 'red', halfRed);
     }
 
-    this.root.style.gridTemplateColumns = columns.join(' ');
-    this.root.replaceChildren(...zones, this.marker);
+    this.track.style.gridTemplateColumns = columns.join(' ');
+    this.track.replaceChildren(...zones, this.marker);
     this.renderedSegmentCount = snapshot.segmentCount;
     this.renderedCriticalLayerCount = criticalLayerCount;
     this.renderedZoneKey = `${snapshot.zoneWidths.red}:${green}:${white}`;
@@ -102,7 +105,7 @@ export class GaugeView {
     const consumed = new Set(snapshot.consumedSegments);
     if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;
 
-    for (const zone of this.root.querySelectorAll('.gauge__zone')) {
+    for (const zone of this.track.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
       const zoneName = isConsumed ? 'red' : zone.dataset.zone;
       zone.className = `gauge__zone gauge__zone--${zoneName}`;
@@ -112,5 +115,9 @@ export class GaugeView {
 
     this.marker.hidden = this.concealed || snapshot.segmentCount === 0;
     this.marker.style.left = `${snapshot.position * 100}%`;
+  }
+
+  dispose() {
+    this.root.remove();
   }
 }
