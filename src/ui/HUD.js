@@ -11,12 +11,23 @@ export class HUD {
     this.targetStatusLayer = null;
     this.targetStatusElements = [];
     this.pendingDamageBatches = [];
+    this.lastCombo = null;
+    this.comboBadge = null;
     this.handleBoomerangImpact = (event) => this.handleImpact(event?.detail ?? {});
     this.canvasHost?.addEventListener?.('boomerangimpact', this.handleBoomerangImpact);
   }
 
   /** Render always-visible state from authoritative models. */
   render({ xp, combo, comboUnlocked, reloadRemainingSeconds, state, challengeHits = null, gaugeOneWaySeconds = null }) {
+    const normalizedCombo = Math.max(0, Math.floor(Number(combo) || 0));
+    if (comboUnlocked && normalizedCombo > 0) {
+      this.showComboPopup(normalizedCombo, normalizedCombo > (this.lastCombo ?? 0));
+    } else if (!comboUnlocked || normalizedCombo === 0) {
+      this.comboBadge?.remove?.();
+      this.comboBadge = null;
+    }
+    this.lastCombo = normalizedCombo;
+
     const challengeMarkup = Number.isFinite(challengeHits)
       ? `<span class="hud__combo">Hits: ${Math.floor(challengeHits)} · Gauge: ${Number(gaugeOneWaySeconds).toFixed(2)}s</span>`
       : '';
@@ -32,6 +43,25 @@ export class HUD {
       ${comboMarkup}
       ${reloadMarkup}
     `;
+  }
+
+  /** Keep the current combo visible at the bottom-right of the map area. */
+  showComboPopup(combo, punch = true) {
+    if (!this.canvasHost || typeof document === 'undefined') return;
+
+    if (!this.comboBadge || !this.comboBadge.isConnected) {
+      this.comboBadge = document.createElement('div');
+      this.comboBadge.className = 'combo-popup';
+      this.comboBadge.setAttribute('aria-hidden', 'true');
+      this.canvasHost.append(this.comboBadge);
+    }
+
+    this.comboBadge.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO</span>`;
+    if (!punch) return;
+
+    this.comboBadge.classList.remove('combo-popup--punch');
+    void this.comboBadge.offsetWidth;
+    this.comboBadge.classList.add('combo-popup--punch');
   }
 
   ensureTargetStatusElements(count) {

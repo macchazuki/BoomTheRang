@@ -8,8 +8,10 @@ function createHudFixture() {
     addEventListener: vi.fn((type, handler) => {
       if (type === 'boomerangimpact') impactHandler = handler;
     }),
+    append: vi.fn((element) => { element.isConnected = true; }),
   };
   const gameScreen = {
+    append: vi.fn((element) => { element.isConnected = true; }),
     querySelector: (selector) => {
       if (selector === '[data-feedback]') return feedback;
       if (selector === '[data-canvas-host]') return canvasHost;
@@ -26,6 +28,7 @@ function createHudFixture() {
     mountElement,
     feedback,
     canvasHost,
+    gameScreen,
     dispatchImpact: (detail) => impactHandler?.({ detail }),
   };
 }
@@ -48,6 +51,7 @@ describe('HUD mobile/accessibility presentation', () => {
 
   it('shows combo after unlock and a readable reload countdown during misses', () => {
     const { hud, mountElement } = createHudFixture();
+    hud.showComboPopup = vi.fn();
 
     hud.render({
       xp: 25,
@@ -59,6 +63,59 @@ describe('HUD mobile/accessibility presentation', () => {
 
     expect(mountElement.innerHTML).toContain('Combo: 3');
     expect(mountElement.innerHTML).toContain('Reload: 4.3s');
+  });
+
+  it('keeps the combo badge updated when the combo increases', () => {
+    const { hud } = createHudFixture();
+    hud.showComboPopup = vi.fn();
+
+    hud.render({
+      xp: 0,
+      combo: 1,
+      comboUnlocked: true,
+      reloadRemainingSeconds: 0,
+      state: 'READY',
+    });
+    hud.render({
+      xp: 20,
+      combo: 2,
+      comboUnlocked: true,
+      reloadRemainingSeconds: 0,
+      state: 'READY',
+    });
+
+    expect(hud.showComboPopup).toHaveBeenLastCalledWith(2, true);
+  });
+
+  it('reuses one persistent combo badge on the map area', () => {
+    const { hud, canvasHost, gameScreen } = createHudFixture();
+    const popup = {
+      className: '',
+      classList: { remove: vi.fn(), add: vi.fn() },
+      innerHTML: '',
+      isConnected: false,
+      offsetWidth: 100,
+      setAttribute: vi.fn(),
+      remove: vi.fn(),
+    };
+    const originalDocument = globalThis.document;
+    globalThis.document = {
+      createElement: vi.fn(() => popup),
+    };
+
+    try {
+      hud.showComboPopup(4);
+      hud.showComboPopup(5);
+
+      expect(canvasHost.append).toHaveBeenCalledTimes(1);
+      expect(gameScreen.append).not.toHaveBeenCalled();
+      expect(popup.innerHTML).toContain('5x');
+      expect(popup.innerHTML).toContain('COMBO');
+      expect(popup.classList.add).toHaveBeenCalledWith('combo-popup--punch');
+      expect(popup.remove).not.toHaveBeenCalled();
+    } finally {
+      globalThis.document = originalDocument;
+    }
   });
 
   it('writes result feedback only to the owning game screen', () => {
