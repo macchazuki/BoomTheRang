@@ -4,19 +4,20 @@ import { HUD } from './HUD.js';
 function createHudFixture() {
   const feedback = { textContent: '' };
   let impactHandler = null;
-  let pointerHandler = null;
+  const marker = {
+    getBoundingClientRect: () => ({ left: 150, top: 420, width: 8, height: 20 }),
+  };
   const canvasHost = {
     addEventListener: vi.fn((type, handler) => {
       if (type === 'boomerangimpact') impactHandler = handler;
     }),
   };
   const gameScreen = {
-    addEventListener: vi.fn((type, handler) => {
-      if (type === 'pointerdown') pointerHandler = handler;
-    }),
+    getBoundingClientRect: () => ({ left: 20, top: 40, width: 320, height: 640 }),
     querySelector: (selector) => {
       if (selector === '[data-feedback]') return feedback;
       if (selector === '[data-canvas-host]') return canvasHost;
+      if (selector === '.gauge__marker') return marker;
       return null;
     },
   };
@@ -31,14 +32,6 @@ function createHudFixture() {
     feedback,
     canvasHost,
     dispatchImpact: (detail) => impactHandler?.({ detail }),
-    dispatchPointer: ({ clientX = 120, clientY = 240 } = {}) => pointerHandler?.({
-      defaultPrevented: false,
-      isPrimary: true,
-      button: 0,
-      clientX,
-      clientY,
-      target: { closest: () => null },
-    }),
   };
 }
 
@@ -73,8 +66,8 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(mountElement.innerHTML).toContain('Reload: 4.3s');
   });
 
-  it('pops an increased combo at the latest manual tap position', () => {
-    const { hud, dispatchPointer } = createHudFixture();
+  it('pops an increased combo at the current gauge marker position', () => {
+    const { hud } = createHudFixture();
     hud.showComboPopup = vi.fn();
 
     hud.render({
@@ -84,7 +77,6 @@ describe('HUD mobile/accessibility presentation', () => {
       reloadRemainingSeconds: 0,
       state: 'READY',
     });
-    dispatchPointer({ clientX: 144, clientY: 388 });
     hud.render({
       xp: 20,
       combo: 2,
@@ -93,7 +85,32 @@ describe('HUD mobile/accessibility presentation', () => {
       state: 'READY',
     });
 
-    expect(hud.showComboPopup).toHaveBeenCalledWith(2, { clientX: 144, clientY: 388 });
+    expect(hud.showComboPopup).toHaveBeenCalledWith(2);
+  });
+
+  it('positions the combo popup over the gauge marker', () => {
+    const { hud } = createHudFixture();
+    const popup = {
+      className: '',
+      style: {},
+      innerHTML: '',
+      setAttribute: vi.fn(),
+      remove: vi.fn(),
+    };
+    const originalDocument = globalThis.document;
+    globalThis.document = {
+      createElement: vi.fn(() => popup),
+    };
+    hud.gameScreen.append = vi.fn();
+
+    try {
+      hud.showComboPopup(4);
+      expect(popup.style.left).toBe('134px');
+      expect(popup.style.top).toBe('390px');
+      expect(hud.gameScreen.append).toHaveBeenCalledWith(popup);
+    } finally {
+      globalThis.document = originalDocument;
+    }
   });
 
   it('writes result feedback only to the owning game screen', () => {
