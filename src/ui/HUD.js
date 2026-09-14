@@ -31,16 +31,13 @@ export class HUD {
     const challengeMarkup = Number.isFinite(challengeHits)
       ? `<span class="hud__combo">Hits: ${Math.floor(challengeHits)} · Gauge: ${Number(gaugeOneWaySeconds).toFixed(2)}s</span>`
       : '';
-    const comboMarkup = challengeMarkup || (comboUnlocked
-      ? `<span class="hud__combo">Combo: ${combo}</span>`
-      : '');
     const reloadMarkup = state === 'MISS_RELOAD'
       ? `<span class="hud__reload">Reload: ${reloadRemainingSeconds.toFixed(1)}s</span>`
       : '';
 
     this.mountElement.innerHTML = `
       <span class="hud__xp">XP: ${Math.floor(xp).toLocaleString()}</span>
-      ${comboMarkup}
+      ${challengeMarkup}
       ${reloadMarkup}
     `;
   }
