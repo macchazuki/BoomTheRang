@@ -6,6 +6,7 @@ import './targetStatus.css';
 import './comic.css';
 import './challengeButtons.css';
 import './gameLayout.css';
+import './gauge.css';
 import { GameApp } from './app/GameApp.js';
 import { preloadAssets } from './assets/assetPreloader.js';
 import { LoadingScene } from './scenes/LoadingScene.js';
