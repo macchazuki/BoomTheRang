@@ -12,6 +12,8 @@ describe('GaugeView DOM/CSS presentation', () => {
     expect(styles).toContain('.gauge__rim');
     expect(styles).toContain('.gauge__track');
     expect(styles).toContain('border-radius: 999px;');
+    expect(styles).toContain('border: 0;');
+    expect(styles).toContain('outline: 0;');
   });
 
   it('keeps hit zones full width and only divides the remaining red space', () => {
