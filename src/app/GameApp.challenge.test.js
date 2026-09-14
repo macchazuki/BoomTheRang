@@ -16,6 +16,7 @@ function createHarness() {
   app.saveManager = { save: vi.fn() };
   app.startGameplay = vi.fn();
   app.disposeGameplay = vi.fn();
+  app.openChallengeResult = vi.fn();
   app.upgradePanel = { render: vi.fn() };
   app.activeChallenge = null;
   return app;
@@ -54,5 +55,28 @@ describe('GameApp challenge isolation', () => {
     expect(app.accountGameState.challenges.speedTrial.cooldownUntil).toBeGreaterThan(10_000);
     expect(app.saveManager.save).toHaveBeenCalledTimes(1);
     expect(app.startGameplay).toHaveBeenCalledWith({ challengeDefinition: result.definition });
+  });
+
+  it('restores the regular run and shows results instead of opening progression', () => {
+    const app = createHarness();
+    app.challengeManager.unlock('speedTrial');
+    app.accountGameState.challenges.speedTrial.bestHits = 3;
+    app.activeChallenge = { id: 'speedTrial' };
+    app.gameState = new GameState();
+
+    app.finishChallenge({ hits: 7 });
+
+    expect(app.disposeGameplay).toHaveBeenCalledTimes(1);
+    expect(app.activeChallenge).toBeNull();
+    expect(app.gameState).toBe(app.accountGameState);
+    expect(app.startGameplay).toHaveBeenCalledWith();
+    expect(app.openChallengeResult).toHaveBeenCalledTimes(1);
+    expect(app.openChallengeResult.mock.calls[0][0]).toMatchObject({
+      ok: true,
+      hits: 7,
+      bestHits: 7,
+      improved: true,
+    });
+    expect(app.saveManager.save).toHaveBeenCalledTimes(1);
   });
 });
