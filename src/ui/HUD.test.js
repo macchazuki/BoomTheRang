@@ -4,19 +4,16 @@ import { HUD } from './HUD.js';
 function createHudFixture() {
   const feedback = { textContent: '' };
   let impactHandler = null;
-  const gauge = {
-    append: vi.fn((element) => { element.isConnected = true; }),
-  };
   const canvasHost = {
     addEventListener: vi.fn((type, handler) => {
       if (type === 'boomerangimpact') impactHandler = handler;
     }),
   };
   const gameScreen = {
+    append: vi.fn((element) => { element.isConnected = true; }),
     querySelector: (selector) => {
       if (selector === '[data-feedback]') return feedback;
       if (selector === '[data-canvas-host]') return canvasHost;
-      if (selector === '.gauge') return gauge;
       return null;
     },
   };
@@ -30,7 +27,7 @@ function createHudFixture() {
     mountElement,
     feedback,
     canvasHost,
-    gauge,
+    gameScreen,
     dispatchImpact: (detail) => impactHandler?.({ detail }),
   };
 }
@@ -89,8 +86,8 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(hud.showComboPopup).toHaveBeenLastCalledWith(2, true);
   });
 
-  it('reuses one persistent combo badge on the gauge', () => {
-    const { hud, gauge } = createHudFixture();
+  it('reuses one persistent combo badge on the game screen', () => {
+    const { hud, gameScreen } = createHudFixture();
     const popup = {
       className: '',
       classList: { remove: vi.fn(), add: vi.fn() },
@@ -109,8 +106,9 @@ describe('HUD mobile/accessibility presentation', () => {
       hud.showComboPopup(4);
       hud.showComboPopup(5);
 
-      expect(gauge.append).toHaveBeenCalledTimes(1);
+      expect(gameScreen.append).toHaveBeenCalledTimes(1);
       expect(popup.innerHTML).toContain('5x');
+      expect(popup.innerHTML).toContain('COMBO');
       expect(popup.classList.add).toHaveBeenCalledWith('combo-popup--punch');
       expect(popup.remove).not.toHaveBeenCalled();
     } finally {
