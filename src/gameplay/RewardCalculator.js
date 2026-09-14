@@ -1,4 +1,4 @@
-import { GAUGE_RESULT, isCriticalResult } from './GaugeController.js';
+import { GAUGE_RESULT } from './GaugeController.js';
 import { BALANCE } from '../progression/balance.js';
 
 /**
@@ -58,7 +58,6 @@ export function calculateDogReward({
 export function getNextCombo(currentCombo, result, comboUnlocked) {
   if (!comboUnlocked) return 0;
   if (result === GAUGE_RESULT.MISS) return 0;
-  if (isCriticalResult(result)) return currentCombo + 2;
   return currentCombo + 1;
 }
 
