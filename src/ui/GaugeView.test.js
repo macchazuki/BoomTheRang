@@ -2,14 +2,16 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('./GaugeView.js', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../gauge.css', import.meta.url), 'utf8');
 
-describe('GaugeView Three.js presentation', () => {
-  it('renders the gauge as Three.js meshes instead of DOM color zones', () => {
-    expect(source).toContain("import * as THREE from 'three';");
-    expect(source).toContain('new THREE.WebGLRenderer({ antialias: true, alpha: true })');
-    expect(source).toContain('this.outerShell = new THREE.Mesh(');
-    expect(source).toContain('this.rim = new THREE.Mesh(');
-    expect(source).toContain('this.track = new THREE.Mesh(');
+describe('GaugeView DOM/CSS presentation', () => {
+  it('renders a dual-layer rounded pill with DOM elements and CSS', () => {
+    expect(source).not.toContain("import * as THREE from 'three';");
+    expect(source).toContain("this.rim.className = 'gauge__rim';");
+    expect(source).toContain("this.track.className = 'gauge__track';");
+    expect(styles).toContain('.gauge__rim');
+    expect(styles).toContain('.gauge__track');
+    expect(styles).toContain('border-radius: 999px;');
   });
 
   it('keeps hit zones full width and only divides the remaining red space', () => {
@@ -18,15 +20,15 @@ describe('GaugeView Three.js presentation', () => {
     expect(source).toContain('const halfRed = redPerSegment / 2;');
   });
 
-  it('renders consumed timing areas red without adding a consumed-area outline', () => {
-    expect(source).toContain("const zoneName = isConsumed ? 'red' : zone.userData.zone;");
-    expect(source).toContain('zone.material.color.setHex(');
-    expect(source).not.toContain('LineBasicMaterial');
+  it('renders consumed timing areas red without a consumed-area outline', () => {
+    expect(source).toContain("const zoneName = isConsumed ? 'red' : zone.dataset.zone;");
+    expect(source).toContain("zone.className = `gauge__zone gauge__zone--${zoneName}`;");
+    expect(styles).not.toContain('gauge__zone--consumed');
   });
 
   it('latches blind challenge concealment after the first consumed segment', () => {
     expect(source).toContain('if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;');
-    expect(source).toContain('zone.visible = !this.concealed;');
-    expect(source).toContain('const markerVisible = !this.concealed && snapshot.segmentCount > 0;');
+    expect(source).toContain("zone.style.visibility = this.concealed ? 'hidden' : '';");
+    expect(source).toContain('this.marker.hidden = this.concealed || snapshot.segmentCount === 0;');
   });
 });
