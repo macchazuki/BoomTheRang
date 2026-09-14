@@ -45,15 +45,15 @@ export class HUD {
     `;
   }
 
-  /** Keep the current combo visible at the bottom-right of the game area. */
+  /** Keep the current combo visible at the bottom-right of the map area. */
   showComboPopup(combo, punch = true) {
-    if (!this.gameScreen || typeof document === 'undefined') return;
+    if (!this.canvasHost || typeof document === 'undefined') return;
 
     if (!this.comboBadge || !this.comboBadge.isConnected) {
       this.comboBadge = document.createElement('div');
       this.comboBadge.className = 'combo-popup';
       this.comboBadge.setAttribute('aria-hidden', 'true');
-      this.gameScreen.append(this.comboBadge);
+      this.canvasHost.append(this.comboBadge);
     }
 
     this.comboBadge.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO</span>`;
