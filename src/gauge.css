@@ -161,15 +161,31 @@
 }
 
 .gauge__spark {
-  width: 0.16rem;
-  height: 0.78rem;
-  margin: -0.39rem -0.08rem;
-  background: linear-gradient(180deg, #fff 0%, #ffe26b 42%, #ff9e36 100%);
+  width: 0.22rem;
+  height: 0.96rem;
+  margin: -0.48rem -0.11rem;
+  background: linear-gradient(180deg, #fff 0%, #fff5b0 24%, #ffd84a 56%, #ff8d21 100%);
   border-radius: 999px;
-  box-shadow: 0 0 0.28rem rgb(255 205 77 / 90%);
+  box-shadow:
+    0 0 0.18rem rgb(255 255 255 / 95%),
+    0 0 0.42rem rgb(255 205 77 / 100%);
   animation-name: gauge-spark-burst;
-  animation-duration: 280ms;
+  animation-duration: 340ms;
   animation-timing-function: cubic-bezier(0.15, 0.8, 0.25, 1);
+}
+
+.gauge__hit-effect--normal::before {
+  position: absolute;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin: -0.35rem;
+  background: radial-gradient(circle, #fff 0 24%, #ffe66f 42%, rgb(255 174 53 / 78%) 62%, transparent 76%);
+  border-radius: 50%;
+  content: '';
+  box-shadow:
+    0 0 0.26rem rgb(255 255 255 / 92%),
+    0 0 0.58rem rgb(255 203 69 / 86%);
+  animation: gauge-normal-flash 240ms ease-out both;
 }
 
 .gauge__star {
@@ -200,11 +216,30 @@
 @keyframes gauge-spark-burst {
   0% {
     opacity: 1;
-    transform: rotate(var(--particle-angle)) translateY(-0.15rem) scaleY(0.45);
+    transform: rotate(var(--particle-angle)) translateY(-0.12rem) scaleY(0.5);
+  }
+  38% {
+    opacity: 1;
+    transform: rotate(var(--particle-angle)) translateY(calc(-0.48 * var(--particle-distance))) scaleY(1.12);
   }
   100% {
     opacity: 0;
-    transform: rotate(var(--particle-angle)) translateY(calc(-1 * var(--particle-distance))) scaleY(1);
+    transform: rotate(var(--particle-angle)) translateY(calc(-1.18 * var(--particle-distance))) scaleY(0.9);
+  }
+}
+
+@keyframes gauge-normal-flash {
+  0% {
+    opacity: 1;
+    transform: scale(0.45);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55);
   }
 }
 
@@ -243,6 +278,7 @@
   .gauge__hit-effect,
   .gauge__spark,
   .gauge__star,
+  .gauge__hit-effect--normal::before,
   .gauge__hit-effect--critical::before {
     animation-duration: 1ms;
     animation-delay: 0ms;
