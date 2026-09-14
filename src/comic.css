@@ -28,19 +28,15 @@
   -webkit-text-stroke: 1px #05070c;
 }
 
-.gauge {
-  position: relative;
-}
-
 .combo-popup {
   position: absolute;
   z-index: 8;
-  right: 0.25rem;
-  bottom: calc(100% + 0.6rem);
+  right: clamp(0.75rem, 3vw, 1.25rem);
+  bottom: clamp(0.75rem, 3vw, 1.25rem);
   display: grid;
-  justify-items: center;
+  justify-items: end;
   pointer-events: none;
-  transform: rotate(-7deg);
+  transform: rotate(-5deg);
   transform-origin: bottom right;
 }
 
@@ -53,9 +49,9 @@
   content: "";
   position: absolute;
   z-index: -1;
-  inset: 50% auto auto 50%;
-  width: 5.2rem;
-  height: 0.45rem;
+  inset: 48% auto auto 52%;
+  width: 5.8rem;
+  height: 0.48rem;
   border-radius: 999px;
   background: #fff36b;
   box-shadow: 0 0 16px rgb(255 243 107 / 80%);
@@ -82,17 +78,21 @@
 }
 
 .combo-popup__label {
-  margin-top: 0.1rem;
-  padding: 0.08em 0.3em;
-  color: #05070c;
-  background: #ffe85c;
-  border: 2px solid #05070c;
-  box-shadow: 3px 3px 0 #05070c;
-  font-family: "Arial Black", sans-serif;
-  font-size: clamp(0.72rem, 3.8vw, 1rem);
+  margin-top: 0.22rem;
+  padding: 0.16em 0.48em 0.2em;
+  color: #fff;
+  background: #ed3d4f;
+  border: 3px solid #05070c;
+  border-radius: 0.18rem;
+  box-shadow: 4px 4px 0 #05070c;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: clamp(0.9rem, 4.4vw, 1.25rem);
   font-style: italic;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  -webkit-text-stroke: 1px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
 }
 
 @keyframes combo-popup-punch {
