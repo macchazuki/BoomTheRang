@@ -17,6 +17,7 @@ import { ChallengeButtonBar } from '../ui/ChallengeButtonBar.js';
 import { UpgradePanel } from '../ui/ProgressionPanel.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
 import { CompletionPanel } from '../ui/CompletionPanel.js';
+import { ChallengeResultPanel } from '../ui/ChallengeResultPanel.js';
 import { clampDeltaSeconds } from '../game.js';
 
 export class GameApp {
@@ -42,6 +43,7 @@ export class GameApp {
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
+    this.challengeResultPanel = null;
     this.animationFrameId = null;
     this.previousFrameMs = null;
     this.lastPeriodicSaveSeconds = 0;
@@ -172,6 +174,7 @@ export class GameApp {
     });
     this.settingsPanel = new SettingsPanel({ mountElement: uiHosts.overlay, gameState: this.gameState, onChange: () => this.saveCurrentSettings(), onClose: () => this.closeModal() });
     this.completionPanel = new CompletionPanel({ mountElement: uiHosts.overlay, onContinue: () => this.closeModal() });
+    this.challengeResultPanel = new ChallengeResultPanel({ mountElement: uiHosts.overlay, onReturn: () => this.closeModal() });
     this.dogController = new DogController({ onThrow: (dogThrow) => this.gameController?.handleDogThrow(dogThrow) });
     const challengeRules = challengeDefinition ? {
       permanentMissLoss: true,
@@ -223,12 +226,18 @@ export class GameApp {
     this.upgradePanel?.close();
     this.settingsPanel?.close();
     this.completionPanel?.close();
+    this.challengeResultPanel?.close();
     this.gameController?.resume();
   }
 
   openCompletion() {
     this.gameController?.pause('completion-panel');
     this.completionPanel?.open(this.gameState.stats);
+  }
+
+  openChallengeResult(result) {
+    this.gameController?.pause('challenge-result-panel');
+    this.challengeResultPanel?.open(result);
   }
 
   finishChallenge({ hits }) {
@@ -241,8 +250,7 @@ export class GameApp {
     this.activeChallenge = null;
     this.restoreAccountState();
     this.startGameplay();
-    this.upgradePanel?.showChallengeResult(result);
-    this.openUpgrades();
+    this.openChallengeResult(result);
   }
 
   saveCurrentSettings() {
@@ -288,7 +296,10 @@ export class GameApp {
       this.saveManager.save(stateToSave.toSaveData());
     } else {
       this.previousFrameMs = performance.now();
-      const gameplayModalOpen = this.upgradePanel?.isOpen || this.settingsPanel?.isOpen || this.completionPanel?.isOpen;
+      const gameplayModalOpen = this.upgradePanel?.isOpen
+        || this.settingsPanel?.isOpen
+        || this.completionPanel?.isOpen
+        || this.challengeResultPanel?.isOpen;
       if (this.gameController?.pauseReason === 'document-hidden' && !gameplayModalOpen) this.gameController.resume();
     }
   }
@@ -326,5 +337,6 @@ export class GameApp {
     this.upgradePanel = null;
     this.settingsPanel = null;
     this.completionPanel = null;
+    this.challengeResultPanel = null;
   }
 }
