@@ -12,16 +12,7 @@ export class HUD {
     this.targetStatusElements = [];
     this.pendingDamageBatches = [];
     this.lastCombo = null;
-    this.lastGameplayPointer = null;
-    this.handleGameplayPointer = (event) => {
-      if (event?.defaultPrevented || event?.isPrimary === false) return;
-      if (typeof event?.button === 'number' && event.button !== 0) return;
-      const target = event?.target;
-      if (target?.closest?.('[data-overlay], button, input, select, textarea, a, [role="button"]')) return;
-      this.lastGameplayPointer = { clientX: event.clientX, clientY: event.clientY };
-    };
     this.handleBoomerangImpact = (event) => this.handleImpact(event?.detail ?? {});
-    this.gameScreen?.addEventListener?.('pointerdown', this.handleGameplayPointer);
     this.canvasHost?.addEventListener?.('boomerangimpact', this.handleBoomerangImpact);
   }
 
@@ -30,12 +21,10 @@ export class HUD {
     const normalizedCombo = Math.max(0, Math.floor(Number(combo) || 0));
     if (
       comboUnlocked
-      && this.lastGameplayPointer
       && this.lastCombo !== null
       && normalizedCombo > this.lastCombo
     ) {
-      this.showComboPopup(normalizedCombo, this.lastGameplayPointer);
-      this.lastGameplayPointer = null;
+      this.showComboPopup(normalizedCombo);
     }
     this.lastCombo = normalizedCombo;
 
@@ -56,18 +45,17 @@ export class HUD {
     `;
   }
 
-
-  /** Pop the current combo at the exact manual tap position. */
-  showComboPopup(combo, { clientX, clientY } = {}) {
+  /** Pop the current combo from the gauge marker where the throw was registered. */
+  showComboPopup(combo) {
     if (!this.gameScreen || typeof document === 'undefined') return;
-    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
 
-    const rect = this.gameScreen.getBoundingClientRect?.();
-    if (!rect) return;
+    const marker = this.gameScreen.querySelector?.('.gauge__marker');
+    const screenRect = this.gameScreen.getBoundingClientRect?.();
+    const markerRect = marker?.getBoundingClientRect?.();
+    if (!screenRect || !markerRect) return;
 
-    const padding = 42;
-    const x = Math.max(padding, Math.min(rect.width - padding, clientX - rect.left));
-    const y = Math.max(padding, Math.min(rect.height - padding, clientY - rect.top));
+    const x = markerRect.left + markerRect.width / 2 - screenRect.left;
+    const y = markerRect.top + markerRect.height / 2 - screenRect.top;
     const popup = document.createElement('div');
     popup.className = 'combo-popup';
     popup.style.left = `${x}px`;
