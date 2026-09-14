@@ -1,0 +1,100 @@
+/* Final UI normalization layer: keep all interface typography and buttons visually consistent. */
+:root,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.hud,
+.feedback,
+.modal-panel,
+.menu-panel,
+.challenge-button,
+.challenge-button__state,
+.upgrade-card,
+.active-skill-button,
+.target-status {
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+}
+
+button,
+.challenge-button,
+.active-skill-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.48rem 0.7rem;
+  color: #fff;
+  background: #263c75;
+  border: 3px solid #05070c;
+  border-radius: 0.2rem;
+  box-shadow: 3px 3px 0 #05070c;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0.55px #05070c;
+  text-shadow: 2px 2px 0 #05070c;
+  transform: none;
+}
+
+button:hover:not(:disabled),
+.challenge-button:hover:not(:disabled),
+.active-skill-button:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+button:active:not(:disabled),
+.challenge-button:active:not(:disabled),
+.active-skill-button:active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 #05070c;
+}
+
+button:disabled,
+.challenge-button:disabled,
+.active-skill-button:disabled {
+  cursor: default;
+  opacity: 0.62;
+  filter: saturate(0.55);
+}
+
+button:focus-visible,
+.challenge-button:focus-visible,
+.active-skill-button:focus-visible {
+  outline: 3px solid #fff36b;
+  outline-offset: 3px;
+}
+
+/* Keep button internals on the same type system too. */
+button *,
+.challenge-button *,
+.active-skill-button * {
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+.challenge-button__name {
+  color: #fff36b;
+}
+
+.challenge-button__state {
+  margin-top: 0.18rem;
+  color: #fff;
+  font-size: 0.82em;
+  opacity: 0.9;
+  -webkit-text-stroke: 0;
+}
