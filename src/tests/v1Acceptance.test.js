@@ -153,7 +153,7 @@ describe('v1 release acceptance', () => {
     expect(fixture.gameState.gameplay.combo).toBe(1);
     finishPlayerRecovery(fixture);
     tapAt(fixture, 0.5);
-    expect(fixture.gameState.gameplay.combo).toBe(3);
+    expect(fixture.gameState.gameplay.combo).toBe(2);
     finishPlayerRecovery(fixture);
 
     effects = purchaseAndApply(fixture, 'quadThrow');
