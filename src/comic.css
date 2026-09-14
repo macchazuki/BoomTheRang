@@ -28,6 +28,10 @@
   -webkit-text-stroke: 1px #05070c;
 }
 
+[data-canvas-host] {
+  position: relative;
+}
+
 .combo-popup {
   position: absolute;
   z-index: 8;
