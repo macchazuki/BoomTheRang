@@ -34,13 +34,13 @@ function createHudFixture() {
 }
 
 describe('HUD mobile/accessibility presentation', () => {
-  it('keeps XP visible while hiding combo until it is unlocked', () => {
+  it('keeps XP visible without showing combo in the top HUD', () => {
     const { hud, mountElement } = createHudFixture();
 
     hud.render({
       xp: 1234,
       combo: 7,
-      comboUnlocked: false,
+      comboUnlocked: true,
       reloadRemainingSeconds: 0,
       state: 'READY',
     });
@@ -49,7 +49,7 @@ describe('HUD mobile/accessibility presentation', () => {
     expect(mountElement.innerHTML).not.toContain('Combo:');
   });
 
-  it('shows combo after unlock and a readable reload countdown during misses', () => {
+  it('keeps the map combo popup and readable reload countdown during misses', () => {
     const { hud, mountElement } = createHudFixture();
     hud.showComboPopup = vi.fn();
 
@@ -61,7 +61,8 @@ describe('HUD mobile/accessibility presentation', () => {
       state: 'MISS_RELOAD',
     });
 
-    expect(mountElement.innerHTML).toContain('Combo: 3');
+    expect(hud.showComboPopup).toHaveBeenCalledWith(3, true);
+    expect(mountElement.innerHTML).not.toContain('Combo: 3');
     expect(mountElement.innerHTML).toContain('Reload: 4.3s');
   });
 
