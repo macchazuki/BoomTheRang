@@ -130,11 +130,11 @@ describe('RewardCalculator contract', () => {
     ).toBe(13);
   });
 
-  it('green adds one combo step and every critical tier adds two', () => {
+  it('every successful hit adds exactly one combo step', () => {
     expect(getNextCombo(4, GAUGE_RESULT.HIT, true)).toBe(5);
-    expect(getNextCombo(4, GAUGE_RESULT.CRITICAL, true)).toBe(6);
-    expect(getNextCombo(4, GAUGE_RESULT.MEGA_CRITICAL, true)).toBe(6);
-    expect(getNextCombo(4, GAUGE_RESULT.OMEGA_CRITICAL, true)).toBe(6);
+    expect(getNextCombo(4, GAUGE_RESULT.CRITICAL, true)).toBe(5);
+    expect(getNextCombo(4, GAUGE_RESULT.MEGA_CRITICAL, true)).toBe(5);
+    expect(getNextCombo(4, GAUGE_RESULT.OMEGA_CRITICAL, true)).toBe(5);
   });
 
   it('miss resets combo', () => {
