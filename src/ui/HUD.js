@@ -45,21 +45,18 @@ export class HUD {
     `;
   }
 
-  /** Keep the current combo visible above the right side of the gauge. */
+  /** Keep the current combo visible at the bottom-right of the game area. */
   showComboPopup(combo, punch = true) {
     if (!this.gameScreen || typeof document === 'undefined') return;
-
-    const gauge = this.gameScreen.querySelector?.('.gauge');
-    if (!gauge) return;
 
     if (!this.comboBadge || !this.comboBadge.isConnected) {
       this.comboBadge = document.createElement('div');
       this.comboBadge.className = 'combo-popup';
       this.comboBadge.setAttribute('aria-hidden', 'true');
-      gauge.append(this.comboBadge);
+      this.gameScreen.append(this.comboBadge);
     }
 
-    this.comboBadge.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO!</span>`;
+    this.comboBadge.innerHTML = `<span class="combo-popup__count">${combo}x</span><span class="combo-popup__label">COMBO</span>`;
     if (!punch) return;
 
     this.comboBadge.classList.remove('combo-popup--punch');
