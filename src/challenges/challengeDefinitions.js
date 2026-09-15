@@ -4,7 +4,7 @@ const DEFINITIONS = [
   {
     id: 'speedTrial',
     name: 'Speed Trial',
-    description: 'Missed boomerangs are permanently lost and the gauge accelerates after every hit.',
+    description: 'Missed boomerangs are permanently lost and the gauge accelerates after every hit. Upgrades slow the acceleration so higher scores are possible.',
     levels: [
       {
         tierId: 'speedTrial',
@@ -13,23 +13,23 @@ const DEFINITIONS = [
         ...BALANCE.challenges.speedTrial,
       },
       {
-        tierId: 'pressureTrial',
-        tierName: 'Pressure Trial',
-        description: 'A faster-ramping Speed Trial with a larger permanent damage reward.',
-        ...BALANCE.challenges.pressureTrial,
+        tierId: 'speedControl1',
+        tierName: 'Speed Control I',
+        description: 'The gauge accelerates 30% less after each successful hit.',
+        ...BALANCE.challenges.speedControl1,
       },
       {
-        tierId: 'masterTrial',
-        tierName: 'Master Trial',
-        description: 'The fastest-ramping Speed Trial and the largest permanent damage reward.',
-        ...BALANCE.challenges.masterTrial,
+        tierId: 'speedControl2',
+        tierName: 'Speed Control II',
+        description: 'The gauge accelerates 55% less after each successful hit.',
+        ...BALANCE.challenges.speedControl2,
       },
     ],
   },
   {
     id: 'blindTrial',
     name: 'Blind Trial',
-    description: 'Each successful hit fades the gauge a little more. Upgrades reduce the amount faded per hit.',
+    description: 'Each successful hit fades the gauge a little more. Upgrades reduce the amount faded per hit so higher scores are possible.',
     levels: [
       {
         tierId: 'blindTrial',
@@ -39,18 +39,18 @@ const DEFINITIONS = [
         ...BALANCE.challenges.blindTrial,
       },
       {
-        tierId: 'blindTrial2',
-        tierName: 'Blind Trial II',
+        tierId: 'blindControl1',
+        tierName: 'Fade Control I',
         description: 'Each successful hit fades the gauge by 7%.',
         fadePerHit: 0.07,
-        ...BALANCE.challenges.pressureTrial,
+        ...BALANCE.challenges.blindControl1,
       },
       {
-        tierId: 'blindTrial3',
-        tierName: 'Blind Trial III',
+        tierId: 'blindControl2',
+        tierName: 'Fade Control II',
         description: 'Each successful hit fades the gauge by 5%.',
         fadePerHit: 0.05,
-        ...BALANCE.challenges.masterTrial,
+        ...BALANCE.challenges.blindControl2,
       },
     ],
   },

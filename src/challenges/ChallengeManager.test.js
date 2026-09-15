@@ -37,18 +37,18 @@ describe('ChallengeManager', () => {
     expect(gameState.challenges.speedTrial).toMatchObject({ unlocked: true, level: 1 });
   });
 
-  it('upgrades Speed Trial through Pressure and Master tiers on the same record', () => {
+  it('upgrades Speed Trial with slower acceleration instead of harder challenge tiers', () => {
     const gameState = createState({ xp: 130_000, lifetimeXp: 200_000 });
     const manager = new ChallengeManager(gameState);
     manager.unlock('speedTrial');
 
-    const pressure = manager.upgrade('speedTrial');
-    expect(pressure).toMatchObject({ ok: true, level: 2 });
-    expect(pressure.effectiveDefinition.tierName).toBe('Pressure Trial');
+    const control1 = manager.upgrade('speedTrial');
+    expect(control1).toMatchObject({ ok: true, level: 2 });
+    expect(control1.effectiveDefinition.tierName).toBe('Speed Control I');
 
-    const master = manager.upgrade('speedTrial');
-    expect(master).toMatchObject({ ok: true, level: 3 });
-    expect(master.effectiveDefinition.tierName).toBe('Master Trial');
+    const control2 = manager.upgrade('speedTrial');
+    expect(control2).toMatchObject({ ok: true, level: 3 });
+    expect(control2.effectiveDefinition.tierName).toBe('Speed Control II');
     expect(gameState.challenges.speedTrial.level).toBe(3);
     expect(manager.getStatuses()).toHaveLength(2);
   });
@@ -62,7 +62,7 @@ describe('ChallengeManager', () => {
     expect(manager.upgrade('speedTrial')).toMatchObject({ ok: false, reason: 'LIFETIME_XP_GATE' });
   });
 
-  it('puts an unlocked challenge on the active tier cooldown as soon as an attempt starts', () => {
+  it('puts an unlocked challenge on a 30 minute cooldown as soon as an attempt starts', () => {
     const now = 1_000_000;
     const gameState = createState({ xp: 2_500 });
     const manager = new ChallengeManager(gameState, { now: () => now });
@@ -71,7 +71,7 @@ describe('ChallengeManager', () => {
     const result = manager.startAttempt('speedTrial');
 
     expect(result.ok).toBe(true);
-    expect(gameState.challenges.speedTrial.cooldownUntil).toBe(now + 6 * 60 * 60 * 1000);
+    expect(gameState.challenges.speedTrial.cooldownUntil).toBe(now + 30 * 60 * 1000);
     expect(manager.getStatus('speedTrial').canStart).toBe(false);
   });
 
@@ -88,11 +88,14 @@ describe('ChallengeManager', () => {
     expect(worse.damageBonus).toBe(calculateChallengeDamageBonus('speedTrial', 80));
   });
 
-  it('uses the upgraded Speed tier for gauge acceleration', () => {
+  it('makes each Speed Trial upgrade reduce acceleration', () => {
+    const baseAtTenHits = getChallengeGaugeOneWaySeconds('speedTrial', 10, 1);
+    const control1AtTenHits = getChallengeGaugeOneWaySeconds('speedTrial', 10, 2);
+    const control2AtTenHits = getChallengeGaugeOneWaySeconds('speedTrial', 10, 3);
+
     expect(getChallengeGaugeOneWaySeconds('speedTrial', 0, 1)).toBeCloseTo(1.35);
-    expect(getChallengeGaugeOneWaySeconds('speedTrial', 10, 2)).toBeLessThan(
-      getChallengeGaugeOneWaySeconds('speedTrial', 10, 1),
-    );
+    expect(control1AtTenHits).toBeGreaterThan(baseAtTenHits);
+    expect(control2AtTenHits).toBeGreaterThan(control1AtTenHits);
     expect(getChallengeGaugeOneWaySeconds('speedTrial', 10_000, 3)).toBe(0.10);
   });
 });
