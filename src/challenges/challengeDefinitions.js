@@ -29,14 +29,28 @@ const DEFINITIONS = [
   {
     id: 'blindTrial',
     name: 'Blind Trial',
-    description: 'The gauge is visible until your first throw, then its marker and timing colors stay hidden.',
-    hideGaugeAfterFirstTap: true,
+    description: 'Each successful hit fades the gauge a little more. Upgrades reduce the amount faded per hit.',
     levels: [
       {
         tierId: 'blindTrial',
         tierName: 'Blind Trial',
-        description: 'Fresh progression with the gauge hidden after your first throw.',
+        description: 'Each successful hit fades the gauge by 10%.',
+        fadePerHit: 0.10,
         ...BALANCE.challenges.blindTrial,
+      },
+      {
+        tierId: 'blindTrial2',
+        tierName: 'Blind Trial II',
+        description: 'Each successful hit fades the gauge by 7%.',
+        fadePerHit: 0.07,
+        ...BALANCE.challenges.pressureTrial,
+      },
+      {
+        tierId: 'blindTrial3',
+        tierName: 'Blind Trial III',
+        description: 'Each successful hit fades the gauge by 5%.',
+        fadePerHit: 0.05,
+        ...BALANCE.challenges.masterTrial,
       },
     ],
   },
