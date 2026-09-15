@@ -28,10 +28,10 @@ describe('GaugeView DOM/CSS presentation', () => {
     expect(styles).not.toContain('gauge__zone--consumed');
   });
 
-  it('latches blind challenge concealment after the first consumed segment', () => {
-    expect(source).toContain('if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;');
-    expect(source).toContain("zone.style.visibility = this.concealed ? 'hidden' : '';");
-    expect(source).toContain('this.marker.hidden = this.concealed || snapshot.segmentCount === 0;');
+  it('fades the blind challenge gauge after the first consumed segment', () => {
+    expect(source).toContain('this.root.style.transition = `opacity ${this.fadeOutSeconds}s linear`;');
+    expect(source).toContain('this.fadeOutSeconds !== null && consumed.size > 0 && !this.fadeStarted');
+    expect(source).toContain("this.root.style.opacity = '0';");
   });
 
   it('uses CSS/DOM spark bursts for hits and star pops for criticals', () => {
