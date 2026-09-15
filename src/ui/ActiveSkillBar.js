@@ -40,8 +40,15 @@ export class ActiveSkillBar {
           this.showTooltip(definition);
         }, LONG_PRESS_MS);
       });
-      for (const eventName of ['pointerup', 'pointercancel', 'pointerleave']) {
-        button.addEventListener(eventName, () => this.clearLongPress());
+      button.addEventListener('pointerup', () => {
+        this.clearLongPress();
+        if (this.suppressNextClick) this.hideTooltip();
+      });
+      for (const eventName of ['pointercancel', 'pointerleave']) {
+        button.addEventListener(eventName, () => {
+          this.clearLongPress();
+          if (this.suppressNextClick) this.hideTooltip();
+        });
       }
       button.addEventListener('click', (event) => {
         event.stopPropagation();
