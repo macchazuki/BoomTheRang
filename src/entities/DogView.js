@@ -25,7 +25,7 @@ export class DogView {
   layout() {
     const point = this.toScreenPoint(this.worldPosition);
     this.body.setPosition(point.x, point.y);
-    this.body.setSize(this.worldScale(1.2), this.worldScale(0.8));
+    this.body.setDisplaySize(this.worldScale(1.2), this.worldScale(0.8));
   }
 
   playThrow({ critical = false, reducedMotion = false } = {}) {
