@@ -44,3 +44,62 @@
   font-weight: 500;
   opacity: 0.9;
 }
+
+.challenge-confirmation {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 60%);
+}
+
+.challenge-confirmation__dialog {
+  width: min(100%, 24rem);
+  padding: 1.25rem;
+  color: #f4f7ff;
+  background: #131b2f;
+  border: 2px solid rgb(243 214 144 / 85%);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 55%);
+  text-align: center;
+}
+
+.challenge-confirmation__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
+}
+
+.challenge-confirmation__description {
+  margin: 0;
+  line-height: 1.45;
+  opacity: 0.95;
+}
+
+.challenge-confirmation__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.challenge-confirmation__button {
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-weight: 700;
+}
+
+.challenge-confirmation__button--cancel {
+  color: #f4f7ff;
+  background: #2a3349;
+  border: 1px solid #65708a;
+}
+
+.challenge-confirmation__button--start {
+  color: #17120a;
+  background: #f3d690;
+  border: 1px solid #fff0bf;
+}
