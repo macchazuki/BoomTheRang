@@ -13,10 +13,10 @@ const SPARK_ANGLES = [-82, -58, -32, -8, 18, 42, 66, 102];
 const STAR_ANGLES = [-90, -52, -18, 20, 58, 96, 142];
 
 export class GaugeView {
-  constructor({ mountElement, fadeOutSeconds = null }) {
+  constructor({ mountElement, fadePerHit = null }) {
     this.mountElement = mountElement;
-    this.fadeOutSeconds = Number.isFinite(fadeOutSeconds) ? Math.max(0, fadeOutSeconds) : null;
-    this.fadeStarted = false;
+    this.fadePerHit = Number.isFinite(fadePerHit) ? Math.max(0, Math.min(1, fadePerHit)) : null;
+    this.opacity = 1;
     this.renderedSegmentCount = 0;
     this.renderedCriticalLayerCount = 0;
     this.renderedZoneKey = '';
@@ -29,9 +29,7 @@ export class GaugeView {
       'aria-label',
       'Timing gauge: each boomerang has red, green, and nested critical timing areas per sweep.',
     );
-    if (this.fadeOutSeconds !== null) {
-      this.root.style.transition = `opacity ${this.fadeOutSeconds}s linear`;
-    }
+    if (this.fadePerHit !== null) this.root.style.transition = 'opacity 180ms linear';
 
     this.rim = document.createElement('div');
     this.rim.className = 'gauge__rim';
@@ -140,13 +138,14 @@ export class GaugeView {
 
     const consumed = new Set(snapshot.consumedSegments);
     const newlyConsumed = snapshot.consumedSegments.some((segment) => !this.previousConsumedSegments.has(segment));
-    if (newlyConsumed) this.showHitEffect(snapshot.resultAtCurrentPosition, snapshot.position);
-    this.previousConsumedSegments = consumed;
-
-    if (this.fadeOutSeconds !== null && consumed.size > 0 && !this.fadeStarted) {
-      this.fadeStarted = true;
-      this.root.style.opacity = '0';
+    if (newlyConsumed) {
+      this.showHitEffect(snapshot.resultAtCurrentPosition, snapshot.position);
+      if (this.fadePerHit !== null && snapshot.resultAtCurrentPosition !== 'MISS') {
+        this.opacity = Math.max(0, this.opacity - this.fadePerHit);
+        this.root.style.opacity = String(this.opacity);
+      }
     }
+    this.previousConsumedSegments = consumed;
 
     for (const zone of this.track.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
