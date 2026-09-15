@@ -21,13 +21,13 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `dispose()` — tears down all app-owned resources.
 - `showMainMenu()` — composes main menu and shared settings panel.
 - `startGame()` — composes scene, gameplay models/controllers, and UI.
-- `openUpgrades()` — pauses and opens skill UI.
+- `openUpgrades()` — pauses and opens upgrade/skill UI.
 - `openSettings({ returnTo })` — opens shared settings UI from menu or gameplay.
 - `closeModal()` — closes gameplay overlays and resumes.
 - `openCompletion()` — opens final statistics.
 - `purchaseUpgrade(upgradeId)` — delegates transaction, applies derived effects, saves.
 - `handleVisibilityChange()` — pause/save on hide; safe resume on show.
-- `frame(frameMs)` — clamped RAF update + periodic save.
+- `frame(frameMs)` — clamped RAF gameplay update + periodic save.
 - `disposeGameplay()` — tears down gameplay composition only.
 
 ## Scenes
@@ -37,12 +37,14 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `unmount()` — removes menu DOM.
 
 ### `src/scenes/GameScene.js` — `GameScene`
-- `mount()` — creates gameplay DOM shell, Three.js renderer, camera, lights, entities.
-- `createCamera()` — fixed orthographic camera.
-- `createLighting()` — lightweight scene lights.
-- `createEnvironment()` — background/floor presentation.
+- `mount()` — creates the gameplay DOM shell and starts the Phaser 4 presentation runtime.
+- `startPhaser()` — dynamically creates the Phaser game and presentation scene.
+- `preloadPhaserAssets(scene)` — queues authored hero, boomerang, and target sprite sheets.
+- `attachPhaserScene(scene)` — configures frames/animations and creates presentation views.
+- `configureTextureFrames()` / `configureAnimations()` — registers authored frames and Phaser animations.
 - `bindInput(...)` — binds the single gameplay Pointer Events path and UI controls.
-- `handleResize()` — keeps renderer/camera responsive.
+- `toScreenPoint(...)` / `worldScale(...)` — preserve the existing portrait-oriented world coordinates.
+- `handleResize()` — keeps Phaser presentation and view layout responsive.
 - `setPlayerBoomerangCount(count)` — mirrors 1–4 derived player boomerangs.
 - `setTargetCount(count)` — mirrors the derived target count, which progression fixes at `1`.
 - `getTargetPositions(count)` — deterministic target placement helper.
@@ -50,10 +52,10 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `playPlayerThrow(...)` — deterministic resolved player throw animation contract.
 - `playDogThrow(...)` — non-blocking dog animation contract.
 - `playResultFeedback(result)` — hit/critical/miss visual feedback.
-- `showGrandmasterTarget()` — special final target.
+- `showGrandmasterTarget()` — special final target marker.
 - `playGrandmasterSequence(...)` — final celebration contract.
-- `update(deltaSeconds)` — updates visual-only animation and renders.
-- `dispose()` — frees GPU/DOM/listener resources.
+- `update()` — intentionally empty; Phaser owns its visual animation/render loop.
+- `dispose()` — destroys Phaser objects/game plus DOM/listener resources.
 
 ## Gameplay
 
@@ -153,19 +155,27 @@ This is a navigation aid for implementation agents. Public responsibilities are 
 - `clear()` — development/reset utility.
 - `roundTrip(saveData)` — defensive normalized snapshot for tests/debugging.
 
-## Three.js entity views
+## Phaser entity views
 
 ### `src/entities/PlayerView.js` — `PlayerView`
-- `update(deltaSeconds)`, `playThrow()`, `dispose()`.
+- `layout()` — maps the retained world position onto the responsive Phaser canvas.
+- `playThrow(...)` — triggers the authored Phaser sprite animation.
+- `dispose()` — destroys the sprite.
 
 ### `src/entities/BoomerangView.js` — `BoomerangView`
-- `playHitPath(...)`, `playMissPath(...)`, `update(deltaSeconds)`, `reset()`, `dispose()`.
+- `playHitPath(...)` / `playMissPath(...)` — start visual-only Phaser tween paths.
+- `renderProgress(progress)` — samples a deterministic path and dispatches visual impact milestones.
+- `reset()` / `dispose()` — stop tweens and clean up the sprite.
 
 ### `src/entities/TargetDummyView.js` — `TargetDummyView`
-- `setPosition(...)`, `playReaction(result)`, `update(deltaSeconds)`, `dispose()`.
+- `setPosition(...)` / `layout()` — map deterministic world placement to the Phaser canvas.
+- `playReaction(result)` — selects hit/critical/reduced-motion Phaser animations.
+- `dispose()` — destroys the sprite.
 
 ### `src/entities/DogView.js` — `DogView`
-- `playThrow(...)`, `update(deltaSeconds)`, `dispose()`.
+- `layout()` — maps the companion placeholder into the Phaser canvas.
+- `playThrow(...)` — runs the visual-only Phaser hop/pulse tween.
+- `dispose()` — stops the tween and destroys the Phaser object.
 
 These classes are presentation-only and must never become authoritative gameplay models.
 
