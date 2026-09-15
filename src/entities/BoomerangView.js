@@ -21,11 +21,13 @@ function lerp(a, b, amount) {
 
 /** Phaser-backed render-only player/dog boomerang. */
 export class BoomerangView {
-  constructor({ scene, index = 0, toScreenPoint, worldScale, tint = null }) {
+  constructor({ scene, index = 0, toScreenPoint, worldScale, tint = null, autoDispose = false }) {
     this.scene = scene;
     this.index = index;
     this.toScreenPoint = toScreenPoint;
     this.worldScale = worldScale;
+    this.tint = tint;
+    this.autoDispose = autoDispose;
     this.sprite = scene.add.sprite(0, 0, 'boomerang', 'boomerang-0').setDepth(20).setVisible(false);
     if (tint !== null) this.sprite.setTint?.(tint);
 
@@ -50,6 +52,19 @@ export class BoomerangView {
   }
 
   startPath({ points, durationSeconds, delaySeconds = 0, reducedMotion = false, onPathPoint = null }) {
+    if (this.tween) {
+      const concurrentView = new BoomerangView({
+        scene: this.scene,
+        index: this.index,
+        toScreenPoint: this.toScreenPoint,
+        worldScale: this.worldScale,
+        tint: this.tint,
+        autoDispose: true,
+      });
+      concurrentView.startPath({ points, durationSeconds, delaySeconds, reducedMotion, onPathPoint });
+      return;
+    }
+
     const normalizedPoints = (points ?? []).map(clonePoint);
     if (normalizedPoints.length < 2) {
       this.reset();
@@ -63,7 +78,6 @@ export class BoomerangView {
       normalizedPoints[normalizedPoints.length - 1].x += HERO_LAUNCH_OFFSET_X;
     }
 
-    this.stopTween();
     this.reducedMotion = reducedMotion;
     this.pathPoints = reducedMotion ? this.createReducedMotionPath(normalizedPoints[0]) : normalizedPoints;
     this.onPathPoint = onPathPoint;
@@ -165,6 +179,7 @@ export class BoomerangView {
     this.reducedMotion = false;
     this.motion = null;
     this.tween = null;
+    if (this.autoDispose) this.sprite.destroy();
   }
 
   dispose() {
