@@ -72,22 +72,22 @@ export const BALANCE = Object.freeze({
       damageBonusPerHit: 0.001,
       maxDamageBonus: 0.15,
     }),
-    pressureTrial: Object.freeze({
+    blindControl1: Object.freeze({
       unlockLifetimeXp: 25_000,
       unlockCostXp: 25_000,
       cooldownSeconds: 30 * 60,
-      speedFactorPerHit: 0.960,
+      speedFactorPerHit: 0.965,
       minGaugeOneWaySeconds: 0.10,
-      damageBonusPerHit: 0.0015,
+      damageBonusPerHit: 0.001,
       maxDamageBonus: 0.25,
     }),
-    masterTrial: Object.freeze({
+    blindControl2: Object.freeze({
       unlockLifetimeXp: 200_000,
       unlockCostXp: 100_000,
       cooldownSeconds: 30 * 60,
-      speedFactorPerHit: 0.955,
+      speedFactorPerHit: 0.965,
       minGaugeOneWaySeconds: 0.10,
-      damageBonusPerHit: 0.002,
+      damageBonusPerHit: 0.001,
       maxDamageBonus: 0.35,
     }),
   }),
