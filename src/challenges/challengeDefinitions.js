@@ -4,7 +4,7 @@ const DEFINITIONS = [
   {
     id: 'speedTrial',
     name: 'Speed Trial',
-    description: 'Missed boomerangs are permanently lost and the gauge accelerates after every hit.',
+    description: 'Missed boomerangs are permanently lost and the gauge accelerates after every hit. Upgrades slow the acceleration so higher scores are possible.',
     levels: [
       {
         tierId: 'speedTrial',
@@ -13,16 +13,16 @@ const DEFINITIONS = [
         ...BALANCE.challenges.speedTrial,
       },
       {
-        tierId: 'pressureTrial',
-        tierName: 'Pressure Trial',
-        description: 'A faster-ramping Speed Trial with a larger permanent damage reward.',
-        ...BALANCE.challenges.pressureTrial,
+        tierId: 'speedControl1',
+        tierName: 'Speed Control I',
+        description: 'The gauge accelerates 30% less after each successful hit.',
+        ...BALANCE.challenges.speedControl1,
       },
       {
-        tierId: 'masterTrial',
-        tierName: 'Master Trial',
-        description: 'The fastest-ramping Speed Trial and the largest permanent damage reward.',
-        ...BALANCE.challenges.masterTrial,
+        tierId: 'speedControl2',
+        tierName: 'Speed Control II',
+        description: 'The gauge accelerates 55% less after each successful hit.',
+        ...BALANCE.challenges.speedControl2,
       },
     ],
   },
