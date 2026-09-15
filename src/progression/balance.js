@@ -39,7 +39,7 @@ export const BALANCE = Object.freeze({
     speedTrial: Object.freeze({
       unlockLifetimeXp: 0,
       unlockCostXp: 2_500,
-      cooldownSeconds: 6 * 60 * 60,
+      cooldownSeconds: 30 * 60,
       speedFactorPerHit: 0.965,
       minGaugeOneWaySeconds: 0.10,
       damageBonusPerHit: 0.001,
@@ -48,7 +48,7 @@ export const BALANCE = Object.freeze({
     speedControl1: Object.freeze({
       unlockLifetimeXp: 25_000,
       unlockCostXp: 25_000,
-      cooldownSeconds: 6 * 60 * 60,
+      cooldownSeconds: 30 * 60,
       speedFactorPerHit: 0.975,
       minGaugeOneWaySeconds: 0.10,
       damageBonusPerHit: 0.001,
@@ -57,7 +57,7 @@ export const BALANCE = Object.freeze({
     speedControl2: Object.freeze({
       unlockLifetimeXp: 200_000,
       unlockCostXp: 100_000,
-      cooldownSeconds: 6 * 60 * 60,
+      cooldownSeconds: 30 * 60,
       speedFactorPerHit: 0.985,
       minGaugeOneWaySeconds: 0.10,
       damageBonusPerHit: 0.001,
@@ -66,7 +66,7 @@ export const BALANCE = Object.freeze({
     blindTrial: Object.freeze({
       unlockLifetimeXp: 0,
       unlockCostXp: 2_500,
-      cooldownSeconds: 6 * 60 * 60,
+      cooldownSeconds: 30 * 60,
       speedFactorPerHit: 0.965,
       minGaugeOneWaySeconds: 0.10,
       damageBonusPerHit: 0.001,
@@ -75,7 +75,7 @@ export const BALANCE = Object.freeze({
     pressureTrial: Object.freeze({
       unlockLifetimeXp: 25_000,
       unlockCostXp: 25_000,
-      cooldownSeconds: 12 * 60 * 60,
+      cooldownSeconds: 30 * 60,
       speedFactorPerHit: 0.960,
       minGaugeOneWaySeconds: 0.10,
       damageBonusPerHit: 0.0015,
@@ -84,7 +84,7 @@ export const BALANCE = Object.freeze({
     masterTrial: Object.freeze({
       unlockLifetimeXp: 200_000,
       unlockCostXp: 100_000,
-      cooldownSeconds: 24 * 60 * 60,
+      cooldownSeconds: 30 * 60,
       speedFactorPerHit: 0.955,
       minGaugeOneWaySeconds: 0.10,
       damageBonusPerHit: 0.002,
