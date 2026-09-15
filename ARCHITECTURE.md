@@ -59,9 +59,11 @@ Colocated `*.test.js` files sit beside the pure logic they cover.
 `GameApp` is the application shell. It owns:
 - current screen;
 - current scene/controller instances;
-- animation frame;
+- gameplay animation frame;
 - top-level visibility handling;
 - transitions among main menu, gameplay, settings, and completion UI.
+
+`GameScene` owns the Phaser 4 presentation runtime. Phaser owns sprite animation, rendering, and visual tweens; `GameApp` continues to own authoritative gameplay timing.
 
 Gameplay composition:
 
@@ -72,7 +74,7 @@ Pointer input
      -> ThrowController
      -> RewardCalculator
      -> GameState
-     -> HUD / views / SaveManager
+     -> HUD / Phaser views / SaveManager
 
 DogController timer
   -> ThrowController
@@ -83,7 +85,7 @@ DogController timer
 
 ## Authoritative data
 
-Only gameplay models hold authoritative values. DOM and Three.js objects mirror state.
+Only gameplay models hold authoritative values. DOM and Phaser objects mirror state.
 
 Persisted:
 - spendable XP;
@@ -143,7 +145,7 @@ Purchasing `grandmaster` starts the final challenge. The player must land one wh
 ## Implementation order
 
 1. Pure core loop and gauge/reward tests.
-2. Three.js presentation.
+2. Phaser 4 presentation.
 3. Early progression.
 4. Dog.
 5. Late progression/combo.
