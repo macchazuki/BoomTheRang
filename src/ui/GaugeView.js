@@ -30,7 +30,7 @@ export class GaugeView {
       'Timing gauge: each boomerang has red, green, and nested critical timing areas per sweep.',
     );
     if (this.fadeOutSeconds !== null) {
-      this.root.style.setProperty('--gauge-fade-duration', `${this.fadeOutSeconds}s`);
+      this.root.style.transition = `opacity ${this.fadeOutSeconds}s linear`;
     }
 
     this.rim = document.createElement('div');
@@ -145,7 +145,7 @@ export class GaugeView {
 
     if (this.fadeOutSeconds !== null && consumed.size > 0 && !this.fadeStarted) {
       this.fadeStarted = true;
-      this.root.classList.add('gauge--fading');
+      this.root.style.opacity = '0';
     }
 
     for (const zone of this.track.querySelectorAll('.gauge__zone')) {
