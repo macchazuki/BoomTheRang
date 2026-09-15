@@ -2,26 +2,27 @@ import { describe, expect, it, vi } from 'vitest';
 import { BoomerangView } from './BoomerangView.js';
 
 function createFixture({ index = 0 } = {}) {
-  const sprite = {
-    frame: { height: 100 },
-    visible: false,
-    setDepth: vi.fn().mockReturnThis(),
-    setVisible: vi.fn(function setVisible(value) { this.visible = value; return this; }),
-    setTint: vi.fn().mockReturnThis(),
-    setPosition: vi.fn().mockReturnThis(),
-    setScale: vi.fn().mockReturnThis(),
-    setFrame: vi.fn().mockReturnThis(),
-    destroy: vi.fn(),
-  };
-  let tweenConfig = null;
-  const tween = { stop: vi.fn(), remove: vi.fn() };
+  const sprites = [];
   const scene = {
-    add: { sprite: vi.fn(() => sprite) },
-    tweens: {
-      add: vi.fn((config) => {
-        tweenConfig = config;
-        return tween;
+    add: {
+      sprite: vi.fn(() => {
+        const sprite = {
+          frame: { height: 100 },
+          visible: false,
+          setDepth: vi.fn().mockReturnThis(),
+          setVisible: vi.fn(function setVisible(value) { this.visible = value; return this; }),
+          setTint: vi.fn().mockReturnThis(),
+          setPosition: vi.fn().mockReturnThis(),
+          setScale: vi.fn().mockReturnThis(),
+          setFrame: vi.fn().mockReturnThis(),
+          destroy: vi.fn(),
+        };
+        sprites.push(sprite);
+        return sprite;
       }),
+    },
+    tweens: {
+      add: vi.fn((config) => ({ config, stop: vi.fn(), remove: vi.fn() })),
     },
   };
   const view = new BoomerangView({
@@ -30,12 +31,12 @@ function createFixture({ index = 0 } = {}) {
     toScreenPoint: ({ x, y }) => ({ x: x * 10, y: y * -10 }),
     worldScale: (value) => value * 10,
   });
-  return { view, sprite, scene, getTweenConfig: () => tweenConfig };
+  return { view, sprite: sprites[0], sprites, scene };
 }
 
 describe('BoomerangView', () => {
   it('uses a Phaser sprite and tween for flight', () => {
-    const { view, scene, getTweenConfig } = createFixture();
+    const { view, scene } = createFixture();
 
     view.playHitPath({
       points: [{ x: 2, y: 0 }, { x: 2, y: 4 }],
@@ -44,8 +45,26 @@ describe('BoomerangView', () => {
     });
 
     expect(scene.tweens.add).toHaveBeenCalledOnce();
-    expect(getTweenConfig().duration).toBe(1000);
-    expect(getTweenConfig().delay).toBe(200);
+    const tweenConfig = scene.tweens.add.mock.calls[0][0];
+    expect(tweenConfig.duration).toBe(1000);
+    expect(tweenConfig.delay).toBe(200);
+  });
+
+  it('keeps an earlier boomerang rendered when another throw starts', () => {
+    const { view, sprites, scene } = createFixture();
+    const path = {
+      points: [{ x: 2, y: 0 }, { x: 2, y: 4 }],
+      durationSeconds: 1,
+    };
+
+    view.playHitPath(path);
+    const firstTween = view.tween;
+    view.playHitPath(path);
+
+    expect(scene.add.sprite).toHaveBeenCalledTimes(2);
+    expect(scene.tweens.add).toHaveBeenCalledTimes(2);
+    expect(view.tween).toBe(firstTween);
+    expect(sprites[0].destroy).not.toHaveBeenCalled();
   });
 
   it('keeps the throwing-hand launch offset for player paths only', () => {
