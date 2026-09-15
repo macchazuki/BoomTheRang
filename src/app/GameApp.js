@@ -151,7 +151,7 @@ export class GameApp {
     this.hud = new HUD({ mountElement: uiHosts.hud });
     this.gaugeView = new GaugeView({
       mountElement: uiHosts.gauge,
-      fadeOutSeconds: challengeDefinition?.fadeOutSeconds ?? null,
+      fadePerHit: challengeDefinition?.fadePerHit ?? null,
     });
     this.activeSkillBar = new ActiveSkillBar({ mountElement: uiHosts.gameplayArea, onActivate: (skillId) => this.gameController?.activateSkill(skillId) });
     if (!challengeDefinition) {
