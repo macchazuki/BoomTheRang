@@ -1,6 +1,6 @@
 # BoomTheRang
 
-BoomTheRang is a mobile-first, portrait-oriented Three.js incremental timing game. Time the moving gauge to throw boomerangs at a single target dummy, deal damage, earn equal XP, buy upgrades, unlock a dog companion, and finish the Grandmaster white-zone challenge.
+BoomTheRang is a mobile-first, portrait-oriented Phaser 4 incremental timing game. Time the moving gauge to throw boomerangs at a single target dummy, deal damage, earn equal XP, buy upgrades, unlock a dog companion, and finish the Grandmaster white-zone challenge.
 
 ## Gameplay
 
@@ -18,14 +18,14 @@ There are no target-count upgrades or multi-target progression.
 
 ## Controls
 
-Tap/click the gameplay area to throw one available boomerang using the current gauge area. A used area cannot be tapped again during that sweep. Use **Skills** to purchase upgrades and **Settings** to adjust game options. Gameplay pauses while gameplay overlays are open and while the document is hidden.
+Tap/click the gameplay area to throw one available boomerang using the current gauge area. A used area cannot be tapped again during that sweep. Use **Upgrades** to purchase upgrades and learn skills, and **Settings** to adjust game options. Gameplay pauses while gameplay overlays are open and while the document is hidden.
 
 ## Development
 
-The project uses JavaScript ES modules, Three.js, Vite, Vitest, HTML/CSS, and `localStorage` persistence.
+The project uses JavaScript ES modules, Phaser 4, Vite, Vitest, HTML/CSS, and `localStorage` persistence.
 
 ```bash
-npm ci
+npm install
 npm test
 npm run build
 npm run dev
@@ -43,6 +43,6 @@ Key ownership remains intentionally small and explicit:
 - `ProgressionManager` owns upgrade requirements, purchases, and derived effects.
 - `DogController` owns automatic dog timing only.
 - `SaveManager` is the persistence boundary.
-- Three.js scene/entity classes own presentation, not authoritative rewards.
+- Phaser scene/entity classes own presentation, not authoritative rewards.
 
 See `ARCHITECTURE.md`, `FUNCTION_INDEX.md`, and `/documents` for implementation responsibilities and product handover details.

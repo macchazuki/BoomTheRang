@@ -1,123 +1,92 @@
-import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { BoomerangView } from './BoomerangView.js';
 
-const pendingLoader = () => ({ loadAsync: vi.fn(() => new Promise(() => {})) });
+function createFixture({ index = 0 } = {}) {
+  const sprite = {
+    frame: { height: 100 },
+    visible: false,
+    setDepth: vi.fn().mockReturnThis(),
+    setVisible: vi.fn(function setVisible(value) { this.visible = value; return this; }),
+    setTint: vi.fn().mockReturnThis(),
+    setPosition: vi.fn().mockReturnThis(),
+    setScale: vi.fn().mockReturnThis(),
+    setFrame: vi.fn().mockReturnThis(),
+    destroy: vi.fn(),
+  };
+  let tweenConfig = null;
+  const tween = { stop: vi.fn(), remove: vi.fn() };
+  const scene = {
+    add: { sprite: vi.fn(() => sprite) },
+    tweens: {
+      add: vi.fn((config) => {
+        tweenConfig = config;
+        return tween;
+      }),
+    },
+  };
+  const view = new BoomerangView({
+    scene,
+    index,
+    toScreenPoint: ({ x, y }) => ({ x: x * 10, y: y * -10 }),
+    worldScale: (value) => value * 10,
+  });
+  return { view, sprite, scene, getTweenConfig: () => tweenConfig };
+}
 
 describe('BoomerangView', () => {
-  it('loads the authored four-frame 2D boomerang sprite sheet', async () => {
-    const texture = new THREE.Texture();
-    texture.image = { width: 400, height: 100 };
-    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
-    const view = new BoomerangView({ spriteUrl: '/boomerang.png', loader });
-
-    await view.spriteReady;
-
-    expect(loader.loadAsync).toHaveBeenCalledWith('/boomerang.png');
-    expect(view.object3d).toBeInstanceOf(THREE.Sprite);
-    expect(view.object3d.scale.x).toBeCloseTo(0.9);
-    expect(view.object3d.scale.y).toBeCloseTo(0.9);
-    expect(view.material.map).toBe(texture);
-    expect(texture.repeat.x).toBeCloseTo(0.25);
-    expect(texture.offset.x).toBeCloseTo(0);
-
-    view.setFrame(2);
-    expect(texture.offset.x).toBeCloseTo(0.5);
-
-    view.dispose();
-  });
-
-  it('cycles through sprite frames while flying', async () => {
-    const texture = new THREE.Texture();
-    texture.image = { width: 400, height: 100 };
-    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
-    const view = new BoomerangView({ loader });
-    await view.spriteReady;
+  it('uses a Phaser sprite and tween for flight', () => {
+    const { view, scene, getTweenConfig } = createFixture();
 
     view.playHitPath({
-      points: [new THREE.Vector3(2, 0, 0), new THREE.Vector3(2, 4, 0)],
-      durationSeconds: 1,
-    });
-
-    view.update(0.1);
-    const firstFrame = view.currentFrame;
-    view.update(0.1);
-    expect(view.currentFrame).not.toBe(firstFrame);
-
-    view.dispose();
-  });
-
-  it('starts hero-owned paths slightly to the right to align with the throwing hand', () => {
-    const view = new BoomerangView({ loader: pendingLoader() });
-    const owner = new THREE.Vector3(0, -5.5, 0);
-
-    view.playHitPath({
-      points: [owner, new THREE.Vector3(0, 5, 0), owner],
-      durationSeconds: 1,
-    });
-
-    expect(view.pathPoints[0].x).toBeCloseTo(0.55);
-    expect(view.pathPoints[2].x).toBeCloseTo(0.55);
-    expect(view.object3d.position.x).toBeCloseTo(0.55);
-  });
-
-  it('does not apply the hero launch offset to the dog path', () => {
-    const view = new BoomerangView({ loader: pendingLoader() });
-    const dogOwner = new THREE.Vector3(1.8, -5.7, 0);
-
-    view.playHitPath({
-      points: [dogOwner, new THREE.Vector3(0, 5, 0), dogOwner],
-      durationSeconds: 1,
-    });
-
-    expect(view.pathPoints[0].x).toBeCloseTo(1.8);
-  });
-
-  it('interpolates a deterministic path and resets after returning', () => {
-    const view = new BoomerangView({ loader: pendingLoader() });
-    const owner = new THREE.Vector3(2, 0, 0);
-
-    view.playHitPath({
-      points: [owner, new THREE.Vector3(2, 2, 0), new THREE.Vector3(4, 2, 0), owner],
-      durationSeconds: 1,
-    });
-
-    view.update(0.25);
-    expect(view.object3d.visible).toBe(true);
-    expect(view.object3d.position.distanceTo(owner)).toBeGreaterThan(0);
-
-    view.update(0.75);
-    expect(view.object3d.visible).toBe(false);
-    expect(view.pathPoints).toBeNull();
-  });
-
-  it('uses a compact owner-local path when reduced motion is enabled', () => {
-    const view = new BoomerangView({ index: 1, loader: pendingLoader() });
-    const owner = new THREE.Vector3(2, 0, 0);
-
-    view.playHitPath({
-      points: [owner, new THREE.Vector3(2, 10, 0), owner],
-      durationSeconds: 1,
-      reducedMotion: true,
-    });
-    view.update(0.5);
-
-    expect(view.object3d.position.distanceTo(owner)).toBeLessThan(0.7);
-  });
-
-  it('honors a deterministic launch delay', () => {
-    const view = new BoomerangView({ loader: pendingLoader() });
-    const owner = new THREE.Vector3(2, 0, 0);
-
-    view.playMissPath({
-      points: [owner, new THREE.Vector3(4, 2, 0), owner],
+      points: [{ x: 2, y: 0 }, { x: 2, y: 4 }],
       durationSeconds: 1,
       delaySeconds: 0.2,
     });
 
-    view.update(0.1);
-    expect(view.object3d.visible).toBe(false);
-    view.update(0.1);
-    expect(view.object3d.visible).toBe(true);
+    expect(scene.tweens.add).toHaveBeenCalledOnce();
+    expect(getTweenConfig().duration).toBe(1000);
+    expect(getTweenConfig().delay).toBe(200);
+  });
+
+  it('keeps the throwing-hand launch offset for player paths only', () => {
+    const player = createFixture().view;
+    player.playHitPath({
+      points: [{ x: 0, y: -5.5 }, { x: 0, y: 5 }, { x: 0, y: -5.5 }],
+      durationSeconds: 1,
+    });
+    expect(player.pathPoints[0].x).toBeCloseTo(0.55);
+    expect(player.pathPoints[2].x).toBeCloseTo(0.55);
+
+    const dog = createFixture().view;
+    dog.playHitPath({
+      points: [{ x: 1.8, y: -5.7 }, { x: 0, y: 5 }, { x: 1.8, y: -5.7 }],
+      durationSeconds: 1,
+    });
+    expect(dog.pathPoints[0].x).toBeCloseTo(1.8);
+  });
+
+  it('fires path-point callbacks as the Phaser tween advances', () => {
+    const { view } = createFixture();
+    const onPathPoint = vi.fn();
+    view.playHitPath({
+      points: [{ x: 2, y: 0 }, { x: 2, y: 2 }, { x: 4, y: 2 }],
+      durationSeconds: 1,
+      onPathPoint,
+    });
+
+    view.renderProgress(0.6);
+    expect(onPathPoint).toHaveBeenCalledWith(1);
+  });
+
+  it('uses a compact owner-local path for reduced motion', () => {
+    const { view } = createFixture({ index: 1 });
+    view.playHitPath({
+      points: [{ x: 2, y: 0 }, { x: 2, y: 10 }, { x: 2, y: 0 }],
+      durationSeconds: 1,
+      reducedMotion: true,
+    });
+
+    const midpoint = view.samplePath(0.5);
+    expect(Math.hypot(midpoint.x - 2, midpoint.y)).toBeLessThan(0.7);
   });
 });

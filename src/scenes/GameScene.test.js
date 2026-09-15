@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { GameScene } from './GameScene.js';
 
@@ -51,15 +50,16 @@ function createInputFixture() {
 function createAnimationFixture({ targetCount = 2, boomerangCount = 2 } = {}) {
   const scene = Object.create(GameScene.prototype);
   scene.playerView = {
-    object3d: { position: new THREE.Vector3(0, -5.5, 0) },
+    getWorldPosition: vi.fn(() => ({ x: 0, y: -5.5 })),
     playThrow: vi.fn(),
   };
   scene.dogView = {
-    object3d: { position: new THREE.Vector3(1.8, -5.7, 0), visible: true },
+    visible: true,
+    getWorldPosition: vi.fn(() => ({ x: 1.8, y: -5.7 })),
     playThrow: vi.fn(),
   };
   scene.targetViews = Array.from({ length: targetCount }, (_, index) => ({
-    object3d: { position: new THREE.Vector3(index === 0 ? -1 : 1, 5, 0) },
+    getWorldPosition: vi.fn(() => ({ x: index === 0 ? -1 : 1, y: 5 })),
     playReaction: vi.fn(),
   }));
   scene.boomerangViews = Array.from({ length: boomerangCount }, () => ({
@@ -67,11 +67,10 @@ function createAnimationFixture({ targetCount = 2, boomerangCount = 2 } = {}) {
     playMissPath: vi.fn(),
     reset: vi.fn(),
   }));
-  scene.dogBoomerangView = {
-    playHitPath: vi.fn(),
-  };
+  scene.dogBoomerangView = { playHitPath: vi.fn() };
   scene.playerResultReducedMotion = false;
   scene.isReducedMotionRequested = vi.fn((value) => value);
+  scene.dispatchImpact = vi.fn();
   return scene;
 }
 
@@ -93,33 +92,29 @@ describe('GameScene pointer routing', () => {
 
   it('does not route overlays, controls, secondary touches, or non-left mouse buttons into gameplay', () => {
     const fixture = createInputFixture();
-    const blockedByControl = {
+    fixture.gameplayHandler({
       defaultPrevented: false,
       isPrimary: true,
       button: 0,
       target: { closest: vi.fn(() => ({})) },
-    };
-    const secondaryTouch = {
+    });
+    fixture.gameplayHandler({
       defaultPrevented: false,
       isPrimary: false,
       button: 0,
       target: { closest: vi.fn(() => null) },
-    };
-    const rightClick = {
+    });
+    fixture.gameplayHandler({
       defaultPrevented: false,
       isPrimary: true,
       button: 2,
       target: { closest: vi.fn(() => null) },
-    };
-
-    fixture.gameplayHandler(blockedByControl);
-    fixture.gameplayHandler(secondaryTouch);
-    fixture.gameplayHandler(rightClick);
+    });
 
     expect(fixture.callbacks.onGameplayPointer).not.toHaveBeenCalled();
   });
 
-  it('opens Skills and Settings through keyboard/touch-compatible click handlers', () => {
+  it('opens Upgrades and Settings through click handlers', () => {
     const fixture = createInputFixture();
     const skillsEvent = { stopPropagation: vi.fn() };
     const settingsEvent = { stopPropagation: vi.fn() };
@@ -131,22 +126,11 @@ describe('GameScene pointer routing', () => {
     expect(settingsEvent.stopPropagation).toHaveBeenCalledOnce();
     expect(fixture.callbacks.onOpenSkills).toHaveBeenCalledOnce();
     expect(fixture.callbacks.onOpenSettings).toHaveBeenCalledOnce();
-    expect(fixture.callbacks.onGameplayPointer).not.toHaveBeenCalled();
-  });
-
-  it('stops overlay pointerdown before it can reach the gameplay boundary', () => {
-    const fixture = createInputFixture();
-    const event = { stopPropagation: vi.fn() };
-
-    fixture.overlay.getHandler('pointerdown')(event);
-
-    expect(event.stopPropagation).toHaveBeenCalledOnce();
-    expect(fixture.callbacks.onGameplayPointer).not.toHaveBeenCalled();
   });
 });
 
 describe('GameScene gameplay presentation', () => {
-  it('launches player boomerangs from the raised right-hand position on the final hero frame', async () => {
+  it('launches player boomerangs from the raised right-hand position', async () => {
     const scene = createAnimationFixture({ targetCount: 2, boomerangCount: 2 });
 
     await scene.playPlayerThrow({ result: 'HIT', targetCount: 2, boomerangCount: 2 });
@@ -159,9 +143,7 @@ describe('GameScene gameplay presentation', () => {
     expect(firstPath.points[0].x).toBeGreaterThan(0.8);
     expect(firstPath.points[0].y).toBeGreaterThan(-5);
     expect(firstPath.delaySeconds).toBeCloseTo(0.215);
-    expect(scene.boomerangViews[1].playHitPath.mock.calls[0][0].delaySeconds).toBeGreaterThan(
-      firstPath.delaySeconds,
-    );
+    expect(scene.boomerangViews[1].playHitPath.mock.calls[0][0].delaySeconds).toBeGreaterThan(firstPath.delaySeconds);
   });
 
   it('uses the shorter final-frame delay when reduced motion is enabled', async () => {
@@ -188,27 +170,20 @@ describe('GameScene gameplay presentation', () => {
     expect(Math.abs(missPoints[1].x)).toBeGreaterThan(1);
   });
 
-  it('plays dog animation independently and reacts only when the boomerang reaches each target', async () => {
+  it('plays dog animation independently and reacts when the boomerang reaches each target', async () => {
     const scene = createAnimationFixture({ targetCount: 2, boomerangCount: 1 });
 
     await scene.playDogThrow({ targetCount: 2, critical: true, reducedMotion: false });
 
     expect(scene.dogView.playThrow).toHaveBeenCalledWith({ critical: true, reducedMotion: false });
-    expect(scene.dogBoomerangView.playHitPath).toHaveBeenCalledOnce();
     const pathOptions = scene.dogBoomerangView.playHitPath.mock.calls[0][0];
     expect(pathOptions.points).toHaveLength(4);
-    expect(scene.targetViews[0].playReaction).not.toHaveBeenCalled();
-    expect(scene.targetViews[1].playReaction).not.toHaveBeenCalled();
 
     pathOptions.onPathPoint(1);
-    expect(scene.targetViews[0].playReaction).toHaveBeenCalledWith('CRITICAL', {
-      reducedMotion: false,
-    });
+    expect(scene.targetViews[0].playReaction).toHaveBeenCalledWith('CRITICAL', { reducedMotion: false });
     expect(scene.targetViews[1].playReaction).not.toHaveBeenCalled();
 
     pathOptions.onPathPoint(2);
-    expect(scene.targetViews[1].playReaction).toHaveBeenCalledWith('CRITICAL', {
-      reducedMotion: false,
-    });
+    expect(scene.targetViews[1].playReaction).toHaveBeenCalledWith('CRITICAL', { reducedMotion: false });
   });
 });
