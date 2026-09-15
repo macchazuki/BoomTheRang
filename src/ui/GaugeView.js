@@ -13,10 +13,10 @@ const SPARK_ANGLES = [-82, -58, -32, -8, 18, 42, 66, 102];
 const STAR_ANGLES = [-90, -52, -18, 20, 58, 96, 142];
 
 export class GaugeView {
-  constructor({ mountElement, concealAfterFirstTap = false }) {
+  constructor({ mountElement, fadeOutSeconds = null }) {
     this.mountElement = mountElement;
-    this.concealAfterFirstTap = concealAfterFirstTap;
-    this.concealed = false;
+    this.fadeOutSeconds = Number.isFinite(fadeOutSeconds) ? Math.max(0, fadeOutSeconds) : null;
+    this.fadeStarted = false;
     this.renderedSegmentCount = 0;
     this.renderedCriticalLayerCount = 0;
     this.renderedZoneKey = '';
@@ -29,6 +29,9 @@ export class GaugeView {
       'aria-label',
       'Timing gauge: each boomerang has red, green, and nested critical timing areas per sweep.',
     );
+    if (this.fadeOutSeconds !== null) {
+      this.root.style.setProperty('--gauge-fade-duration', `${this.fadeOutSeconds}s`);
+    }
 
     this.rim = document.createElement('div');
     this.rim.className = 'gauge__rim';
@@ -140,17 +143,19 @@ export class GaugeView {
     if (newlyConsumed) this.showHitEffect(snapshot.resultAtCurrentPosition, snapshot.position);
     this.previousConsumedSegments = consumed;
 
-    if (this.concealAfterFirstTap && consumed.size > 0) this.concealed = true;
+    if (this.fadeOutSeconds !== null && consumed.size > 0 && !this.fadeStarted) {
+      this.fadeStarted = true;
+      this.root.classList.add('gauge--fading');
+    }
 
     for (const zone of this.track.querySelectorAll('.gauge__zone')) {
       const isConsumed = consumed.has(Number(zone.dataset.segment));
       const zoneName = isConsumed ? 'red' : zone.dataset.zone;
       zone.className = `gauge__zone gauge__zone--${zoneName}`;
       zone.style.background = isConsumed ? '' : CRITICAL_COLORS[zoneName] ?? '';
-      zone.style.visibility = this.concealed ? 'hidden' : '';
     }
 
-    this.marker.hidden = this.concealed || snapshot.segmentCount === 0;
+    this.marker.hidden = snapshot.segmentCount === 0;
     this.marker.style.left = `${snapshot.position * 100}%`;
   }
 
