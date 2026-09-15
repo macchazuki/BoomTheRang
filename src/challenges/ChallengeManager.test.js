@@ -62,7 +62,7 @@ describe('ChallengeManager', () => {
     expect(manager.upgrade('speedTrial')).toMatchObject({ ok: false, reason: 'LIFETIME_XP_GATE' });
   });
 
-  it('puts an unlocked challenge on the active tier cooldown as soon as an attempt starts', () => {
+  it('puts an unlocked challenge on a 30 minute cooldown as soon as an attempt starts', () => {
     const now = 1_000_000;
     const gameState = createState({ xp: 2_500 });
     const manager = new ChallengeManager(gameState, { now: () => now });
@@ -71,7 +71,7 @@ describe('ChallengeManager', () => {
     const result = manager.startAttempt('speedTrial');
 
     expect(result.ok).toBe(true);
-    expect(gameState.challenges.speedTrial.cooldownUntil).toBe(now + 6 * 60 * 60 * 1000);
+    expect(gameState.challenges.speedTrial.cooldownUntil).toBe(now + 30 * 60 * 1000);
     expect(manager.getStatus('speedTrial').canStart).toBe(false);
   });
 
