@@ -1,68 +1,47 @@
-import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { PlayerView } from './PlayerView.js';
 
+function createSprite() {
+  return {
+    frame: { height: 724 },
+    setDepth: vi.fn().mockReturnThis(),
+    setPosition: vi.fn().mockReturnThis(),
+    setScale: vi.fn().mockReturnThis(),
+    setFrame: vi.fn().mockReturnThis(),
+    stop: vi.fn().mockReturnThis(),
+    play: vi.fn().mockReturnThis(),
+    destroy: vi.fn(),
+  };
+}
+
 describe('PlayerView', () => {
-  it('loads the four-frame hero sprite sheet without stretching it', async () => {
-    const texture = new THREE.Texture();
-    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
+  it('lays out the Phaser sprite in the legacy world position', () => {
+    const sprite = createSprite();
+    const scene = { add: { sprite: vi.fn(() => sprite) } };
     const view = new PlayerView({
-      spriteUrl: '/hero.png',
-      loader,
+      scene,
+      toScreenPoint: ({ x, y }) => ({ x: 100 + x, y: 200 - y }),
+      worldScale: (value) => value * 10,
     });
 
-    await view.spriteReady;
-
-    expect(loader.loadAsync).toHaveBeenCalledWith('/hero.png');
-    expect(view.sprite).toBeInstanceOf(THREE.Sprite);
-    expect(view.body.children).toContain(view.sprite);
-    expect(texture.offset.x).toBeCloseTo(0.5 / 2172);
-    expect(texture.repeat.x).toBeCloseTo(542 / 2172);
-    expect(view.sprite.scale.x).toBeCloseTo(3.2 * (543 / 724));
-    expect(view.sprite.scale.y).toBeCloseTo(3.2);
-    expect(view.currentFrame).toBe(0);
-
-    view.dispose();
+    expect(scene.add.sprite).toHaveBeenCalledWith(0, 0, 'hero', 'hero-0');
+    expect(sprite.setPosition).toHaveBeenLastCalledWith(100, 205.5);
+    expect(sprite.setScale).toHaveBeenLastCalledWith(32 / 724);
   });
 
-  it('renders no hero if the sprite sheet cannot be loaded', async () => {
-    const loader = { loadAsync: vi.fn().mockRejectedValue(new Error('missing asset')) };
-    const view = new PlayerView({ loader });
-
-    await view.spriteReady;
-
-    expect(view.sprite).toBeNull();
-    expect(view.body.children).toHaveLength(0);
-
-    view.dispose();
-  });
-
-  it('uses the wider throw crop and separated follow-through crop', async () => {
-    const texture = new THREE.Texture();
-    const loader = { loadAsync: vi.fn().mockResolvedValue(texture) };
-    const view = new PlayerView({ loader });
-    await view.spriteReady;
+  it('uses Phaser animations for normal and reduced-motion throws', () => {
+    const sprite = createSprite();
+    const scene = { add: { sprite: vi.fn(() => sprite) } };
+    const view = new PlayerView({
+      scene,
+      toScreenPoint: () => ({ x: 0, y: 0 }),
+      worldScale: (value) => value,
+    });
 
     view.playThrow();
-    expect(view.currentFrame).toBe(1);
-    expect(texture.offset.x).toBeCloseTo(543.5 / 2172);
-    expect(texture.repeat.x).toBeCloseTo(542 / 2172);
+    expect(sprite.play).toHaveBeenLastCalledWith('hero-throw');
 
-    view.update(0.12);
-    expect(view.currentFrame).toBe(2);
-    expect(texture.offset.x).toBeCloseTo(1086.5 / 2172);
-    expect(texture.repeat.x).toBeCloseTo(554 / 2172);
-
-    view.update(0.11);
-    expect(view.currentFrame).toBe(3);
-    expect(texture.offset.x).toBeCloseTo(1642.5 / 2172);
-    expect(texture.repeat.x).toBeCloseTo(529 / 2172);
-    expect(view.sprite.position.x).toBeCloseTo(-0.035);
-
-    view.update(0.1);
-    expect(view.currentFrame).toBe(0);
-    expect(view.sprite.position.x).toBe(0);
-
-    view.dispose();
+    view.playThrow({ reducedMotion: true });
+    expect(sprite.play).toHaveBeenLastCalledWith('hero-throw-reduced');
   });
 });
